@@ -9,8 +9,6 @@
 #include "slg2View.h"
 #include "MainView.h"
 
-#include "WizardSelRunTypeStep.h"
-#include "WizardSelComPortStep.h"
 #include "SlgNewAverager.h"
 #include "Serial.h"
 #include "AnalogueParamsConstList.h"

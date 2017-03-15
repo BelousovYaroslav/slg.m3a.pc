@@ -180,7 +180,7 @@ CAPTION "About slg2"
 FONT 8, "MS Sans Serif"
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
-    LTEXT           "t39_slg_pc Version 5.2.0.2",IDC_STATIC,40,10,119,8,
+    LTEXT           "t39_slg_pc Version 5.1.3.0",IDC_STATIC,40,10,119,8,
                     SS_NOPREFIX
     LTEXT           "Copyright (C) AL, 2017",IDC_STATIC,40,25,119,8
     DEFPUSHBUTTON   "OK",IDOK,178,7,50,14,WS_GROUP
@@ -539,8 +539,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 5,2,0,2
- PRODUCTVERSION 5,2,0,2
+ FILEVERSION 5,1,3,0
+ PRODUCTVERSION 5,1,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -557,15 +557,15 @@ BEGIN
         BEGIN
             VALUE "Comments", "\0"
             VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "Программа для проведения измерений с прибором T39-М3А2 (M3.PC.5.2.0.2)\0"
-            VALUE "FileVersion", "5, 2, 0, 2\0"
+            VALUE "FileDescription", "Программа для проведения измерений с прибором T39-М3А2 (M3.PC.5.1.3.0)\0"
+            VALUE "FileVersion", "5, 1, 3, 0\0"
             VALUE "InternalName", "t39_slg_pc\0"
             VALUE "LegalCopyright", "Copyright (C) 2009-2017\0"
             VALUE "LegalTrademarks", "\0"
             VALUE "OriginalFilename", "slg2.EXE\0"
             VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "Т39-М3A2. Проведение измерений.  (M3.PC.5.2.0.2)\0"
-            VALUE "ProductVersion", "5, 2, 0, 2\0"
+            VALUE "ProductName", "Т39-М3A2. Проведение измерений.  (M3.PC.5.1.3.0)\0"
+            VALUE "ProductVersion", "5, 1, 3, 0\0"
             VALUE "SpecialBuild", "\0"
         END
     END
@@ -2093,12 +2093,12 @@ END
 STRINGTABLE PRELOAD DISCARDABLE 
 BEGIN
     IDR_MAINFRAME           "slg2\n\nSlg2\n\n\nSlg2.Document\nSlg2 Document"
-    IDS_STR_VER             "5.2.0.2"
+    IDS_STR_VER             "5.1.3.0"
 END
 
 STRINGTABLE PRELOAD DISCARDABLE 
 BEGIN
-    AFX_IDS_APP_TITLE       "T7-МЛГ. Получение измерений. (M3A.PC.5.2.0.2)"
+    AFX_IDS_APP_TITLE       "T7-МЛГ. Получение измерений. (M3A.PC.5.1.3.0)"
     AFX_IDS_IDLEMESSAGE     "Ready"
 END
 
