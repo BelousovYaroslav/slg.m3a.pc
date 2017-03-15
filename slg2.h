@@ -26,13 +26,15 @@ class CSlg2App : public CWinApp
 {
 public:
 	CString strDirName;
-	int m_nComPort;
-	int m_nComBaudrate;
-	int m_nControlButtons;
-	double m_dKimpSec;
+
+	int m_nComPort;           //сохран€емый-вычитываемый из реестра COM-порт
+	int m_nComBaudrate;       //сохран€ема€-вычитываема€ из реестра скорость COM-порта
+	int m_nControlButtons;    //сохран€емый-вычитываемый из реестра флаг показывать ли управл€ющие контролы
+	double m_dKimpSec;        //сохран€емый-вычитываемый из реестра масштабный коэффициент ("/imp)
+
 	CSlg2App();
 	
-	BYTE m_btParam1;
+	BYTE m_btParam1;          //амплитуда виброподвеса
 	BYTE m_btParam2;
 	BYTE m_btParam3;
 	BYTE m_btParam4;
@@ -41,7 +43,8 @@ public:
 	unsigned short m_shFlashAmplAng1min;
 	short m_shFlashDecCoeff;
 	short m_shSignCoeff;
-	short m_shPhaseShift;
+
+  int m_nHvAppliesThisRun;    //кол-во 3kV импульсов поджига в этом запуске
 
 	unsigned short m_shFlashT1, m_shFlashTD1_1, m_shFlashTD2_1, m_shFlashTD3_1;
 	unsigned short m_shFlashT2, m_shFlashTD1_2, m_shFlashTD2_2, m_shFlashTD3_2;
@@ -51,7 +54,9 @@ public:
 	
 	int m_nEmergencyCode;
 	CString m_strSoftwareVer;
-	
+	bool m_bDeviceSerialNumber;
+  int m_nDeviceSerialNumber;
+
 	FILE *fh;
 	FILE *fhb;
 	FILE *fhNew;
@@ -68,13 +73,22 @@ public:
 	CSlgCircleBuffer *m_cbI2;
 	CSlgCircleBuffer *m_cbVpc;
 	CSlgCircleBuffer *m_cbAmplAng;
+  CSlgCircleBuffer *m_cbAmplAngDus;
 	CSlgCircleBuffer *m_cbT1;
   CSlgCircleBuffer *m_cbT2;
 	CSlgCircleBuffer *m_cbT3;
-	CSlgCircleBuffer *m_cbTsa;
+	CSlgCircleBuffer *m_cbTsaMcs;
+  CSlgCircleBuffer *m_cbTsaMs;
+  CSlgCircleBuffer *m_cbTsaHz;
 
   int m_nMarkerFails;
-	int m_nCheckSummFails;
+	int m_nCounterFails;
+  int m_nCheckSummFails;
+  
+  
+  char m_bLockBit;
+  char m_bSyncAsync;
+  char m_bWdNdU;
 
 // Overrides
 	// ClassWizard generated virtual function overrides

@@ -7,6 +7,10 @@
 #include "MainFrm.h"
 #include "SlgNewAverager.h"
 #include "DecCoeffCalc.h"
+#include "McCommands.h"
+#include "AnalogueParamsConstList.h"
+#include "DecCoeffCalcParams.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -14,7 +18,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-#define MY_TIMER_100			1100
 #define MY_TIMER_1000			1101
 
 #define MY_TIMER_COM_FLUSH		1001
@@ -22,9 +25,10 @@ static char THIS_FILE[] = __FILE__;
 #define MY_SEND_BUTTONS_BLOCK_TIMER 1003
 #define MY_TIMER_LOAD_FLASH_PARAMS 1004
 #define MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS 1005
-#define MY_TIMER_SWITCH_DU 1109
 #define MY_TIMER_SWITCH_AS 1110
 #define MY_TIMER_INPUT_DATA 1111
+#define TIMER_SEND_CMDS_TO_MC 1112
+#define MY_TIMER_POLLER 1113
 
 extern BOOL m_bStopBigThreadFlag;
 extern int gl_nCircleBufferGet;
@@ -41,6 +45,7 @@ extern CSlgNewAverager gl_avI1;
 extern CSlgNewAverager gl_avI2;
 extern CSlgNewAverager gl_avVpc;
 extern CSlgNewAverager gl_avAmplAng;
+extern CSlgNewAverager gl_avAmplAngDus;
 extern CSlgNewAverager gl_avT1;
 extern CSlgNewAverager gl_avT2;
 extern CSlgNewAverager gl_avTsa;
@@ -59,7 +64,7 @@ extern double gl_pT2;
 extern double gl_pT3;
 extern double gl_pTSamean;
 
-extern BOOL gl_bDnDu;
+/*extern BOOL gl_bDecCoeffCalculation;
 extern double gl_dNdU_dN[];
 extern double gl_dNdU_dU[];
 extern double gl_dNdU_DecCoeff[];
@@ -70,7 +75,8 @@ extern double gl_dec_coeff_dN_acc;
 extern double gl_dec_coeff_dU_acc;
 extern double gl_dec_coeff_acc;
 extern int gl_dec_coeff_acc_cntr;
-
+*/
+extern CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainView
@@ -81,13 +87,6 @@ CMainView::CMainView()
 	: CFormView(CMainView::IDD)
 {
 	//{{AFX_DATA_INIT(CMainView)
-	m_strL1 = _T("");
-	m_strL2 = _T("");
-	m_strL3 = _T("");
-	m_strL4 = _T("");
-	m_strL5 = _T("");
-	m_strL6 = _T("");
-	m_strL7 = _T("");
 	m_bBtnCwStart = FALSE;
 	m_nComPort = 0;
 	m_strGraphMaxVal = _T("");
@@ -131,30 +130,42 @@ CMainView::CMainView()
 	m_strParam2Val = _T("");
 	m_strParam3Val = _T("");
 	m_strParam4Val = _T("");
-	m_strParam5Val = _T("");
-	m_strParam6Val = _T("");
-	m_strParam7Val = _T("");
 	m_strParam8Val = _T("");
-	m_strParam9Val = _T("");
 	m_nTMeaningInd = 0;
 	m_dKimpSec = 0.0;
 	m_strSoftwareVersion = _T("");
 	m_nComPortBaudrate = 1;
 	m_strThermoCalib_T1 = _T("");
 	m_strThermoCalib_T2 = _T("");
-	m_strParam10Val = _T("");
 	m_nT1_RadSelection = 0;
 	m_nT2_RadSelection = 1;
 	m_strMarkerFails = _T("");
 	m_strCheckSummFails = _T("");
+	m_nTsaRadSelection = 0;
+	m_nRadAmplAng = 0;
+	m_strCounterFails = _T("");
+	m_strDeviceSerialNumber = _T("");
 	//}}AFX_DATA_INIT
 	m_nCounterSkippedPoints = 0;
 	m_nPointsSkipped = 0;	
 	m_bEmergencyCodeApperance = false;
+  m_dlgDecCoeffCalc = NULL;
+
+  m_nPollParams[ 0] = SIGNCOEFF;
+  m_nPollParams[ 1] = AMPLITUDE;
+  m_nPollParams[ 2] = TACT_CODE;
+  m_nPollParams[ 3] = M_COEFF;
+  m_nPollParams[ 4] = STARTMODE;
+  m_nPollParams[ 5] = DECCOEFF;  
+  m_nPollParams[ 6] = VERSION;
 }
 
 CMainView::~CMainView()
 {
+  if( m_dlgDecCoeffCalc != NULL) {
+    delete m_dlgDecCoeffCalc;
+    m_dlgDecCoeffCalc = NULL;
+  }
 }
 
 void CMainView::DoDataExchange(CDataExchange* pDX)
@@ -171,13 +182,6 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_GRAPH8, m_ctlSmallGraph8);
 	DDX_Control(pDX, IDC_MAIN_GRAPH, m_ctlMainGraph);
 	DDX_Control(pDX, IDC_INDICATOR_COM, m_ctlComButton);
-	DDX_Text(pDX, IDC_ST_1, m_strL1);
-	DDX_Text(pDX, IDC_ST_2, m_strL2);
-	DDX_Text(pDX, IDC_ST_3, m_strL3);
-	DDX_Text(pDX, IDC_ST_4, m_strL4);
-	DDX_Text(pDX, IDC_ST_5, m_strL5);
-	DDX_Text(pDX, IDC_ST_6, m_strL6);
-	DDX_Text(pDX, IDC_ST_7, m_strL7);
 	DDX_OCBool(pDX, IDC_CW_START, DISPID(2), m_bBtnCwStart);
 	DDX_CBIndex(pDX, IDC_CMB_COM_PORT, m_nComPort);
 	DDX_Text(pDX, IDC_MAXVAL_LABEL, m_strGraphMaxVal);
@@ -225,16 +229,8 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PARAM2_NEDT, m_ctlNedtParam2);
 	DDX_Control(pDX, IDC_PARAM3_NEDT, m_ctlNedtParam3);
 	DDX_Control(pDX, IDC_PARAM4_NEDT, m_ctlNedtParam4);
-	DDX_Text(pDX, IDC_PARAM5_VAL, m_strParam5Val);
-	DDX_Text(pDX, IDC_PARAM6_VAL, m_strParam6Val);
-	DDX_Text(pDX, IDC_PARAM7_VAL, m_strParam7Val);
 	DDX_Text(pDX, IDC_PARAM8_VAL, m_strParam8Val);
-	DDX_Text(pDX, IDC_PARAM9_VAL, m_strParam9Val);
-	DDX_Control(pDX, IDC_PARAM5_NEDT, m_ctlNedtParam5);
-	DDX_Control(pDX, IDC_PARAM6_NEDT, m_ctlNedtParam6);
-	DDX_Control(pDX, IDC_PARAM7_NEDT, m_ctlNedtParam7);
 	DDX_Control(pDX, IDC_PARAM8_NEDT, m_ctlNedtParam8);
-	DDX_Control(pDX, IDC_PARAM9_NEDT, m_ctlNedtParam9);
 	DDX_Radio(pDX, IDC_RAD_MEANING1, m_nTMeaningInd);
 	DDX_Text(pDX, IDC_EDT_K_IMP_SEC, m_dKimpSec);
 	DDX_Control(pDX, IDC_COMM, m_ctlCOM);
@@ -245,12 +241,14 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CWNUMEDIT_THERMO_CURR_TEMP, m_ctlNedtThermoCalibTemperature);
 	DDX_Text(pDX, IDC_THERMO_CALIB_T1, m_strThermoCalib_T1);
 	DDX_Text(pDX, IDC_THERMO_CALIB_T2, m_strThermoCalib_T2);
-	DDX_Control(pDX, IDC_PARAM10_NEDT, m_ctlNedtParam10);
-	DDX_Text(pDX, IDC_PARAM10_VAL, m_strParam10Val);
 	DDX_Radio(pDX, IDC_RAD_T1_TD1, m_nT1_RadSelection);
 	DDX_Radio(pDX, IDC_RAD_T2_TD1, m_nT2_RadSelection);
 	DDX_Text(pDX, IDC_LBL_MARKER_FAILS, m_strMarkerFails);
 	DDX_Text(pDX, IDC_LBL_CHECKSUMM_FAILS, m_strCheckSummFails);
+	DDX_Radio(pDX, IDC_RAD_TSA_MCS, m_nTsaRadSelection);
+	DDX_Radio(pDX, IDC_RAD_AA_IMP, m_nRadAmplAng);
+	DDX_Text(pDX, IDC_LBL_COUNTER_FAILS, m_strCounterFails);
+	DDX_Text(pDX, IDC_LBL_DEVICE_SERIAL_NUMBER, m_strDeviceSerialNumber);
 	//}}AFX_DATA_MAP
 }
 
@@ -265,17 +263,12 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_PARAM3_BTN, OnParam3Btn)
 	ON_BN_CLICKED(IDC_PARAM4_BTN, OnParam4Btn)
 	ON_BN_CLICKED(IDC_BTN_SAVE_PARAMS, OnBtnSaveParams)
-	ON_BN_CLICKED(IDC_PARAM5_BTN, OnParam5Btn)
-	ON_BN_CLICKED(IDC_PARAM6_BTN, OnParam6Btn)
-	ON_BN_CLICKED(IDC_PARAM7_BTN, OnParam7Btn)
 	ON_BN_CLICKED(IDC_PARAM8_BTN, OnParam8Btn)
-	ON_BN_CLICKED(IDC_PARAM9_BTN, OnParam9Btn)
 	ON_BN_CLICKED(IDC_BTN_RESTORE_PARAMS, OnBtnRestoreParams)
 	ON_EN_KILLFOCUS(IDC_EDT_K_IMP_SEC, OnKillfocusEdtKImpSec)
 	ON_BN_CLICKED(IDC_BTN_DEC_COEFF_CALC, OnDecCoeffCalc)
 	ON_BN_CLICKED(IDC_BTN_THERMO_CALIB_SET, OnBtnThermoCalibSet)
 	ON_BN_CLICKED(IDC_BTN_THERMO_CALIB_CLEAR, OnBtnThermoCalibClear)
-	ON_BN_CLICKED(IDC_PARAM10_BTN, OnParam10Btn)
 	ON_BN_CLICKED(IDC_BTN_LASER_OFF, OnBtnLaserOff)
 	ON_BN_CLICKED(IDC_BTN_INTEGR_OFF, OnBtnIntegrOff)
 	ON_BN_CLICKED(IDC_BTN_INTEGR_ON, OnBtnIntegrOn)
@@ -286,6 +279,26 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_RAD_T2_TD1, OnRadT2Td1)
 	ON_BN_CLICKED(IDC_RAD_T2_TD2, OnRadT2Td2)
 	ON_BN_CLICKED(IDC_RAD_T2_TD3, OnRadT2Td3)
+	ON_BN_CLICKED(IDC_RAD_TSA_MCS, OnRadTsaMcs)
+	ON_BN_CLICKED(IDC_RAD_TSA_MS, OnRadTsaMs)
+	ON_BN_CLICKED(IDC_RAD_TSA_HZ, OnRadTsaHz)
+	ON_BN_CLICKED(IDC_BTN_REQ_VERSION, OnBtnReqVersion)
+	ON_BN_CLICKED(IDC_BTN_REQ_AMPL, OnBtnReqAmpl)
+	ON_BN_CLICKED(IDC_BTN_REQ_TACTCODE, OnBtnReqTactcode)
+	ON_BN_CLICKED(IDC_BTN_REQ_M_COEFF, OnBtnReqMCoeff)
+	ON_BN_CLICKED(IDC_BTN_REQ_START_MODE, OnBtnReqStartMode)
+	ON_BN_CLICKED(IDC_BTN_REQ_DEC_COEFF, OnBtnReqDecCoeff)
+	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_AMPLITUDE, OnBtnMcToOutAmplitude)
+	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_TACTCODE, OnBtnMcToOutTactcode)
+	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_MCOEFF, OnBtnMcToOutMcoeff)
+	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_STARTMODE, OnBtnMcToOutStartmode)
+	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_DECCOEFF, OnBtnMcToOutDeccoeff)
+	ON_BN_CLICKED(IDC_BTN_SWITCH_W_DNDU, OnBtnSwitchWDndu)
+	ON_BN_CLICKED(IDC_BTN_RESET, OnBtnReset)
+	ON_BN_CLICKED(IDC_RAD_AA_IMP, OnRadAaImp)
+	ON_BN_CLICKED(IDC_RAD_AA_DUS, OnRadAaDus)
+	ON_BN_CLICKED(IDC_BTN_REQ_HV_APPLIES, OnBtnReqHvApplies)
+	ON_BN_CLICKED(IDC_BTN_REQ_SN, OnBtnReqSn)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -336,7 +349,12 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 
 	if( m_ctlSmallGraph5.m_hWnd) {
 		m_ctlSmallGraph5.GetWindowRect( &rc);
-		m_ctlSmallGraph5.SetWindowPos( NULL, nGrWidth * 4, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph5.SetWindowPos( NULL, nGrWidth * 4, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+
+    GetDlgItem( IDC_RAD_AA_IMP)->SetWindowPos( NULL, nGrWidth * 5 - 21, 70, 20, 12, SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_AA_DUS)->SetWindowPos( NULL, nGrWidth * 5 - 21, 110, 20, 12, SWP_NOZORDER);
+    
+
 	}
 
 	if( m_ctlSmallGraph6.m_hWnd) {
@@ -359,7 +377,11 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 
 	if( m_ctlSmallGraph8.m_hWnd) {
 		m_ctlSmallGraph8.GetWindowRect( &rc);
-		m_ctlSmallGraph8.SetWindowPos( NULL, nGrWidth * 7, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph8.SetWindowPos( NULL, nGrWidth * 7, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+
+    GetDlgItem( IDC_RAD_TSA_MCS)->SetWindowPos( NULL, nGrWidth * 8 - 21, 70, 20, 12, SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_TSA_MS)->SetWindowPos( NULL, nGrWidth * 8 - 21, 90, 20, 12, SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_TSA_HZ)->SetWindowPos( NULL, nGrWidth * 8 - 21, 110, 20, 12, SWP_NOZORDER);
 	}
 
 	int base = 50 + rc.Height();
@@ -577,197 +599,243 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	CRect m_rcStatusBar;
 	if( m_ctlMainGraph.m_hWnd) {
 		(( CMainFrame*) this->GetParentFrame())->m_wndStatusBar.GetWindowRect( m_rcStatusBar);
-		m_ctlMainGraph.SetWindowPos( NULL, 5, base + 5, cx - 210 - 10, cy - base, SWP_NOZORDER);
+		m_ctlMainGraph.SetWindowPos( NULL, 5, base + 5, cx - 270 - 10, cy - base - 10, SWP_NOZORDER);
 	}
 
 	pWnd = GetDlgItem( IDC_STATISTIC_FRAME);
 	if( pWnd != NULL) {
-		pWnd->SetWindowPos( NULL, cx - 210, base + 5, 210, cy - base, SWP_NOZORDER);
+    GetDlgItem( IDC_LBL_REGIME_SYNC_ASYNC)->SetWindowPos( NULL, cx - 270, base + 5, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    GetDlgItem( IDC_LBL_REGIME_DNDU_W)->SetWindowPos(     NULL, cx - 270, base + 20, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    GetDlgItem( IDC_LBL_HV_APPLIES_THIS_TIME)->SetWindowPos( NULL, cx - 270, base + 35, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    GetDlgItem( IDC_BTN_REQ_HV_APPLIES)->SetWindowPos( NULL, cx - 60, base + 35, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    
+
+		pWnd->SetWindowPos( NULL, cx - 270, base + 50, 270, cy - base - 30, SWP_NOZORDER);
 		
+    base += 50;
+
 		pWnd = GetDlgItem( IDC_MIN_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 20, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 20, 200, 20, SWP_NOZORDER);
 		pWnd = GetDlgItem( IDC_MINVAL_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 40, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 40, 200, 20, SWP_NOZORDER);
 
 		pWnd = GetDlgItem( IDC_MEAN_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 70, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 70, 200, 20, SWP_NOZORDER);
 		pWnd = GetDlgItem( IDC_MEANVAL_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 90, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 90, 200, 20, SWP_NOZORDER);
 		
 		pWnd = GetDlgItem( IDC_MAX_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 120, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 120, 200, 20, SWP_NOZORDER);
 		pWnd = GetDlgItem( IDC_MAXVAL_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 140, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 140, 200, 20, SWP_NOZORDER);
 		
 		pWnd = GetDlgItem( IDC_RMS_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 170, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 170, 200, 20, SWP_NOZORDER);
 		pWnd = GetDlgItem( IDC_RMSVAL_LABEL);
-		pWnd->SetWindowPos( NULL, cx - 210 + 5, base + 190, 200, 20, SWP_NOZORDER);
+		pWnd->SetWindowPos( NULL, cx - 270 + 5, base + 190, 200, 20, SWP_NOZORDER);
 
-		int x = cx - 210 + 5;
+
+    //**********************************************************************
+    //Амплитуда колебания
+		int x = cx - 270 + 5;
 		base += 220;
-		pWnd = GetDlgItem( IDC_PARAM1_TITLE);
+		//Амплитуда колебания.заголовок
+    pWnd = GetDlgItem( IDC_PARAM1_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
-		pWnd = GetDlgItem( IDC_PARAM1_VAL);
+    //Амплитуда колебания.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_AMPL);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Амплитуда колебания.значение, полученное из микроконтроллера
+		pWnd = GetDlgItem( IDC_PARAM1_VAL);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //кнопка копирования значения
+		pWnd = GetDlgItem( IDC_BTN_MC_TO_OUT_AMPLITUDE);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //Амплитуда колебания.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM1_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE /*+ SWP_SHOWWINDOW*/);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Амплитуда колебания.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM1_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 
+    //**********************************************************************
+    //Код такта подставки
 		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
+		x = cx - 270 + 5;
+    //Код такта подставки.заголовок
 		pWnd = GetDlgItem( IDC_PARAM2_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
-		pWnd = GetDlgItem( IDC_PARAM2_VAL);
+    //Код такта подставки.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_TACTCODE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Код такта подставки.значение, полученное из микроконтроллера
+		pWnd = GetDlgItem( IDC_PARAM2_VAL);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //кнопка копирования значения
+		pWnd = GetDlgItem( IDC_BTN_MC_TO_OUT_TACTCODE);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //Код такта подставки.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM2_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Код такта подставки.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM2_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 
+    //**********************************************************************
+    //Коэффициент ошумления
 		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
+		x = cx - 270 + 5;
+    //Коэффициент ошумления.заголовок
 		pWnd = GetDlgItem( IDC_PARAM3_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
+    //Коэффициент ошумления.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_M_COEFF);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+    x += rc.Width(); x += 5;
+    //Коэффициент ошумления.значение, полученное из микроконтроллера
 		pWnd = GetDlgItem( IDC_PARAM3_VAL);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
+		x += rc.Width(); x += 2;
+    //кнопка копирования значения
+		pWnd = GetDlgItem( IDC_BTN_MC_TO_OUT_MCOEFF);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //Коэффициент ошумления.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM3_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Коэффициент ошумления.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM3_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 
-		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
+		//**********************************************************************
+    //Начальная мода
+    base += rc.Height(); base += 5;
+		x = cx - 270 + 5;
+    //Начальная мода.заголовок
 		pWnd = GetDlgItem( IDC_PARAM4_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
+    //Начальная мода.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_START_MODE);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+    x += rc.Width(); x += 5;
+    //Начальная мода.значение, полученное из микроконтроллера
 		pWnd = GetDlgItem( IDC_PARAM4_VAL);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
+		x += rc.Width(); x += 2;
+    //кнопка копирования значения
+		pWnd = GetDlgItem( IDC_BTN_MC_TO_OUT_STARTMODE);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //Начальная мода.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM4_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Начальная мода.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM4_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		
-		base += rc.Height(); base += 5;
 
-		x = cx - 210 + 5;
-		pWnd = GetDlgItem( IDC_PARAM5_TITLE);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		base += rc.Height();
-		pWnd = GetDlgItem( IDC_PARAM5_VAL);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM5_NEDT);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM5_BTN);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		
-		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
-		pWnd = GetDlgItem( IDC_PARAM6_TITLE);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		base += rc.Height();
-		pWnd = GetDlgItem( IDC_PARAM6_VAL);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM6_NEDT);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM6_BTN);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		
-		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
-		pWnd = GetDlgItem( IDC_PARAM7_TITLE);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		base += rc.Height();
-		pWnd = GetDlgItem( IDC_PARAM7_VAL);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM7_NEDT);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
-		pWnd = GetDlgItem( IDC_PARAM7_BTN);
-		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
-		
-		base += rc.Height(); base += 5;
-
-		x = cx - 210 + 5;
+		//**********************************************************************
+    //Коэффициент вычета
+    base += rc.Height(); base += 5;
+		x = cx - 270 + 5;
+    //Коэффициент вычета.заголовок
 		pWnd = GetDlgItem( IDC_PARAM8_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
+    //Коэффициент вычета.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_DEC_COEFF);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+    x += rc.Width(); x += 5;
+    //Коэффициент вычета.значение, полученное из микроконтроллера
 		pWnd = GetDlgItem( IDC_PARAM8_VAL);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
-		x += rc.Width(); x += 5;
+		x += rc.Width(); x += 2;
+    //кнопка копирования значения
+		pWnd = GetDlgItem( IDC_BTN_MC_TO_OUT_DECCOEFF);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		x += rc.Width(); x += 2;
+    //Коэффициент вычета.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM8_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Коэффициент вычета.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM8_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		
-		base += rc.Height(); base += 5;
 
-		x = cx - 210 + 5;
+    /*
+    //**********************************************************************
+    //Знаковый коэффициент.
+		base += rc.Height(); base += 5;
+		x = cx - 270 + 5;
+    //Знаковый коэффициент.заголовок
 		pWnd = GetDlgItem( IDC_PARAM9_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height();
+    //Знаковый коэффициент.кнопка "запрос"
+    pWnd = GetDlgItem( IDC_BTN_REQ_SIGN_COEFF);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+    x += rc.Width(); x += 5;
+    //Знаковый коэффициент.значение, полученное из микроконтроллера
 		pWnd = GetDlgItem( IDC_PARAM9_VAL);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Знаковый коэффициент.значение для отправки в микроконтроллер
 		pWnd = GetDlgItem( IDC_PARAM9_NEDT);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		x += rc.Width(); x += 5;
+    //Знаковый коэффициент.кнопка "послать"
 		pWnd = GetDlgItem( IDC_PARAM9_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		*/
 		
-		base += rc.Height(); base += 5;
+   
 
-		x = cx - 210 + 5;
+    /*
+    base += rc.Height(); base += 5;
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_PARAM10_TITLE);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
@@ -784,33 +852,48 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		
 		base += rc.Height(); base += 5;
+    */
 		
-		x = cx - 210 + 5;
+    //кнопка "Сохранить параметры"
+    base += rc.Height(); base += 5;
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_BTN_SAVE_PARAMS);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height(); base += 5;
 
-		x = cx - 210 + 5;
+    /*
+    //кнопка "Перезагрузить параметры из флэш-памяти"
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_BTN_RESTORE_PARAMS);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height(); base += 5;
+    */
 
-		x = cx - 210 + 5;
+    //кнопка "Вычисление коэффициента вычета"
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_BTN_DEC_COEFF_CALC);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height(); base += 5;
 
-		x = cx - 210 + 5;
+    //кнопка "Выключение лазера"
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_BTN_LASER_OFF);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
 		base += rc.Height(); base += 5;
 		
-		
-		/*x = cx - 210 + 5;
+    //кнопка "Переключить выдачу прибора"
+		x = cx - 270 + 5;
+		pWnd = GetDlgItem( IDC_BTN_SWITCH_W_DNDU);
+		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+		pWnd->GetWindowRect( rc);
+		base += rc.Height(); base += 5;
+
+
+		/*x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_THERMO_CALIB_T1);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
@@ -821,7 +904,7 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 		pWnd->GetWindowRect( rc);
 		base += rc.Height(); base += 5;
 
-		x = cx - 210 + 5;
+		x = cx - 270 + 5;
 		pWnd = GetDlgItem( IDC_CWNUMEDIT_THERMO_CURR_TEMP);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		pWnd->GetWindowRect( rc);
@@ -942,6 +1025,18 @@ void CMainView::RefreshGraphs()
 		lineAA( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetDataY()[jndx];
 	}
 
+  //AmplAngDus точки
+	j1 = theApp.m_cbAmplAngDus->GetFirstIndex();
+	j2 = theApp.m_cbAmplAngDus->GetLastIndex();
+	j3 = theApp.m_cbAmplAngDus->GetActualSize();
+	if( !j3) j3 = 1;
+	CNiReal64Matrix lineAADus( 2, j3, 1.0);
+	for( j = 0; j < j3; j++) {
+		jndx = ( j1 + j + theApp.m_cbAmplAngDus->GetSize()) % theApp.m_cbAmplAngDus->GetSize();
+		lineAADus( 0, j) = theApp.m_cbAmplAngDus->GetDataX()[ jndx];
+		lineAADus( 1, j) = theApp.m_cbAmplAngDus->GetDataY()[ jndx];
+	}
+
 	//T1 точки
 	j1 = (( CSlg2App *) AfxGetApp())->m_cbT1->GetFirstIndex();
 	j2 = (( CSlg2App *) AfxGetApp())->m_cbT1->GetLastIndex();
@@ -978,16 +1073,48 @@ void CMainView::RefreshGraphs()
 		lineT3( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbT3->GetDataY()[jndx];
 	}
 
-	//Tsa точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbTsa->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbTsa->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbTsa->GetActualSize();
+	//Tsa.mcs точки
+	j1 = theApp.m_cbTsaMcs->GetFirstIndex();
+	j2 = theApp.m_cbTsaMcs->GetLastIndex();
+	j3 = theApp.m_cbTsaMcs->GetActualSize();
 	if( !j3) j3 = 1;
-	CNiReal64Matrix lineTsa( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbTsa->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbTsa->GetSize();
-		lineTsa( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbTsa->GetDataX()[jndx];
-		lineTsa( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbTsa->GetDataY()[jndx];
+	
+  CNiReal64Matrix lineTsaMcs( 2, j3, 1.0);
+  for( j = 0; j < j3; j++) {
+		jndx = ( j1 + j + theApp.m_cbTsaMcs->GetSize()) % theApp.m_cbTsaMcs->GetSize();
+		
+    lineTsaMcs( 0, j) = theApp.m_cbTsaMcs->GetDataX()[jndx];
+		lineTsaMcs( 1, j) = theApp.m_cbTsaMcs->GetDataY()[jndx];
+	}
+
+
+  //Tsa.ms точки
+	j1 = theApp.m_cbTsaMs->GetFirstIndex();
+	j2 = theApp.m_cbTsaMs->GetLastIndex();
+	j3 = theApp.m_cbTsaMs->GetActualSize();
+	if( !j3) j3 = 1;
+	
+  CNiReal64Matrix lineTsaMs( 2, j3, 1.0);
+  for( j = 0; j < j3; j++) {
+		jndx = ( j1 + j + theApp.m_cbTsaMs->GetSize()) % theApp.m_cbTsaMs->GetSize();
+		
+    lineTsaMs( 0, j) = theApp.m_cbTsaMs->GetDataX()[jndx];
+		lineTsaMs( 1, j) = theApp.m_cbTsaMs->GetDataY()[jndx];
+	}
+
+
+  //Tsa.hz точки
+	j1 = theApp.m_cbTsaHz->GetFirstIndex();
+	j2 = theApp.m_cbTsaHz->GetLastIndex();
+	j3 = theApp.m_cbTsaHz->GetActualSize();
+	if( !j3) j3 = 1;
+	
+  CNiReal64Matrix lineTsaHz( 2, j3, 1.0);
+  for( j = 0; j < j3; j++) {
+		jndx = ( j1 + j + theApp.m_cbTsaHz->GetSize()) % theApp.m_cbTsaHz->GetSize();
+		
+    lineTsaHz( 0, j) = theApp.m_cbTsaHz->GetDataX()[jndx];
+		lineTsaHz( 1, j) = theApp.m_cbTsaHz->GetDataY()[jndx];
 	}
 
 
@@ -1001,7 +1128,11 @@ void CMainView::RefreshGraphs()
 	m_ctlSmallGraph2.PlotXY( lineI1, true);
 	m_ctlSmallGraph3.PlotXY( lineI2, true);
 	m_ctlSmallGraph4.PlotXY( lineVpc, true);
-	m_ctlSmallGraph5.PlotXY( lineAA, true);
+	
+  switch( m_nRadAmplAng) {
+    case 0: m_ctlSmallGraph5.PlotXY( lineAA, true); break;
+    case 1: m_ctlSmallGraph5.PlotXY( lineAADus, true); break;
+  }
 
   switch( m_nT1_RadSelection) {
     case 0: m_ctlSmallGraph6.PlotXY( lineT1, true); break;
@@ -1015,7 +1146,11 @@ void CMainView::RefreshGraphs()
     case 2: m_ctlSmallGraph7.PlotXY( lineT3, true); break;
   }
 
-  m_ctlSmallGraph8.PlotXY( lineTsa, true);
+  switch( m_nTsaRadSelection) {
+    case 0: m_ctlSmallGraph8.PlotXY( lineTsaMcs, true); break;
+    case 1: m_ctlSmallGraph8.PlotXY( lineTsaMs, true); break;
+    case 2: m_ctlSmallGraph8.PlotXY( lineTsaHz, true); break;
+  }
 
 	//Статистика
 	(( CSlg2App *) AfxGetApp())->m_cbW100->RecalculateStatistic();
@@ -1033,10 +1168,13 @@ void CMainView::RefreshGraphs()
 	(( CSlg2App *) AfxGetApp())->m_cbI2->RecalculateStatistic();
 	(( CSlg2App *) AfxGetApp())->m_cbVpc->RecalculateStatistic();
 	(( CSlg2App *) AfxGetApp())->m_cbAmplAng->RecalculateStatistic();
+  (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->RecalculateStatistic();
 	(( CSlg2App *) AfxGetApp())->m_cbT1->RecalculateStatistic();
 	(( CSlg2App *) AfxGetApp())->m_cbT2->RecalculateStatistic();
   (( CSlg2App *) AfxGetApp())->m_cbT3->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbTsa->RecalculateStatistic();
+	(( CSlg2App *) AfxGetApp())->m_cbTsaMcs->RecalculateStatistic();
+  (( CSlg2App *) AfxGetApp())->m_cbTsaMs->RecalculateStatistic();
+  (( CSlg2App *) AfxGetApp())->m_cbTsaHz->RecalculateStatistic();
 
 	switch( m_nMainGraph) {
 		case 1:
@@ -1098,12 +1236,24 @@ void CMainView::RefreshGraphs()
 			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetRMS());
 		break;
 
-		case 5:
-			m_ctlMainGraph.PlotXY( lineAA, true);
-			m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMin());
-			m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMean());
-			m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMax());
-			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetRMS());
+		case 5:			
+      switch( m_nRadAmplAng) {
+        case 0:
+          m_ctlMainGraph.PlotXY( lineAA, true);
+			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMin());
+			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMean());
+			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMax());
+			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetRMS());
+        break;
+
+        case 1:
+          m_ctlMainGraph.PlotXY( lineAADus, true);
+			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMin());
+			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMean());
+			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMax());
+			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetRMS());
+        break;
+      }
 		break;
 
 		case 6:
@@ -1159,11 +1309,31 @@ void CMainView::RefreshGraphs()
 		break;
 
 		case 8:
-			m_ctlMainGraph.PlotXY( lineTsa, true);
-			m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMin());
-			m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMean());
-			m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMax());
-			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetRMS());
+      switch( m_nTsaRadSelection) {
+        case 0:
+          m_ctlMainGraph.PlotXY( lineTsaMcs, true);
+			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMin());
+			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMean());
+			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMax());
+			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetRMS());
+        break;
+        case 1:
+          m_ctlMainGraph.PlotXY( lineTsaMs, true);
+			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMin());
+			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMean());
+			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMax());
+			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetRMS());
+        break;
+        case 2:
+          m_ctlMainGraph.PlotXY( lineTsaHz, true);
+			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMin());
+			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMean());
+			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMax());
+			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetRMS());
+        break;
+      }
+
+			
 		break;
 
 		default:
@@ -1264,11 +1434,26 @@ void CMainView::RefreshGraphs()
     break;
   }
 	
-	m_strSmGr8_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMin());
-	m_strSmGr8_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMean());
-	m_strSmGr8_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMax());
-	m_strSmGr8_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetRMS());
-
+  switch( m_nTsaRadSelection) {
+    case 0:
+	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMin());
+	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMean());
+	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMax());
+	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetRMS());
+    break;
+    case 1:
+	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMin());
+	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMean());
+	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMax());
+	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaMs->GetRMS());
+    break;
+    case 2:
+	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMin());
+	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMean());
+	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMax());
+	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaHz->GetRMS());
+    break;
+  }
 	m_ctlComButton.SetValue( m_ctlCOM.GetPortOpen());
 	UpdateData( FALSE);
 }
@@ -1305,7 +1490,7 @@ void CMainView::OnInitialUpdate()
 	GetDlgItem( IDC_RMS_LABEL)->SetFont( &m_pFont);
 	GetDlgItem( IDC_RMSVAL_LABEL)->SetFont( &m_pFont);
 
-	if( (( CSlg2App *) AfxGetApp())->m_nControlButtons) {
+	if( theApp.m_nControlButtons) {
 		m_ctlNedtParam1.SetDiscreteInterval( m_dKimpSec);
 		m_ctlNedtParam1.SetIncDecValue( m_dKimpSec);
 		m_ctlNedtParam1.SetAccelInc( m_dKimpSec * 5.);
@@ -1317,66 +1502,82 @@ void CMainView::OnInitialUpdate()
 		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
 	}
 	else {
 		GetDlgItem( IDC_PARAM1_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_REQ_AMPL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM1_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM1_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM1_BTN)->ShowWindow( SW_HIDE);
 
 		GetDlgItem( IDC_PARAM2_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_REQ_TACTCODE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM2_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM2_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM2_BTN)->ShowWindow( SW_HIDE);
 
 		GetDlgItem( IDC_PARAM3_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_REQ_M_COEFF)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM3_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM3_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM3_BTN)->ShowWindow( SW_HIDE);
 
 		GetDlgItem( IDC_PARAM4_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_REQ_START_MODE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM4_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM4_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM4_BTN)->ShowWindow( SW_HIDE);
 
+    /*
 		GetDlgItem( IDC_PARAM5_TITLE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM5_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM5_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM5_BTN)->ShowWindow( SW_HIDE);
-
+    */
+    /*
 		GetDlgItem( IDC_PARAM6_TITLE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM6_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM6_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM6_BTN)->ShowWindow( SW_HIDE);
-
+    */
+    /*
 		GetDlgItem( IDC_PARAM7_TITLE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM7_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM7_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM7_BTN)->ShowWindow( SW_HIDE);
-
+    */
 		GetDlgItem( IDC_PARAM8_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_REQ_DEC_COEFF)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM8_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM8_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM8_BTN)->ShowWindow( SW_HIDE);
 
+    /*
 		GetDlgItem( IDC_PARAM9_TITLE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM9_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM9_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM9_BTN)->ShowWindow( SW_HIDE);
+    */
 
+    /*
 		GetDlgItem( IDC_PARAM10_TITLE)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM10_VAL)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM10_NEDT)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_PARAM10_BTN)->ShowWindow( SW_HIDE);
+    */
 
 		GetDlgItem( IDC_BTN_SAVE_PARAMS)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->ShowWindow( SW_HIDE);
+		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->ShowWindow( SW_HIDE);
 		GetDlgItem( IDC_BTN_LASER_OFF)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->ShowWindow( SW_HIDE);
+    
 		
 	}
 
 	SetTimer( MY_MAXIMIZE_VIEW_TIMER, 100, NULL);
+  SetTimer( TIMER_SEND_CMDS_TO_MC, 500, NULL);
 
 	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
 }
@@ -1394,7 +1595,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 		if( m_nPointsSkipped > 10) {
 			if( m_ctlCOM.GetPortOpen()) {
 				
-				short nBytes = m_ctlCOM.GetInBufferCount();
+				unsigned short nBytes = m_ctlCOM.GetInBufferCount();
 				if( nBytes > 10) {
 					VARIANT var = m_ctlCOM.GetInput();
 					
@@ -1425,9 +1626,10 @@ void CMainView::OnTimer(UINT nIDEvent)
 							UpdateData( false);
 
 							GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+							//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
 							GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
 							GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+              GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
 							
 							GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
 							GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
@@ -1436,7 +1638,6 @@ void CMainView::OnTimer(UINT nIDEvent)
 							m_ctlCOM.SetPortOpen( false);
 
 							KillTimer( MY_TIMER_COM_FLUSH);
-							KillTimer( MY_TIMER_100);
 							KillTimer( MY_TIMER_1000);
 		
 				
@@ -1456,6 +1657,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 							gl_avI2.Reset();
 							gl_avVpc.Reset();
 							gl_avAmplAng.Reset();
+              gl_avAmplAngDus.Reset();
 							gl_avT1.Reset();
 							gl_avT2.Reset();
 							gl_avTsa.Reset();
@@ -1475,7 +1677,9 @@ void CMainView::OnTimer(UINT nIDEvent)
 							app->m_cbT1->Reset();
 							app->m_cbT2->Reset();
               app->m_cbT3->Reset();
-							app->m_cbTsa->Reset();
+							app->m_cbTsaMcs->Reset();
+              app->m_cbTsaMs->Reset();
+              app->m_cbTsaHz->Reset();
 						}
 					}
 
@@ -1522,40 +1726,25 @@ void CMainView::OnTimer(UINT nIDEvent)
 		}
 	}
 	
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//событие 100 мсек
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_100) {
-		
-		//////////////////////////////////////////////////////////////////////
-		// обновление "бегущих" окошечек вверху формы
-		//////////////////////////////////////////////////////////////////////
-		m_strL1.Format( _T("%.2f"), gl_pw100);
-		m_strL2.Format( _T("%.2f"), gl_pi1);
-		m_strL3.Format( _T("%.2f"), gl_pi2);
-		m_strL4.Format( _T("%.2f"), gl_pVpc);
-		m_strL5.Format( _T("%.2f"), gl_pAA);
-    switch( m_nT1_RadSelection) {
-      case 0: m_strL6.Format( _T("%.2f"), gl_pT1); break;
-      case 1: m_strL6.Format( _T("%.2f"), gl_pT2); break;
-      case 2: m_strL6.Format( _T("%.2f"), gl_pT3); break;
-    }
-    switch( m_nT1_RadSelection) {
-      case 0: m_strL7.Format( _T("%.2f"), gl_pT1); break;
-      case 1: m_strL7.Format( _T("%.2f"), gl_pT2); break;
-      case 2: m_strL7.Format( _T("%.2f"), gl_pT3); break;
-    }
-
-    m_strMarkerFails.Format( _T("%d"), theApp.m_nMarkerFails);
-    m_strCheckSummFails.Format( _T("%d"), theApp.m_nCheckSummFails);
-
-		UpdateData( FALSE);
-	}
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//событие 1000 мсек
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_1000) {
+
+    //обновление серийного номера
+    if( theApp.m_bDeviceSerialNumber) {
+      m_strDeviceSerialNumber.Format( _T("%d"), theApp.m_nDeviceSerialNumber);
+    }
+    else {
+      m_strDeviceSerialNumber = _T("-");
+    }
+
+    //окошки ошибок по маркеру и чексумме
+    m_strMarkerFails.Format( _T("%d"), theApp.m_nMarkerFails);
+    m_strCheckSummFails.Format( _T("%d"), theApp.m_nCheckSummFails);
+    m_strCounterFails.Format( _T("%d"), theApp.m_nCounterFails);
+
 		//обновление на экране версии прошивки аппарата
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( gl_avW100.GetCounter());
 		m_strSoftwareVersion = app->m_strSoftwareVer;
@@ -1567,12 +1756,12 @@ void CMainView::OnTimer(UINT nIDEvent)
 		m_strParam2Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_btParam2);											//код такта подставки
 		m_strParam3Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);		//коэффициент M
 		m_strParam4Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam4 / 100.);		//начальная мода
-		m_strParam5Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
-		m_strParam6Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
-		m_strParam7Val.Format( _T("%.2f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.0));
+		//m_strParam5Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
+		//m_strParam6Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
+		//m_strParam7Val.Format( _T("%.2f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.0));
 		m_strParam8Val.Format( _T("%.5f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);
-		m_strParam9Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
-		m_strParam10Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
+		//m_strParam9Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
+		//m_strParam10Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 		
 		if( (( CSlg2App *) AfxGetApp())->m_shFlashT1 >= MIN_T_THERMO_CALIBRATION &&
 				(( CSlg2App *) AfxGetApp())->m_shFlashT1 <= MAX_T_THERMO_CALIBRATION) {
@@ -1587,6 +1776,92 @@ void CMainView::OnTimer(UINT nIDEvent)
 		}
 		else
 			m_strThermoCalib_T2 = _T("T2 = (NO)");
+
+    //sync/async - regime  
+    switch( theApp.m_bSyncAsync) {
+      case 0:  GetDlgItem( IDC_LBL_REGIME_SYNC_ASYNC)->SetWindowText( "Синхронный режим"); break;
+      case 1:  GetDlgItem( IDC_LBL_REGIME_SYNC_ASYNC)->SetWindowText( "Асинхронный режим"); break;
+      default: GetDlgItem( IDC_LBL_REGIME_SYNC_ASYNC)->SetWindowText( ""); break;
+    }
+    
+    
+    //dNdU / w - regime
+    switch( theApp.m_bWdNdU) {
+      case 0:  GetDlgItem( IDC_LBL_REGIME_DNDU_W)->SetWindowText( "Прибор выдаёт приращения угла"); break;
+      case 1:  GetDlgItem( IDC_LBL_REGIME_DNDU_W)->SetWindowText( "Прибор выдаёт dNdU"); break;
+      default: GetDlgItem( IDC_LBL_REGIME_DNDU_W)->SetWindowText( ""); break;
+    }    
+    
+    //число 3kV импульсов поджига в этом запуске
+    CString strHvAppliesThisRun;
+    if( theApp.m_nHvAppliesThisRun != -1) {
+      strHvAppliesThisRun.Format( _T("3kV импульсов в этом запуске: %d"), theApp.m_nHvAppliesThisRun);
+    }
+    else
+      strHvAppliesThisRun.Format( _T("3kV импульсов в этом запуске: --"));
+
+    //lock bit
+    if( theApp.m_bLockBit) {      
+      //Прибор залочен
+      GetDlgItem( IDC_LBL_HV_APPLIES_THIS_TIME)->SetWindowText( "Прибор в пользовательском режиме");
+    }
+    else {
+      GetDlgItem( IDC_LBL_HV_APPLIES_THIS_TIME)->SetWindowText( strHvAppliesThisRun);
+    }
+
+    GetDlgItem( IDC_BTN_REQ_HV_APPLIES)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+    GetDlgItem( IDC_PARAM1_TITLE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_REQ_AMPL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_PARAM1_VAL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM1_NEDT)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_MC_TO_OUT_AMPLITUDE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM1_BTN)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+		GetDlgItem( IDC_PARAM2_TITLE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_REQ_TACTCODE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM2_VAL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM2_NEDT)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_MC_TO_OUT_TACTCODE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM2_BTN)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+		GetDlgItem( IDC_PARAM3_TITLE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_REQ_M_COEFF)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM3_VAL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM3_NEDT)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_MC_TO_OUT_MCOEFF)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM3_BTN)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+		GetDlgItem( IDC_PARAM4_TITLE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_REQ_START_MODE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM4_VAL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM4_NEDT)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_MC_TO_OUT_STARTMODE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM4_BTN)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+    GetDlgItem( IDC_PARAM8_TITLE)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_REQ_DEC_COEFF)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM8_VAL)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM8_NEDT)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_MC_TO_OUT_DECCOEFF)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_PARAM8_BTN)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+
+    GetDlgItem( IDC_BTN_SAVE_PARAMS)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+	  //GetDlgItem( IDC_BTN_RESTORE_PARAMS)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+		GetDlgItem( IDC_BTN_LASER_OFF)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->ShowWindow( theApp.m_bLockBit ? SW_HIDE : SW_SHOW);
+    
+
+    //кнопки специфичные для асинх режима
+    if( theApp.m_bSyncAsync == 2) {
+      GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( FALSE);
+      GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( FALSE);
+    }
+    else {
+      GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( m_ctlCOM.GetPortOpen() && theApp.m_bSyncAsync && theApp.m_bWdNdU);
+      GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( m_ctlCOM.GetPortOpen() && theApp.m_bSyncAsync);
+    }
 
 		//////////////////////////////////////////////////////////////////////
 		// обработка выявления ошибки из протокола
@@ -1618,7 +1893,6 @@ void CMainView::OnTimer(UINT nIDEvent)
 			if( gl_dGlobalTime >= dMeasTime) {
 				KillTimer( MY_TIMER_INPUT_DATA);
 				KillTimer( MY_TIMER_COM_FLUSH);
-				KillTimer( MY_TIMER_100);
 				KillTimer( MY_TIMER_1000);
 				m_bStopBigThreadFlag = true;
 
@@ -1626,9 +1900,11 @@ void CMainView::OnTimer(UINT nIDEvent)
 					m_ctlCOM.SetPortOpen( false);
 	
 				GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-				GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+				//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
 				GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
 				GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+        GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
+        
 				
 				GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
 				GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
@@ -1647,6 +1923,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 				gl_avI2.Reset();
 				gl_avVpc.Reset();
 				gl_avAmplAng.Reset();
+        gl_avAmplAngDus.Reset();
 				gl_avT1.Reset();
 				gl_avT2.Reset();
 				gl_avTsa.Reset();
@@ -1665,7 +1942,9 @@ void CMainView::OnTimer(UINT nIDEvent)
 				app->m_cbT1->Reset();
 				app->m_cbT2->Reset();
         app->m_cbT3->Reset();
-				app->m_cbTsa->Reset();
+				app->m_cbTsaMcs->Reset();
+        app->m_cbTsaMs->Reset();
+        app->m_cbTsaHz->Reset();
 
 				if( app->fhNew != NULL)
 					fclose( app->fhNew);
@@ -1673,6 +1952,22 @@ void CMainView::OnTimer(UINT nIDEvent)
 			}
 		}
 	}
+
+  if( nIDEvent == MY_TIMER_POLLER) {
+    if( m_ctlCOM.GetPortOpen()) {
+        if( m_queCommandQueue.size() < 5) {          
+          CMcCommandItem *item = new CMcCommandItem(
+              MC_COMMAND_REQ,
+              m_nPollParams[ m_nPollCounter],
+              0, 0);
+          m_queCommandQueue.push( item);
+          m_nPollCounter = ( ++m_nPollCounter) % POLL_PARAMS_LEN;
+        }
+      }
+      else {
+        KillTimer( MY_TIMER_POLLER);
+      }
+  }
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -1691,26 +1986,34 @@ void CMainView::OnTimer(UINT nIDEvent)
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_LOAD_FLASH_PARAMS) {
-		SendCommandToMc( 49, 0, 0);
+		//QueueCommandToMc( MC_COMMAND_ACT_RELOAD_FLASH_PARAMS, 4, 0, 0);
+    //SendCommandToMc
 		KillTimer( MY_TIMER_LOAD_FLASH_PARAMS);
 	}
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_SWITCH_DU) {
-		SendCommandToMc( 9, 0, 0);
-		KillTimer( MY_TIMER_SWITCH_DU);
-		m_bSwitchDuAs = true;
+	if( nIDEvent == MY_TIMER_SWITCH_AS) {
+    //QueueCommandToMc( MC_COMMAND_ACT_RELOAD_FLASH_PARAMS, 4, 0, 0);
+		//SendCommandToMc( 10, 0, 0);
+		KillTimer( MY_TIMER_SWITCH_AS);
 	}
 
+  //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_SWITCH_AS) {
-		SendCommandToMc( 10, 0, 0);
-		KillTimer( MY_TIMER_SWITCH_AS);
-		m_bSwitchDuAs = true;
-	}
-	
+  if( nIDEvent == TIMER_SEND_CMDS_TO_MC) {
+    if( m_queCommandQueue.size() > 0) {
+      //SetControlsState( FALSE, FALSE);
+      CMcCommandItem *item = ( CMcCommandItem *) m_queCommandQueue.front();
+      m_queCommandQueue.pop();
+      SendCommandToMc( item->m_nCommand, item->m_nParam1, item->m_nParam2, item->m_nParam3);
+      delete item;
+    }
+    else {
+      //SetControlsState( m_ctlCOM.GetPortOpen(), !m_ctlCOM.GetPortOpen());
+    }
+  }
+
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS) {
@@ -1720,12 +2023,12 @@ void CMainView::OnTimer(UINT nIDEvent)
 				m_ctlNedtParam2.SetValue( (( CSlg2App *) AfxGetApp())->m_btParam2);
 				m_ctlNedtParam3.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);		//
 				m_ctlNedtParam4.SetValue( 0.01 * ( double) (( CSlg2App *) AfxGetApp())->m_btParam4);
-				m_ctlNedtParam5.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
-				m_ctlNedtParam6.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
-				m_ctlNedtParam7.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.);
+				//m_ctlNedtParam5.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
+				//m_ctlNedtParam6.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
+				//m_ctlNedtParam7.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.);
 				m_ctlNedtParam8.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff / 65535.);
-				m_ctlNedtParam9.SetValue( (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
-				m_ctlNedtParam10.SetValue( (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
+				//m_ctlNedtParam9.SetValue( (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
+				//m_ctlNedtParam10.SetValue( (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 
 				KillTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS);
 			}
@@ -1738,7 +2041,6 @@ void CMainView::OnTimer(UINT nIDEvent)
 	if( nIDEvent == MY_TIMER_INPUT_DATA) {
 		KillTimer( MY_TIMER_INPUT_DATA);
 		KillTimer( MY_TIMER_COM_FLUSH);
-		KillTimer( MY_TIMER_100);
 		KillTimer( MY_TIMER_1000);
 
 		if( m_ctlCOM.GetPortOpen())
@@ -1756,9 +2058,11 @@ void CMainView::OnTimer(UINT nIDEvent)
 		AfxMessageBox( _T("Нет потока входящих данных от гироскопа."));
 
 		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
+    
 		
 		GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
 		GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
@@ -1782,6 +2086,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 		gl_avI2.Reset();
 		gl_avVpc.Reset();
 		gl_avAmplAng.Reset();
+    gl_avAmplAngDus.Reset();
 		gl_avT1.Reset();
 		gl_avT2.Reset();
 		gl_avTsa.Reset();
@@ -1800,7 +2105,9 @@ void CMainView::OnTimer(UINT nIDEvent)
 		app->m_cbT1->Reset();
 		app->m_cbT2->Reset();
     app->m_cbT3->Reset();
-		app->m_cbTsa->Reset();
+		app->m_cbTsaMcs->Reset();
+    app->m_cbTsaMs->Reset();
+    app->m_cbTsaHz->Reset();
 	}
 
 	CFormView::OnTimer(nIDEvent);
@@ -1854,14 +2161,18 @@ void CMainView::OnClickGraph5()
 {
 	m_nMainGraph = 5;
 	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''"));
+  switch( m_nRadAmplAng) {
+    case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''")); break;
+    case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("В")); break;
+  }
+	
 }
 
 void CMainView::OnClickGraph6() 
 {
-	m_nMainGraph = 6;
+ 	m_nMainGraph = 6;
 	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
+ 	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
 }
 
 void CMainView::OnClickGraph7() 
@@ -1873,21 +2184,43 @@ void CMainView::OnClickGraph7()
 
 void CMainView::OnClickGraph8() 
 {
+  UpdateData( TRUE);
 	m_nMainGraph = 8;
 	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек"));
+  switch( m_nTsaRadSelection) {
+    case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
+    case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
+    case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц")); break;
+  }
+  /*if( m_nMainGraph == 8) {
+    switch( m_nTsaRadSelection) {
+      case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
+      case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
+      case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц")); break;
+    }
+  }*/
 }
 
 void CMainView::OnValueChangedCwStart(BOOL Value) 
 {
 	m_nPointsSkipped = 0;
 	UpdateData( TRUE);
-	((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
+	( ( CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
 
 	GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( Value);
-	GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( Value);
-	GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( Value);
+	//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( Value);	
 	GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( Value);
+
+  if( theApp.m_bSyncAsync == 2) {
+    GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( FALSE);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( FALSE);
+  }
+  else {
+    GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( Value && theApp.m_bSyncAsync);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( Value && theApp.m_bSyncAsync);
+  }
+  
+  
 	
 	GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( !Value);
 	GetDlgItem( IDC_COM_BAUDRATE)->EnableWindow( !Value);
@@ -1900,7 +2233,8 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 
 	if( Value) {
 		CSlg2App *app = (CSlg2App *) AfxGetApp();
-		
+		theApp.m_bDeviceSerialNumber = false;
+
 		if( app->m_cbW100 != NULL) { delete app->m_cbW100; app->m_cbW100 = NULL; }
 		if( app->m_cbW1000 != NULL) {	delete app->m_cbW1000; app->m_cbW1000 = NULL; }
 		if( app->m_cbW10000 != NULL) { delete app->m_cbW10000; app->m_cbW10000 = NULL; }
@@ -1909,10 +2243,13 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		if( app->m_cbI2 != NULL) { delete app->m_cbI2; app->m_cbI2 = NULL; }
 		if( app->m_cbVpc != NULL) { delete app->m_cbVpc; app->m_cbVpc = NULL; }
 		if( app->m_cbAmplAng != NULL) { delete app->m_cbAmplAng; app->m_cbAmplAng = NULL; }
+    if( app->m_cbAmplAngDus != NULL) { delete app->m_cbAmplAngDus; app->m_cbAmplAngDus = NULL; }
 		if( app->m_cbT1 != NULL) { delete app->m_cbT1; app->m_cbT1 = NULL; }
 		if( app->m_cbT2 != NULL) { delete app->m_cbT2; app->m_cbT2 = NULL; }
     if( app->m_cbT3 != NULL) { delete app->m_cbT3; app->m_cbT3 = NULL; }
-		if( app->m_cbTsa != NULL) { delete app->m_cbTsa; app->m_cbTsa = NULL; }
+		if( app->m_cbTsaMcs != NULL) { delete app->m_cbTsaMcs; app->m_cbTsaMcs = NULL; }
+    if( app->m_cbTsaMs != NULL)  { delete app->m_cbTsaMs;  app->m_cbTsaMs = NULL; }
+    if( app->m_cbTsaHz != NULL)  { delete app->m_cbTsaHz;  app->m_cbTsaHz = NULL; }
 
 		double dMeasTime = m_ctlNedtMeasTime.GetValue();
 		int nArraySize = 0;
@@ -1931,15 +2268,23 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		app->m_cbI2 = new CSlgCircleBuffer( nArraySize);
 		app->m_cbVpc = new CSlgCircleBuffer( nArraySize);
 		app->m_cbAmplAng = new CSlgCircleBuffer( nArraySize);
+    app->m_cbAmplAngDus = new CSlgCircleBuffer( nArraySize);
 		app->m_cbT1 = new CSlgCircleBuffer( nArraySize);
 		app->m_cbT2 = new CSlgCircleBuffer( nArraySize);
     app->m_cbT3 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbTsa = new CSlgCircleBuffer( nArraySize);
+    app->m_cbTsaMcs = new CSlgCircleBuffer( nArraySize);
+    app->m_cbTsaMs = new CSlgCircleBuffer( nArraySize);
+    app->m_cbTsaHz = new CSlgCircleBuffer( nArraySize);
 
     theApp.m_nCheckSummFails = 0;
+    theApp.m_nCounterFails = 0;
     theApp.m_nMarkerFails = 0;
 
-		((CSlg2App *) AfxGetApp())->StartThreads();
+    theApp.m_shFlashDecCoeff = 0;
+    theApp.m_shSignCoeff = 0;
+    theApp.m_nHvAppliesThisRun = -1;
+
+		( ( CSlg2App *) AfxGetApp())->StartThreads();
 
 		if( m_ctlCOM.GetPortOpen())
 			m_ctlCOM.SetPortOpen( false);
@@ -1951,14 +2296,18 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 			case 3: m_ctlCOM.SetSettings( _T("256000,N,8,1")); break;
       case 4: m_ctlCOM.SetSettings( _T("460800,N,8,1")); break;
       case 5: m_ctlCOM.SetSettings( _T("512000,N,8,1")); break;
+      case 6: m_ctlCOM.SetSettings( _T("921600,N,8,1")); break;
 		}
 		m_ctlCOM.SetPortOpen( true);
 
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
 		
 		SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
-		SetTimer( MY_TIMER_100,		 100, NULL);
-		SetTimer( MY_TIMER_1000,	 1000, NULL);
+		SetTimer( MY_TIMER_1000,	  1000, NULL);
+
+    //опросник параметров
+    m_nPollCounter = 0;
+    SetTimer( MY_TIMER_POLLER,	  1000, NULL);
 
 		SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
 		SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
@@ -1975,9 +2324,8 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		m_ctlCOM.SetPortOpen( false);
 
 		KillTimer( MY_TIMER_COM_FLUSH);
-		KillTimer( MY_TIMER_100);
 		KillTimer( MY_TIMER_1000);
-		
+		KillTimer( MY_TIMER_POLLER);
 				
 		m_bStopBigThreadFlag = true;
 		
@@ -2003,6 +2351,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		gl_avI2.Reset();
 		gl_avVpc.Reset();
 		gl_avAmplAng.Reset();
+    gl_avAmplAngDus.Reset();
 		gl_avT1.Reset();
 		gl_avT2.Reset();
 		gl_avTsa.Reset();
@@ -2019,10 +2368,13 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		app->m_cbI2->Reset();
 		app->m_cbVpc->Reset();
 		app->m_cbAmplAng->Reset();
+    app->m_cbAmplAngDus->Reset();
 		app->m_cbT1->Reset();
 		app->m_cbT2->Reset();
     app->m_cbT3->Reset();
-		app->m_cbTsa->Reset();
+		app->m_cbTsaMcs->Reset();
+    app->m_cbTsaMs->Reset();
+    app->m_cbTsaHz->Reset();
 	}
 
 	UpdateData( false);
@@ -2046,7 +2398,7 @@ void CMainView::OnParam1Btn()
 	
 	double q = m_ctlNedtParam1.GetValue() / m_dKimpSec;
 	byte = ( char) q;
-	SendCommandToMc( 0, byte, 0);
+	QueueCommandToMc( MC_COMMAND_SET, AMPLITUDE, byte, 0);
 	
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
@@ -2056,12 +2408,8 @@ void CMainView::OnParam1Btn()
 void CMainView::OnParam2Btn() 
 {
 	UpdateData( true);
-	
-	SendCommandToMc( 1, (char) m_ctlNedtParam2.GetValue(), 0);
-	/*char byte = 1;
-	((CSlg2App *) AfxGetApp())->m_ctlSerial.SendData( &byte, 1);
-	byte = ( int) m_ctlNedtParam2.GetValue();
-	((CSlg2App *) AfxGetApp())->m_ctlSerial.SendData( &byte, 1);*/
+
+  QueueCommandToMc( MC_COMMAND_SET, TACT_CODE, ( char) m_ctlNedtParam2.GetValue(), 0);
 
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
@@ -2078,7 +2426,9 @@ void CMainView::OnParam3Btn()
 	if( q1 > 0.5) q = ceil( q);
 	else q = floor( q);
 	byte = ( char) q;
-	SendCommandToMc( 2, byte, 0);
+
+  QueueCommandToMc( MC_COMMAND_SET, M_COEFF, byte, 0);
+  //SendCommandToMc( 2, byte, 0);
 
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
@@ -2095,71 +2445,79 @@ void CMainView::OnParam4Btn()
 	if( q1 > 0.5) q = ceil( q);
 	else q = floor( q);
 	byte = ( char) q;
-	SendCommandToMc( 3, byte, 0);
+
+  QueueCommandToMc( MC_COMMAND_SET, STARTMODE, byte, 0);
+	//SendCommandToMc( 3, byte, 0);
 
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
-void CMainView::OnParam5Btn() 
-{
-	UpdateData( true);
-	short val = ( short) ( m_ctlNedtParam5.GetValue() * 65535. / 0.75);
-	SendCommandToMc( 4, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-	
-	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-}
+//DEL void CMainView::OnParam5Btn() 
+//DEL {
+//DEL 	UpdateData( true);
+//DEL 	short val = ( short) ( m_ctlNedtParam5.GetValue() * 65535. / 0.75);
+//DEL 	SendCommandToMc( 4, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+//DEL 	
+//DEL 	SetSendButtonsState( FALSE);
+//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
+//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+//DEL }
 
-void CMainView::OnParam6Btn() 
-{
-	UpdateData( true);
-	short val = ( short) ( m_ctlNedtParam6.GetValue() * 65535. / 0.75);
-	SendCommandToMc( 5, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-	
-	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-}
+//DEL void CMainView::OnParam6Btn() 
+//DEL {
+//DEL 	UpdateData( true);
+//DEL 	short val = ( short) ( m_ctlNedtParam6.GetValue() * 65535. / 0.75);
+//DEL 	SendCommandToMc( 5, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+//DEL 	
+//DEL 	SetSendButtonsState( FALSE);
+//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
+//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+//DEL }
 
-void CMainView::OnParam7Btn() 
-{
-	UpdateData( true);
-	short val = ( short) ( m_ctlNedtParam7.GetValue() / 6. * 65535.);
-	SendCommandToMc( 6, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-	
-	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-}
+//DEL void CMainView::OnParam7Btn() 
+//DEL {
+//DEL 	UpdateData( true);
+//DEL 	short val = ( short) ( m_ctlNedtParam7.GetValue() / 6. * 65535.);
+//DEL 	SendCommandToMc( 6, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+//DEL 	
+//DEL 	SetSendButtonsState( FALSE);
+//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
+//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+//DEL }
 
 void CMainView::OnParam8Btn() 
 {
 	UpdateData( true);
 	short val = ( short) ( m_ctlNedtParam8.GetValue() * 65535.);
-	SendCommandToMc( 7, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+
+
+  QueueCommandToMc( MC_COMMAND_SET, DECCOEFF,
+        ( char) ( val & 0xFF),
+        ( char) ( ( val & 0xFF00) >> 8));
+  //SendCommandToMc( 7, ( char) ( val & 0xFF), ( char) ( ( val & 0xFF00) >> 8));
 	
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
-void CMainView::OnParam9Btn() 
-{
-	UpdateData( true);
-	short val = ( short) m_ctlNedtParam9.GetValue();
-	val++;
-	SendCommandToMc( 8, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-}
+//DEL void CMainView::OnParam9Btn() 
+//DEL {
+//DEL 	UpdateData( true);
+//DEL 	short val = ( short) m_ctlNedtParam9.GetValue();
+//DEL 	val++;
+//DEL 	SendCommandToMc( 8, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+//DEL 	SetSendButtonsState( FALSE);
+//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
+//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+//DEL }
 
 void CMainView::OnBtnSaveParams() 
 {
-	SendCommandToMc( 50, 0, 0);
+	//SendCommandToMc( 50, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_SAVE_FLASH_PARAMS, 0, 0, 0);
 
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
@@ -2171,14 +2529,19 @@ void CMainView::SetSendButtonsState(bool bState)
 	GetDlgItem(IDC_PARAM2_BTN)->EnableWindow( bState);
 	GetDlgItem(IDC_PARAM3_BTN)->EnableWindow( bState);
 	GetDlgItem(IDC_PARAM4_BTN)->EnableWindow( bState);
-	GetDlgItem(IDC_PARAM5_BTN)->EnableWindow( bState);
-	GetDlgItem(IDC_PARAM6_BTN)->EnableWindow( bState);
-	GetDlgItem(IDC_PARAM7_BTN)->EnableWindow( bState);
+	//GetDlgItem(IDC_PARAM5_BTN)->EnableWindow( bState);
+	//GetDlgItem(IDC_PARAM6_BTN)->EnableWindow( bState);
+	//GetDlgItem(IDC_PARAM7_BTN)->EnableWindow( bState);
 	GetDlgItem(IDC_PARAM8_BTN)->EnableWindow( bState);
-	GetDlgItem(IDC_PARAM9_BTN)->EnableWindow( bState);
+	//GetDlgItem(IDC_PARAM9_BTN)->EnableWindow( bState);
+
 	GetDlgItem(IDC_BTN_SAVE_PARAMS)->EnableWindow( bState);
-	GetDlgItem(IDC_BTN_RESTORE_PARAMS)->EnableWindow( bState);
-	GetDlgItem(IDC_BTN_THERMO_CALIB_SET)->EnableWindow( bState);
+	//GetDlgItem(IDC_BTN_RESTORE_PARAMS)->EnableWindow( bState);
+  
+  GetDlgItem(IDC_BTN_SWITCH_W_DNDU)->EnableWindow( bState && theApp.m_bSyncAsync && ( theApp.m_bSyncAsync != 2));
+  GetDlgItem(IDC_BTN_DEC_COEFF_CALC)->EnableWindow( bState && theApp.m_bSyncAsync && ( theApp.m_bSyncAsync != 2));
+	
+  GetDlgItem(IDC_BTN_THERMO_CALIB_SET)->EnableWindow( bState);
 	GetDlgItem(IDC_BTN_THERMO_CALIB_CLEAR)->EnableWindow( bState);
 }
 
@@ -2186,7 +2549,8 @@ void CMainView::SetSendButtonsState(bool bState)
 
 void CMainView::OnBtnRestoreParams() 
 {
-	SendCommandToMc( 51, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_RELOAD_FLASH_PARAMS, 4, 0, 0);
+	//SendCommandToMc( 51, 0, 0);
 
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
@@ -2206,35 +2570,18 @@ void CMainView::OnKillfocusEdtKImpSec()
 
 void CMainView::OnDecCoeffCalc() 
 {
+  if( gl_pDecCoeffCalcParams.m_bDecCoeffCalculation)
+    return;
+
 	//stop screen refresh and other timers
-	KillTimer( MY_TIMER_100);
-	KillTimer( MY_TIMER_1000);
+	//KillTimer( MY_TIMER_1000);
 
-	//подготовка переменных учавствующих в рассчете коэффициента вычета
-	gl_bDnDu = false;
-	for( int i=0; i< CYCLE_BUFFER_DN_DU; i++) {
-		gl_dNdU_dN[ i] = 0.;
-		gl_dNdU_dU[ i] = 0.;
-		gl_dNdU_DecCoeff[ i] = 0.;
-	}
-	gl_dec_coeff_cntr = 0;
-
-	gl_dec_coeff_dN_acc = 0.;
-	gl_dec_coeff_dU_acc = 0.;
-	gl_dec_coeff_acc = 0.;
-	gl_dec_coeff_acc_cntr = 0;
-
-	gl_dec_coeff_overround = false;
-
-	//switch dev to dn_dU output
-	m_bSwitchDuAs = false;
-	SetTimer( MY_TIMER_SWITCH_DU, 100, NULL);
-	//while( !m_bSwitchDuAs);
-	//SendCommandToMc( 9, 0, 0);
+  gl_pDecCoeffCalcParams.Reset();
 
 	//switch our thread to dn_dU input
-	gl_bDnDu = true;
+	gl_pDecCoeffCalcParams.m_bDecCoeffCalculation = true;
 
+  /*
 	//reset data
 	CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
@@ -2250,6 +2597,7 @@ void CMainView::OnDecCoeffCalc()
 	gl_avI2.Reset();
 	gl_avVpc.Reset();
 	gl_avAmplAng.Reset();
+  gl_avAmplAngDus.Reset();
 	gl_avT1.Reset();
 	gl_avT2.Reset();
 	gl_avTsa.Reset();
@@ -2265,27 +2613,45 @@ void CMainView::OnDecCoeffCalc()
 	app->m_cbI2->Reset();
 	app->m_cbVpc->Reset();
 	app->m_cbAmplAng->Reset();
+  app->m_cbAmplAngDus->Reset();
 	app->m_cbT1->Reset();
 	app->m_cbT2->Reset();
   app->m_cbT3->Reset();
-	app->m_cbTsa->Reset();
+	app->m_cbTsaMcs->Reset();
+  app->m_cbTsaMs->Reset();
+  app->m_cbTsaHz->Reset();
+  */
 
-	//show dlg
+
+  if( m_dlgDecCoeffCalc != NULL) {
+    m_dlgDecCoeffCalc->ShowWindow( SW_SHOW);
+  }
+  else {
+    m_dlgDecCoeffCalc = new CDecCoeffCalc( this);
+    m_dlgDecCoeffCalc->Create( IDD_K_DEC_COEFF_CALC, this);
+    m_dlgDecCoeffCalc->ShowWindow( SW_SHOW);
+  }
+
+  /*
+  //show dlg
 	CDecCoeffCalc dlg;
 	if( dlg.DoModal() == IDOK) {
 		//double k = fabs( gl_dec_coeff_acc / ( double) gl_dec_coeff_acc_cntr);
 		double k = fabs( gl_dec_coeff_dN_acc / gl_dec_coeff_dU_acc);
 		m_ctlNedtParam8.SetValue( k);
 	}
+  */
 
+
+
+
+  /*
 	//switch our thread back to normal input
-	gl_bDnDu = false;
+	gl_bDecCoeffCalculation = false;
 
 	//switch dev back to normal output
-	m_bSwitchDuAs = false;
 	SetTimer( MY_TIMER_SWITCH_AS, 100, NULL);
-	//while( !m_bSwitchDuAs);
-	//SendCommandToMc( 10, 0, 0);
+
 
 	Sleep( 100);
 
@@ -2302,6 +2668,7 @@ void CMainView::OnDecCoeffCalc()
 	gl_avI2.Reset();
 	gl_avVpc.Reset();
 	gl_avAmplAng.Reset();
+  gl_avAmplAngDus.Reset();
 	gl_avT1.Reset();
 	gl_avT2.Reset();
 	gl_avTsa.Reset();
@@ -2309,22 +2676,24 @@ void CMainView::OnDecCoeffCalc()
 	gl_avTsa10000.Reset();
 	gl_avTsa100000.Reset();	
 
-	app->m_cbW100->Reset();
-	app->m_cbW1000->Reset();
-	app->m_cbW10000->Reset();
-	app->m_cbW100000->Reset();
-	app->m_cbI1->Reset();
-	app->m_cbI2->Reset();
-	app->m_cbVpc->Reset();
-	app->m_cbAmplAng->Reset();
-	app->m_cbT1->Reset();
-	app->m_cbT2->Reset();
-  app->m_cbT3->Reset();
-	app->m_cbTsa->Reset();
+	theApp.m_cbW100->Reset();
+	theApp.m_cbW1000->Reset();
+	theApp.m_cbW10000->Reset();
+	theApp.m_cbW100000->Reset();
+	theApp.m_cbI1->Reset();
+	theApp.m_cbI2->Reset();
+	theApp.m_cbVpc->Reset();
+	theApp.m_cbAmplAng->Reset();
+  theApp.m_cbAmplAngDus->Reset();
+	theApp.m_cbT1->Reset();
+	theApp.m_cbT2->Reset();
+  theApp.m_cbT3->Reset();
+	theApp.m_cbTsaMcs->Reset();
+  theApp.m_cbTsaMs->Reset();
+  theApp.m_cbTsaHz->Reset();
 
 	//start screen refresh and other timers
-	SetTimer( MY_TIMER_100,	 100, NULL);
-	SetTimer( MY_TIMER_1000, 1000, NULL);
+	SetTimer( MY_TIMER_1000, 1000, NULL);*/
 }
 
 void CMainView::OnOnCommComm() 
@@ -2339,9 +2708,10 @@ void CMainView::OnOnCommComm()
 		((CSlg2App *) AfxGetApp())->m_nComPort = m_nComPort;
 
 		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
 		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
 		
 		GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
 		GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
@@ -2349,7 +2719,6 @@ void CMainView::OnOnCommComm()
 
 		m_ctlCOM.SetPortOpen( false);
 		
-		KillTimer( MY_TIMER_100);
 		KillTimer( MY_TIMER_1000);
 		KillTimer( MY_TIMER_COM_FLUSH);
 				
@@ -2369,6 +2738,7 @@ void CMainView::OnOnCommComm()
 		gl_avI2.Reset();
 		gl_avVpc.Reset();
 		gl_avAmplAng.Reset();
+    gl_avAmplAngDus.Reset();
 		gl_avT1.Reset();
 		gl_avT2.Reset();
 		gl_avTsa.Reset();
@@ -2384,10 +2754,13 @@ void CMainView::OnOnCommComm()
 		app->m_cbI2->Reset();
 		app->m_cbVpc->Reset();
 		app->m_cbAmplAng->Reset();
+    app->m_cbAmplAngDus->Reset();
 		app->m_cbT1->Reset();
 		app->m_cbT2->Reset();
     app->m_cbT3->Reset();
-		app->m_cbTsa->Reset();
+		app->m_cbTsaMcs->Reset();
+    app->m_cbTsaMs->Reset();
+    app->m_cbTsaHz->Reset();
 	
 		m_ctlBtnCwStart.SetValue( false);
 		m_bBtnCwStart = false;
@@ -2451,19 +2824,20 @@ void CMainView::OnOnCommComm()
 	}
 }
 
-void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3)
+void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3, BYTE b4)
 {
-	char str[3];
+	char str[4];
 	str[0] = b1;
 	str[1] = b2;
 	str[2] = b3;
+  str[3] = b4;
 
 	SAFEARRAY *psa;
   SAFEARRAYBOUND rgsabound[1];
   rgsabound[0].lLbound = 0;
-  rgsabound[0].cElements = 3;
+  rgsabound[0].cElements = 4;
   psa = SafeArrayCreate(VT_UI1, 1, rgsabound);
-	memcpy( psa->pvData, str, 3);
+	memcpy( psa->pvData, str, 4);
 	
 	VARIANT var;
 	var.vt = VT_ARRAY | VT_UI1;
@@ -2487,7 +2861,11 @@ void CMainView::OnBtnThermoCalibSet()
 	short val = ( short) m_ctlNedtThermoCalibTemperature.GetValue();
 	val += THERMO_CALIB_PARAMS_BASE;
 
-	SendCommandToMc( 11, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+  QueueCommandToMc( MC_COMMAND_ACT_T_CALIBRATION, 
+        ( char) ( val & 0xFF),
+        ( char) ( ( val & 0xFF00) >> 8),
+        0);
+	//SendCommandToMc( 11, ( char) ( val & 0xFF), ( char) ( ( val & 0xFF00) >> 8));
 	
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 4000, NULL);
@@ -2496,28 +2874,31 @@ void CMainView::OnBtnThermoCalibSet()
 
 void CMainView::OnBtnThermoCalibClear() 
 {
-	SendCommandToMc( 12, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_RESET_T_CALIB, 0, 0, 0);
+	//SendCommandToMc( 12, 0, 0);
 	
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
-void CMainView::OnParam10Btn() 
-{
-	UpdateData( true);
-	short val = ( short) m_ctlNedtParam10.GetValue();
-	
-	SendCommandToMc( 14, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-	
-	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 500, NULL);
-	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-}
+//DEL void CMainView::OnParam10Btn() 
+//DEL {
+//DEL 	UpdateData( true);
+//DEL 	short val = ( short) m_ctlNedtParam10.GetValue();
+//DEL 	
+//DEL 	SendCommandToMc( 14, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
+//DEL 	
+//DEL 	SetSendButtonsState( FALSE);
+//DEL 	SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 500, NULL);
+//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+//DEL }
 
 void CMainView::OnBtnLaserOff() 
 {
-	SendCommandToMc( 15, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_LASER_OFF, 0, 0, 0);
+	//SendCommandToMc( 15, 0, 0);
+
 	SetSendButtonsState( FALSE);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
@@ -2526,19 +2907,22 @@ void CMainView::OnBtnLaserOff()
 void CMainView::OnBtnIntegrOff() 
 {
   //2014-09-10.Выключение интегратора
-  SendCommandToMc( 16, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_INTEGR_OFF, 0, 0, 0);
+  //SendCommandToMc( 16, 0, 0);
 }
 
 void CMainView::OnBtnIntegrOn() 
 {
   //2014-09-10.Включение интегратора
-  SendCommandToMc( 17, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_INTEGR_ON, 0, 0, 0);
+  //SendCommandToMc( 17, 0, 0);
 }
 
 void CMainView::OnBtnIntegrReset() 
 {
   //2014-09-10.Сброс интегратора
-  SendCommandToMc( 18, 0, 0);
+  QueueCommandToMc( MC_COMMAND_ACT_INTEGR_RESET, 0, 0, 0);
+  //SendCommandToMc( 18, 0, 0);
 }
 
 void CMainView::OnRadT1Td1() 
@@ -2569,4 +2953,177 @@ void CMainView::OnRadT2Td2()
 void CMainView::OnRadT2Td3() 
 {
 	m_ctlSmallGraph7.SetCaption( _T("Термодатчик 3, [°C]"));
+}
+
+void CMainView::OnRadTsaMcs() 
+{
+  UpdateData( TRUE);
+	m_ctlSmallGraph8.SetCaption( _T("Время такта, [мксек]"));
+  if( m_nMainGraph == 8) {
+    switch( m_nTsaRadSelection) {
+      case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
+      case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек"));  break;
+      case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц"));    break;
+    }
+  }
+}
+
+void CMainView::OnRadTsaMs() 
+{
+  UpdateData( TRUE);
+	m_ctlSmallGraph8.SetCaption( _T("Время такта, [мсек]"));
+  if( m_nMainGraph == 8) {
+    switch( m_nTsaRadSelection) {
+      case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
+      case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек"));  break;
+      case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц"));    break;
+    }
+  }
+}
+
+void CMainView::OnRadTsaHz() 
+{
+  UpdateData( TRUE);
+	m_ctlSmallGraph8.SetCaption( _T("Время такта, [Гц]"));
+  if( m_nMainGraph == 8) {
+    switch( m_nTsaRadSelection) {
+      case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
+      case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек"));  break;
+      case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц"));    break;
+    }
+  }
+}
+
+void CMainView::OnBtnReqVersion() 
+{
+  QueueCommandToMc( MC_COMMAND_REQ, VERSION, 0, 0);
+}
+
+void CMainView::QueueCommandToMc(char btCmd, char btParam1, char btParam2, char btParam3)
+{
+  m_queCommandQueue.push( new CMcCommandItem( btCmd, btParam1, btParam2, btParam3));
+}
+
+void CMainView::OnBtnReqAmpl() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, AMPLITUDE, 0, 0);
+}
+
+void CMainView::OnBtnReqTactcode() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, TACT_CODE, 0, 0);
+}
+
+void CMainView::OnBtnReqMCoeff() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, M_COEFF, 0, 0);
+}
+
+void CMainView::OnBtnReqStartMode() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, STARTMODE, 0, 0);
+}
+
+void CMainView::OnBtnReqDecCoeff() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, DECCOEFF, 0, 0);
+}
+
+void CMainView::OnBtnMcToOutAmplitude() 
+{
+  m_ctlNedtParam1.SetValue( theApp.m_btParam1 * theApp.m_dKimpSec);
+}
+
+void CMainView::OnBtnMcToOutTactcode() 
+{
+	m_ctlNedtParam2.SetValue( theApp.m_btParam2);
+}
+
+void CMainView::OnBtnMcToOutMcoeff() 
+{
+  m_ctlNedtParam3.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);	
+}
+
+void CMainView::OnBtnMcToOutStartmode() 
+{
+	m_ctlNedtParam4.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_btParam4 / 100.);
+}
+
+void CMainView::OnBtnMcToOutDeccoeff() 
+{
+	m_ctlNedtParam8.SetValue( ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);
+}
+
+void CMainView::OnBtnSwitchWDndu() 
+{
+  if( theApp.m_bSyncAsync == 1) {
+    if( theApp.m_bWdNdU == 0)
+      QueueCommandToMc( MC_COMMAND_ACT_SWC_DW_DNDU_OUTPUT, 1, 0, 0);
+    else if( theApp.m_bWdNdU == 1)
+      QueueCommandToMc( MC_COMMAND_ACT_SWC_DW_DNDU_OUTPUT, 0, 0, 0);
+  }
+}
+
+void CMainView::OnBtnReset() 
+{
+  m_nPointsSkipped = 0;
+  theApp.m_cbW100->Reset();
+	theApp.m_cbW1000->Reset();
+	theApp.m_cbW10000->Reset();
+	theApp.m_cbW100000->Reset();
+	theApp.m_cbI1->Reset();
+	theApp.m_cbI2->Reset();
+	theApp.m_cbVpc->Reset();
+	theApp.m_cbAmplAng->Reset();
+  theApp.m_cbAmplAngDus->Reset();
+	theApp.m_cbT1->Reset();
+	theApp.m_cbT2->Reset();
+  theApp.m_cbT3->Reset();
+  theApp.m_cbTsaMcs->Reset();
+  theApp.m_cbTsaMs->Reset();
+  theApp.m_cbTsaHz->Reset();
+
+  theApp.m_nCheckSummFails = 0;
+  theApp.m_nMarkerFails = 0;
+  theApp.m_nCounterFails = 0;
+
+  gl_nCircleBufferGet = 0;
+	gl_nCircleBufferPut = 0;
+
+	gl_dGlobalTime = 0.;
+	gl_avW100.Reset();
+	gl_avW1000.Reset();
+	gl_avW10000.Reset();
+	gl_avW100000.Reset();
+	gl_avI1.Reset();
+	gl_avI2.Reset();
+	gl_avVpc.Reset();
+	gl_avAmplAng.Reset();
+  gl_avAmplAngDus.Reset();
+	gl_avT1.Reset();
+	gl_avT2.Reset();
+	gl_avTsa.Reset();
+	gl_avTsa1000.Reset();
+	gl_avTsa10000.Reset();
+	gl_avTsa100000.Reset();
+}
+
+void CMainView::OnRadAaImp() 
+{
+	m_ctlSmallGraph5.SetCaption( _T("Ампл. част. подст., ['']"));
+}
+
+void CMainView::OnRadAaDus() 
+{
+	m_ctlSmallGraph5.SetCaption( _T("Ампл. с ДУСа, [В]"));
+}
+
+void CMainView::OnBtnReqHvApplies() 
+{
+  QueueCommandToMc( MC_COMMAND_REQ, HV_APPLY_COUNT_TR , 0, 0);
+}
+
+void CMainView::OnBtnReqSn() 
+{
+	QueueCommandToMc( MC_COMMAND_REQ, DEVNUM, 0, 0);
 }

@@ -49,6 +49,9 @@ protected:
 	virtual void OnOK();
 	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnValueChangedCweDuLowEdge(VARIANT FAR* Value, VARIANT FAR* PreviousValue, BOOL OutOfRange);
+	afx_msg void OnBtnReset();
+	afx_msg void OnValueChangedCweDwHighEdge(VARIANT FAR* Value, VARIANT FAR* PreviousValue, BOOL OutOfRange);
+	afx_msg void OnBtnSave();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

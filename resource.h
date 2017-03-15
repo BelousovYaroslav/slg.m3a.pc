@@ -2,6 +2,7 @@
 // Microsoft Developer Studio generated include file.
 // Used by slg2.rc
 //
+#define IDC_BTN_RESET                   3
 #define IDD_ABOUTBOX                    100
 #define IDR_MAINFRAME                   128
 #define IDR_SLG2TYPE                    129
@@ -112,12 +113,15 @@
 #define IDC_PARAM1_BTN                  1100
 #define IDC_PARAM1_VAL                  1101
 #define IDC_PARAM5_BTN                  1102
+#define IDC_BTN_REQ_AMPL                1102
 #define IDC_PARAM2_BTN                  1103
 #define IDC_PARAM2_VAL                  1104
 #define IDC_PARAM5_VAL                  1105
+#define IDC_BTN_REQ_TACTCODE            1105
 #define IDC_PARAM3_BTN                  1106
 #define IDC_PARAM3_VAL                  1107
 #define IDC_PARAM6_BTN                  1108
+#define IDC_BTN_REQ_M_COEFF             1108
 #define IDC_PARAM4_BTN                  1109
 #define IDC_PARAM4_VAL                  1110
 #define IDC_PARAM1_TITLE                1111
@@ -129,6 +133,7 @@
 #define IDC_PARAM3_NEDT                 1117
 #define IDC_PARAM4_NEDT                 1118
 #define IDC_PARAM5_TITLE                1119
+#define IDC_BTN_REQ_START_MODE          1119
 #define IDC_BTN_SAVE_PARAMS             1120
 #define IDC_PARAM6_TITLE                1121
 #define IDC_PARAM7_TITLE                1122
@@ -148,7 +153,9 @@
 #define IDC_PARAM9_VAL                  1136
 #define IDC_BTN_RESTORE_PARAMS          1137
 #define IDC_PARAM10_NEDT                1138
+#define IDC_BTN_REQ_DEC_COEFF           1138
 #define IDC_PARAM10_BTN                 1139
+#define IDC_BTN_SWITCH_W_DNDU           1139
 #define IDC_PARAM10_VAL                 1140
 #define IDC_NEDT_NPOINTS                1142
 #define IDC_CMB_T_MEANING               1143
@@ -165,10 +172,12 @@
 #define IDC_CWE_DU_LOW_EDGE             1155
 #define IDC_LBL_DEC_COEFF               1156
 #define IDC_BTN_DEC_COEFF_CALC          1157
+#define IDC_CWE_DW_HIGH_EDGE            1157
 #define IDC_COMM                        1158
 #define IDC_SFTW_VER                    1160
 #define IDC_NEDT_MEAS_TIME              1161
 #define IDC_BTN_EXPORT                  1162
+#define IDC_LBL_DEVICE_SERIAL_NUMBER    1163
 #define IDC_COM_BAUDRATE                1164
 #define IDC_THERMO_CALIB_T1             1166
 #define IDC_CWNUMEDIT_THERMO_CURR_TEMP  1167
@@ -188,6 +197,24 @@
 #define IDC_RAD_T2_TD3                  1181
 #define IDC_LBL_MARKER_FAILS            1182
 #define IDC_LBL_CHECKSUMM_FAILS         1183
+#define IDC_RAD_TSA_MCS                 1184
+#define IDC_RAD_TSA_MS                  1185
+#define IDC_RAD_TSA_HZ                  1186
+#define IDC_BTN_REQ_VERSION             1187
+#define IDC_BTN_MC_TO_OUT_AMPLITUDE     1188
+#define IDC_BTN_MC_TO_OUT_TACTCODE      1189
+#define IDC_BTN_MC_TO_OUT_MCOEFF        1190
+#define IDC_BTN_MC_TO_OUT_STARTMODE     1191
+#define IDC_BTN_MC_TO_OUT_DECCOEFF      1192
+#define IDC_LBL_REGIME_SYNC_ASYNC       1193
+#define IDC_LBL_REGIME_DNDU_W           1194
+#define IDC_BTN_SAVE                    1194
+#define IDC_LBL_HV_APPLIES_THIS_TIME    1195
+#define IDC_RAD_AA_IMP                  1196
+#define IDC_RAD_AA_DUS                  1197
+#define IDC_BTN_REQ_HV_APPLIES          1198
+#define IDC_LBL_COUNTER_FAILS           1199
+#define IDC_BTN_REQ_SN                  1200
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -197,7 +224,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1183
+#define _APS_NEXT_CONTROL_VALUE         1199
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

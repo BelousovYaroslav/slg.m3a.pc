@@ -13,6 +13,8 @@
 #include "WizardSelComPortStep.h"
 #include "SlgNewAverager.h"
 #include "Serial.h"
+#include "AnalogueParamsConstList.h"
+#include "DecCoeffCalcParams.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,6 +31,7 @@ double gl_pi1;
 double gl_pi2;
 double gl_pVpc;
 double gl_pAA;
+double gl_pAADus;
 double gl_pT1;
 double gl_pT2;
 double gl_pT3;
@@ -64,6 +67,7 @@ CSlgNewAverager gl_avI1;
 CSlgNewAverager gl_avI2;
 CSlgNewAverager gl_avVpc;
 CSlgNewAverager gl_avAmplAng;
+CSlgNewAverager gl_avAmplAngDus;
 CSlgNewAverager gl_avT1;
 CSlgNewAverager gl_avT2;
 CSlgNewAverager gl_avT3;
@@ -72,20 +76,7 @@ CSlgNewAverager gl_avTsa1000;
 CSlgNewAverager gl_avTsa10000;
 CSlgNewAverager gl_avTsa100000;
 
-BOOL gl_bDnDu = false;
-double gl_dNdU_dN[ CYCLE_BUFFER_DN_DU];
-double gl_dNdU_dU[ CYCLE_BUFFER_DN_DU];
-double gl_dNdU_DecCoeff[ CYCLE_BUFFER_DN_DU];
-int gl_dec_coeff_cntr = 0;
-
-double gl_dec_coeff_dN_acc;
-double gl_dec_coeff_dU_acc;
-double gl_dec_coeff_acc;
-int gl_dec_coeff_acc_cntr = 0;
-
-double gl_dec_coeff_low_filter = 200.;
-
-BOOL gl_dec_coeff_overround = false;
+CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 /////////////////////////////////////////////////////////////////////////////
 // ПОТОК РАСПРЕДЕЛЕНИЯ ДАННЫХ
@@ -103,6 +94,8 @@ DWORD WINAPI BigThread(LPVOID lparam)
 	m_bStopBigThreadFlag = false;
 
 	gl_pTsa = gl_pw100 = gl_pi1 = gl_pi2 = gl_pVpc = gl_pAA = gl_pT1 = gl_pT2 = gl_pT3 = gl_pTSamean = 0.;
+  
+  int btPrevPackCounter = 500;
 
 	while( !m_bStopBigThreadFlag) {
 		int distance = ( CYCLE_BUFFER_LEN + gl_nCircleBufferPut - gl_nCircleBufferGet) % CYCLE_BUFFER_LEN;
@@ -125,7 +118,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           switch( nMarkerCounter) {
             case 0:
               if( byte1 == 0x55)
-                nMarkerCounter++;
+                nMarkerCounter = 1;
+              else if( byte1 == 0x11)
+                nMarkerCounter = 2;
               else {
                 if( bMarkerFailOnce) {
                   theApp.m_nMarkerFails++;
@@ -135,8 +130,21 @@ DWORD WINAPI BigThread(LPVOID lparam)
             break;
 
             case 1:
-              if( byte1 == 0xAA)
-                nMarkerCounter++;  //2! (условие выхода)
+              if( byte1 == 0xAA) {
+                nMarkerCounter = 3;
+              }
+              else {
+                nMarkerCounter = 0;
+                if( bMarkerFailOnce) {
+                  theApp.m_nMarkerFails++;
+                  bMarkerFailOnce = false;
+                }
+              }
+            break;
+
+            case 2:
+              if( byte1 == 0x88)
+                nMarkerCounter = 3;
               else {
                 nMarkerCounter = 0;
                 if( bMarkerFailOnce) {
@@ -147,8 +155,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
             break;
           }
 				} 
-			} while( nMarkerCounter != 2);
+			} while( nMarkerCounter != 3);
 
+      
       //ПРИРАЩЕНИЕ УГЛА: 4 байта
 			byte1 = gl_bCircleBuffer[ gl_nCircleBufferGet];
 			gl_nCircleBufferGet = ( gl_nCircleBufferGet + 1) % CYCLE_BUFFER_LEN;
@@ -158,21 +167,6 @@ DWORD WINAPI BigThread(LPVOID lparam)
 			gl_nCircleBufferGet = ( gl_nCircleBufferGet + 1) % CYCLE_BUFFER_LEN;
 			byte4 = gl_bCircleBuffer[ gl_nCircleBufferGet];
 			gl_nCircleBufferGet = ( gl_nCircleBufferGet + 1) % CYCLE_BUFFER_LEN;
-			
-			//float f_dN;
-      int n_dN;
-
-			char *ptr;
-      
-      //ptr = ( char *) &f_dN;
-      ptr = ( char *) &n_dN;
-
-			ptr[0] = byte1;
-			ptr[1] = byte2;
-			ptr[2] = byte3;
-			ptr[3] = byte4;
-      
-			dAngle_inc = ( ( double) n_dN / 2147483647. * 99310.);
 
 			//НОМЕР ЧЕРЕДУЮЩЕГОСЯ (ТЕХНОЛОГИЧЕСКОГО, АНАЛОГОВОГО) ПАРАМЕТРА. 1 байт
 			byte5 = gl_bCircleBuffer[ gl_nCircleBufferGet];
@@ -214,8 +208,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
       //КОД ОШИБКИ. 1 БАЙТ
 			byte11 = gl_bCircleBuffer[ gl_nCircleBufferGet];
 			gl_nCircleBufferGet = ( gl_nCircleBufferGet + 1) % CYCLE_BUFFER_LEN;
-			if( (( CSlg2App *) AfxGetApp())->m_nEmergencyCode == 0)
-				(( CSlg2App *) AfxGetApp())->m_nEmergencyCode = byte11;
+			
 			
       //CHEKSUMM
       //КОНТРОЛЬНАЯ СУММА, CS. 1 байт
@@ -252,217 +245,283 @@ DWORD WINAPI BigThread(LPVOID lparam)
         //PostQuitMessage( 0);
       }
 
-			/*
-			//if( nCur1 == -1) {
-				if( byte5 == 2) {
-					Beep( 1000, 100);
-					CString pack;
-					pack.Format( _T("0x%02x 0x%02x 0x%02x 0x%02x   0x%02x   0x%02x 0x%02x   0x%02x 0x%02x   0x%02x"),
-							byte1, byte2, byte3, byte4,
-							byte5,
-							byte6, byte7,
-							byte8, byte9,
-							byte10);
-					AfxMessageBox( pack);
-				}
-			//}*/
+      //ОБРАБОТКА БАЙТА ОШИБКИ
+      char bVeracity  = ( byte11 & 0x80) >> 7;
+      char bLockBit   = ( byte11 & 0x40) >> 6;
+      char bSyncAsync = ( byte11 & 0x20) >> 5;
+      char bdWdNdU    = ( byte11 & 0x10) >> 4;
+      char bErrorCode = byte11 & 0x0F;
 
-			if( gl_bDnDu) {
+      //локбит
+      if( theApp.m_bLockBit != bLockBit) {
+        theApp.m_bLockBit = bLockBit;
+      }
+
+      //флаг синхр/асинхр режим работы прибора
+      theApp.m_bSyncAsync = bSyncAsync;
+      
+      //флаг выдаваемого параметра
+      theApp.m_bWdNdU = bdWdNdU;
+
+      //пол-байта с кодом ошибки
+      if( theApp.m_nEmergencyCode == 0)
+				theApp.m_nEmergencyCode = bErrorCode;
+
+      //проверка счётчика посылок
+      if( btPrevPackCounter == 500) {
+        btPrevPackCounter = byte10;
+      }
+      else {
+        if( ( ( btPrevPackCounter + 1) % 256) != byte10) {
+          theApp.m_nCounterFails++;
+        }
+        btPrevPackCounter = byte10;
+      }
+
+      //РАЗБОР ПАЧКИ
+      //ПРИРАЩЕНИЕ УГЛА: 4 байта
+      short dN, dU;
+      if( bdWdNdU) {
         //режим рассчёта коэффициента вычета
-        //От гироскопа нам передаются dN и dU - всё остальное бубуйня
+        //От гироскопа нам передаются dN (short) и dU(short)
+        
+        
+        //И нам нужен коэффициент вычета, а то без него мы не сможем вычислить Phi
+        if( theApp.m_shFlashDecCoeff == 0) {
+          if( byte5 == DECCOEFF)
+            theApp.m_shFlashDecCoeff = nCur1;
+          else
+            continue;
+        }
 
-				gl_dNdU_dN[ gl_dec_coeff_cntr] = dAngle_inc;
-				gl_dNdU_dU[ gl_dec_coeff_cntr] = dSaTime;
+        //и нам нужен знаковый коэффициент
+        if( theApp.m_shSignCoeff == 0) {
+          if( byte5 == SIGNCOEFF)
+            theApp.m_shSignCoeff = (( signed short) nCur1) - 1;
+          else
+            continue;
+        }
+        
 
-				gl_dec_coeff_dN_acc += fabs( dAngle_inc);
-				gl_dec_coeff_dU_acc += fabs( dSaTime);
+        char *ptr;
+        ptr = ( char *) &dN;
+			  ptr[0] = byte1;
+			  ptr[1] = byte2;
 
-				/*
-				if( fabs( dSaTime) > gl_dec_coeff_low_filter) {
-					gl_dNdU_DecCoeff[ gl_dec_coeff_cntr] = dAngle_inc / dSaTime;
+        ptr = ( char *) &dU;
+			  ptr[0] = byte3;
+			  ptr[1] = byte4;
+
+        //CString strDbg;
+        //strDbg.Format( "%d %d\n", dN, dU);
+        //OutputDebugString( strDbg);
+
+        if( gl_pDecCoeffCalcParams.m_bDecCoeffCalculation) {
+          gl_pDecCoeffCalcParams.AddDnDuDtPoint( dN, dU, dSaTime);
+        }
+
+        dAngle_inc =  ( double) dN - ( ( double) dU * ( ( double) theApp.m_shFlashDecCoeff / 65535.)) * theApp.m_shSignCoeff;
+
+        if( fabs( dAngle_inc) > 100.) {
+          CString strTmp;
+          strTmp.Format( _T("OOPS! dN:%d dU:%d\n"), dN, dU);
+          OutputDebugString( strTmp);
+        }
+      }
+      else {
+        //рабочий режим
+
+			  //float f_dN;
+        int n_dN;
+        char *ptr;      
+        //ptr = ( char *) &f_dN;
+        ptr = ( char *) &n_dN;
+			  ptr[0] = byte1;
+			  ptr[1] = byte2;
+			  ptr[2] = byte3;
+			  ptr[3] = byte4;
+
+			  dAngle_inc = ( ( double) n_dN / 2147483647. * 99310.);
+      }
+
+      
+      //осреднители
+			gl_avW100.AddPoint( dAngle_inc);
+			gl_avW1000.AddPoint( dAngle_inc);
+			gl_avW10000.AddPoint( dAngle_inc);
+			gl_avW100000.AddPoint( dAngle_inc);
+
+			/*if( param & 0x80)
+				Beep( 1000, 10);*/
+
+      CString str;
+
+			switch( byte5) {
+				case UTD1:            gl_avT1.AddPoint( dCur1);			  break;
+				case UTD2:            gl_avT2.AddPoint( dCur1);			  break;
+        case UTD3:            gl_avT3.AddPoint( dCur1);			  break;
+			  case I1:              gl_avI1.AddPoint( dCur1);			  break;
+				case I2:              gl_avI2.AddPoint( dCur1);			  break;
+				case CNTRPC:          gl_avVpc.AddPoint( dCur1);		  break;
+				case AMPLANG_ALTERA:  gl_avAmplAng.AddPoint( dCur1);  break;
+        case AMPLANG_DUS:     gl_avAmplAngDus.AddPoint( dCur1);  break;
+
+				case AMPLITUDE: theApp.m_btParam1 = nCur1;        break;        //Амплитуда колебаний виброподвеса
+				case TACT_CODE: theApp.m_btParam2 = nCur1;        break;        //Код такта подставки
+				case M_COEFF:   theApp.m_btParam3 = nCur1;        break;        //коэффициент ошумления
+				case STARTMODE: theApp.m_btParam4 = nCur1;        break;        //Начальная мода
+        case DECCOEFF:    theApp.m_shFlashDecCoeff = nCur1; break;      //коэффициент вычета
+
+        case CONTROL_I1:  theApp.m_shFlashI1min = nCur1;  break;        //Контрольный ток I1
+			  case CONTROL_I2:  theApp.m_shFlashI2min = nCur1;  break;        //Контрольный ток I2
+				case CONTROL_AA:  theApp.m_shFlashAmplAng1min = nCur1; break;   //Контрольный сигнал раскачки AmplAng1
 					
-					gl_dec_coeff_dN_acc += fabs( dAngle_inc);
-					gl_dec_coeff_dU_acc += fabs( dSaTime);
+        case HV_APPLY_COUNT_TR: theApp.m_nHvAppliesThisRun = nCur1; break;  //число 3kV-импульсов поджига
+
+				case SIGNCOEFF:
+					/*if( ( nCur1 != 0) || ( nCur1 != 2))
+						( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = 1;
+					else
+						( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = nCur1-1;*/
+					( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = (( signed short) nCur1) - 1;
+
+          /*
+          str.Format( "$nCur1:%d $SignCoeff:%d", ( signed short) nCur1, ( ( CSlg2App *) AfxGetApp())->m_shSignCoeff);
+          AfxMessageBox( str);
+          */
+
+				  /*Beep(200, 100);*/
+				break; //flashParamSignCoeff
+
+				case VERSION:
+					//( ( CSlg2App *) AfxGetApp())->m_nSoftwareVer = nCur1;				//версия ПО
+					/*Beep( 300, 100);*/
+          ( ( CSlg2App *) AfxGetApp())->m_strSoftwareVer.Format(_T("v%d.%d.%d.0"), 
+				    	( byte6 / 16),		//major
+							  byte6 % 16,			//middle
+							  byte7 / 16);		//minor
+				break; 
+
+        case DEVNUM:
+          theApp.m_bDeviceSerialNumber = true;
+          theApp.m_nDeviceSerialNumber = nCur1;
+        break;
+
+				case CALIB_T1:
+					( ( CSlg2App *) AfxGetApp())->m_shFlashT1 = nCur1;
+					( ( CSlg2App *) AfxGetApp())->m_shFlashT1 -= THERMO_CALIB_PARAMS_BASE;
+					/*Beep( 400, 100);*/
+				break;		//калибровка термодатчиков: min T
+
+				case T1_TD1: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_1 = nCur1; /*Beep( 500, 100);*/break; //калибровка термодатчиков: TD1_minT
+				case T1_TD2: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD2_minT
+        case T1_TD3: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD3_minT
+
+				case CALIB_T2:
+					( ( CSlg2App *) AfxGetApp())->m_shFlashT2 = nCur1;
+					( ( CSlg2App *) AfxGetApp())->m_shFlashT2 -= THERMO_CALIB_PARAMS_BASE;
+					/*Beep( 700, 100);*/
+				break;		//калибровка термодатчиков: max T
+
+				case T2_TD1: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_2 = nCur1; /*Beep( 800, 100);*/break; //калибровка термодатчиков: TD1_maxT
+				case T2_TD2: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD2_maxT
+        case T2_TD3: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD3_maxT
 					
-					gl_dec_coeff_acc += dAngle_inc / dSaTime;
-					gl_dec_coeff_acc_cntr++;
-				}
-				else {
-					gl_dNdU_DecCoeff[ gl_dec_coeff_cntr] = 0.;
-				}*/
-
-				gl_dec_coeff_cntr++;
-				if( gl_dec_coeff_cntr == CYCLE_BUFFER_DN_DU) {
-					gl_dec_coeff_overround = true;
-				}
-				gl_dec_coeff_cntr = ( gl_dec_coeff_cntr % CYCLE_BUFFER_DN_DU);
-
 			}
-			else {
-				//Рабочий режим получения протокола
 
-				CSlg2App *app = ( CSlg2App *) AfxGetApp();
-				if( bFirst100msecPointSkipped) {
-					/*if( (( CSlg2App *) AfxGetApp())->fh != NULL)
-						fprintf( (( CSlg2App *) AfxGetApp())->fh, _T("%.5f\t%.5f\t%d\t%d\t%d\n"), f_dN, dAngle_inc, param, nCur1, nSaTime);
-					else
-						AfxMessageBox( _T("Попытка записи данных в файл с закрытым дескриптором."));*/
-
-					if( (( CSlg2App *) AfxGetApp())->fhNew != NULL) {
-						//fwrite( &f_dN, sizeof( float), 1, app->fhNew);					//f_dN
-            fwrite( &n_dN, sizeof( int), 1, app->fhNew);					    //n_dN
-
-						//fwrite( &dAngle_inc, sizeof( double), 1, app->fhNew);	//dAngle_inc
-						fwrite( &param, sizeof( short), 1, app->fhNew);				  //param
-						fwrite( &nCur1, sizeof( short), 1, app->fhNew);				  //nCur1
-						fwrite( &nSaTime, sizeof( short), 1, app->fhNew);				//nSaTime
-            
-            /*
-            //DELETEME
-            short shFinalPart = 0xffff;
-            fwrite( &shFinalPart, sizeof( short), 1, app->fhNew);
-            //DELETEME
-            */
-
-					}
-					else
-						AfxMessageBox( _T("Попытка записи данных в bin-файл с закрытым дескриптором."));
-				}
-				gl_avW100.AddPoint( dAngle_inc);
-				gl_avW1000.AddPoint( dAngle_inc);
-				gl_avW10000.AddPoint( dAngle_inc);
-				gl_avW100000.AddPoint( dAngle_inc);
-
-				/*if( param & 0x80)
-					Beep( 1000, 10);*/
-
-        CString str;
-
-				switch( (byte5 & 0x7f)) {
-					case 0: gl_avT1.AddPoint( dCur1);			break;
-					case 1: gl_avT2.AddPoint( dCur1);			break;
-          case 2: gl_avT3.AddPoint( dCur1);			break;
-					case 3: gl_avI1.AddPoint( dCur1);			break;
-					case 4: gl_avI2.AddPoint( dCur1);			break;
-					case 5: gl_avVpc.AddPoint( dCur1);		break;
-					case 6: gl_avAmplAng.AddPoint( dCur1); break;
-
-					case 7: ( ( CSlg2App *) AfxGetApp())->m_btParam1 = nCur1;  break;       //Амплитуда колебаний виброподвеса
-					case 8: ( ( CSlg2App *) AfxGetApp())->m_btParam2 = nCur1; break;        //Код такта подставки
-					case 9: ( ( CSlg2App *) AfxGetApp())->m_btParam3 = nCur1; break;        //коэффициент ошумления
-					case 10: ( ( CSlg2App *) AfxGetApp())->m_btParam4 = nCur1; break;       //Начальная мода
-					case 11: ( ( CSlg2App *) AfxGetApp())->m_shFlashI1min = nCur1; break;   //Контрольный ток I1
-			    case 12: ( ( CSlg2App *) AfxGetApp())->m_shFlashI2min = nCur1; break;   //Контрольный ток I2
-				  case 13: ( ( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min = nCur1; break; //Контрольный сигнал раскачки AmplAng1
-					case 14: ( ( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff = nCur1; /*Beep( 100, 100);*/ break; //коэффициент вычета
-	        
-					case 15:
-						/*if( ( nCur1 != 0) || ( nCur1 != 2))
-							( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = 1;
-						else
-							( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = nCur1-1;*/
-						( ( CSlg2App *) AfxGetApp())->m_shSignCoeff = (( signed short) nCur1) - 1;
-
-            /*
-            str.Format( "$nCur1:%d $SignCoeff:%d", ( signed short) nCur1, ( ( CSlg2App *) AfxGetApp())->m_shSignCoeff);
-            AfxMessageBox( str);
-            */
-
-						/*Beep(200, 100);*/
-					break; //flashParamSignCoeff
-
-					case 16:
-						//( ( CSlg2App *) AfxGetApp())->m_nSoftwareVer = nCur1;				//версия ПО
-						/*Beep( 300, 100);*/
-            ( ( CSlg2App *) AfxGetApp())->m_strSoftwareVer.Format(_T("v%d.%d.%d.0"), 
-							(byte6 / 16),		//major
-							byte6 % 16,			//middle
-							byte7 / 16);		//minor
-					break; 
-
-					case 17:
-						//сбросим признак что у нас всё калибровано и поднимем его только когда придет 21 байтик и у нас все будет оке
+			/*
+			//проверка калибровки термодатчиков
+			if( ( byte5 & 0x7f) == 21) {
+				if( ( ( CSlg2App *) AfxGetApp())->m_shFlashT1 >= MIN_T_THERMO_CALIBRATION &&
+						( ( CSlg2App *) AfxGetApp())->m_shFlashT1 <= MAX_T_THERMO_CALIBRATION) {
+					if( ( ( CSlg2App *) AfxGetApp())->m_shFlashT2 >= MIN_T_THERMO_CALIBRATION &&
+							( ( CSlg2App *) AfxGetApp())->m_shFlashT2 <= MAX_T_THERMO_CALIBRATION) {
 						
-						/*
-						( ( CSlg2App *) AfxGetApp())->m_bThermoCalibrated = FALSE;
-						*/
-
-						( ( CSlg2App *) AfxGetApp())->m_shFlashT1 = nCur1;
-						( ( CSlg2App *) AfxGetApp())->m_shFlashT1 -= THERMO_CALIB_PARAMS_BASE;
-						/*Beep( 400, 100);*/
-					break;		//калибровка термодатчиков: min T
-
-					case 18: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_1 = nCur1; /*Beep( 500, 100);*/break; //калибровка термодатчиков: TD1_minT
-					case 19: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD2_minT
-          case 20: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD3_minT
-
-					case 21:
-						( ( CSlg2App *) AfxGetApp())->m_shFlashT2 = nCur1;
-						( ( CSlg2App *) AfxGetApp())->m_shFlashT2 -= THERMO_CALIB_PARAMS_BASE;
-						/*Beep( 700, 100);*/
-					break;		//калибровка термодатчиков: max T
-
-					case 22: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_2 = nCur1; /*Beep( 800, 100);*/break; //калибровка термодатчиков: TD1_maxT
-					case 23: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD2_maxT
-          case 24: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD3_maxT
-					
-					case 25:
-						( ( CSlg2App *) AfxGetApp())->m_shPhaseShift = nCur1;
-					break; //фазовый сдвиг
-				}
-
-				/*
-				//проверка калибровки термодатчиков
-				if( ( byte5 & 0x7f) == 21) {
-					if( ( ( CSlg2App *) AfxGetApp())->m_shFlashT1 >= MIN_T_THERMO_CALIBRATION &&
-							( ( CSlg2App *) AfxGetApp())->m_shFlashT1 <= MAX_T_THERMO_CALIBRATION) {
-						if( ( ( CSlg2App *) AfxGetApp())->m_shFlashT2 >= MIN_T_THERMO_CALIBRATION &&
-								( ( CSlg2App *) AfxGetApp())->m_shFlashT2 <= MAX_T_THERMO_CALIBRATION) {
+							
+						( ( CSlg2App *) AfxGetApp())->m_bThermoCalibrated = TRUE;
 							
 							
-							( ( CSlg2App *) AfxGetApp())->m_bThermoCalibrated = TRUE;
-							
-							
-							double x1, y1, x2, y2;
+						double x1, y1, x2, y2;
 
-							x1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashT1;
-							x2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashT2;
+						x1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashT1;
+						x2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashT2;
 
 							
-							y1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_1;
-							y2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_2;
+						y1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_1;
+						y2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_2;
 
-							( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_1TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
-							( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_1TD = ( y2 - y1) / ( x2 - x1);
+						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_1TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
+						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_1TD = ( y2 - y1) / ( x2 - x1);
 
 
-							y1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1;
-							y2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2;
+						y1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1;
+						y2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2;
 
-							( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_2TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
-							( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_2TD = ( y2 - y1) / ( x2 - x1);
-						}
+						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_2TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
+						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_2TD = ( y2 - y1) / ( x2 - x1);
 					}
-				}*/
+				}
+			}*/
 
-				gl_avTsa.AddPoint( dSaTime);
-				gl_avTsa1000.AddPoint( dSaTime);
-				gl_avTsa10000.AddPoint( dSaTime);
-				gl_avTsa100000.AddPoint( dSaTime);
-			}
+			gl_avTsa.AddPoint( dSaTime);
+			gl_avTsa1000.AddPoint( dSaTime);
+			gl_avTsa10000.AddPoint( dSaTime);
+			gl_avTsa100000.AddPoint( dSaTime);
+			
+
+      //1275 (ФАПЧ) * 32768Hz (осцилятор) / 16 (делитель) = 2611200 Hz        
+      //double dbl1secInTacts = 2611200;
+
+      //1275 (ФАПЧ) * 32736Hz !!!(-16 - нестабильность)!!! (осцилятор) / 16 (делитель) = 2606100 Hz
+      //double dbl1secInTacts = 2606100;
+
+      //1273 (ФАПЧ - похоже всё таки ошибка тут) * 32768Hz / 16 (делитель) = 2607104 Hz
+      double dbl1secInTacts = 2607104;
+
+      //**************************************************
+      // Запись полученных данных (фильтрованных по MF, CF)
+      // **************************************************
+      CSlg2App *app = ( CSlg2App *) AfxGetApp();
+			if( (( CSlg2App *) AfxGetApp())->fhNew != NULL) {
+        
+        //маркер
+        fputc( 0x55, app->fhNew);
+        fputc( 0xAA, app->fhNew);
+			  
+        //приращение угла
+        fputc( byte1, app->fhNew);
+        fputc( byte2, app->fhNew);
+        fputc( byte3, app->fhNew);
+        fputc( byte4, app->fhNew);
+
+        //индикатор доп. параметра
+        fputc(  byte5, app->fhNew);
+        
+        //доп. параметр
+        fputc(  byte6, app->fhNew);
+        fputc(  byte7, app->fhNew);
+        
+        //время такта
+        fputc(  byte8, app->fhNew);
+        fputc(  byte9, app->fhNew);
+
+        //порядковый номер
+        fputc( byte10, app->fhNew);
+
+        //флаги, код ошибки
+        fputc( byte11, app->fhNew);
+        
+        //чексумма
+        fputc( byte12, app->fhNew);
+      }
+			else
+			  AfxMessageBox( _T("Попытка записи данных в bin-файл с закрытым дескриптором."));		
 
       // **************************************************
       // ОСРЕДНЕНИЕ 100 мсек
       // **************************************************
-      
-      //коэффициент пересчёта рассчитываем исходя из следующих соображений:
-      //микропроцессор тактируется от высокоточного кварца 32768Hz (осциллографом видели 32767.5)
-      //получается врать может только делитель, про который написано в мануале 1275
-      //2017.02.03 я подобрал показатель 1273
-      //тогда пересчёт ведется с коэффициентом 1273*32768/16=2607104
-      double dbl_dT_coeff = 2607104.;
 
-			if( gl_avTsa.GetSumm() > dbl_dT_coeff / 10.) {
+			if( gl_avTsa.GetSumm() > dbl1secInTacts / 10.) {
 				//накопили 100мсек
 				if( bFirst100msecPointSkipped) {
 					double Nimp = gl_avW100.GetSumm();				//количество импульсов (суммированное)
@@ -477,6 +536,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					if( gl_avI2.GetCounter()) {
 						double i2 = gl_avI2.GetMean();						//разрядный ток i2
 						gl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;									// mA
+            //gl_pi2 = i2;
 					}
 
 					if( gl_avVpc.GetCounter()) {
@@ -484,10 +544,16 @@ DWORD WINAPI BigThread(LPVOID lparam)
 						gl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	// V
 					}
 
+          //амплитуда от альтеры (в импульсах)
 					if( gl_avAmplAng.GetCounter()) {
 						double AmplAng = gl_avAmplAng.GetMean();	//amplang
-						//gl_pAA = AmplAng / 4096. * 3. / 0.5;							// V
-						gl_pAA = AmplAng / 4. * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;	
+						gl_pAA = AmplAng / 4. * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;	  //''
+					}
+
+          //амплитуда от ДУСа
+          if( gl_avAmplAngDus.GetCounter()) {
+						double AmplAngDus = gl_avAmplAngDus.GetMean();	//amplangDus
+						gl_pAADus = AmplAngDus / 4096. * 3.;							// V
 					}
 
           
@@ -495,18 +561,15 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avT1.GetCounter()) {
 						double T1 = gl_avT1.GetMean();						//термодатчик 1
 						gl_pT1 = T1 / 65535. * 200. - 100.;				//V!
+            //gl_pT1 = T1;
 					}
-          /*
-          if( gl_avT1.GetCounter()) {
-						double T1 = gl_avT1.GetMean();						//сигнал с ДУСа
-						gl_pT1 = T1 / 4096. * 3.;				//V!
-					}*/
-
 
           if( gl_avT2.GetCounter()) {
 						double T2 = gl_avT2.GetMean();						//термодатчик 2
 						gl_pT2 = T2 / 65535. * 200. - 100.;				//V!
+            //gl_pT2 = T2;
 					}
+
           /*
           if( gl_avT2.GetCounter()) {
 						//double T2 = gl_avT2.GetMean();						//получаемая средняя амплитуда с альтеры
@@ -520,6 +583,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avT3.GetCounter()) {
 						double T3 = gl_avT3.GetMean();						//термодатчик 3
 						gl_pT3 = T3 / 65535. * 200. - 100.;				//V!
+            //gl_pT3 = T3;
 					}
 
 					/*double i1 = gl_avI1.GetMean();						//разрядный ток i1
@@ -535,7 +599,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					//////////////////////////////////////////////////////////////////////
 					//пересчет в физические величины
 					//////////////////////////////////////////////////////////////////////
-					gl_pTsa = Tsa / dbl_dT_coeff;														// sec
+					gl_pTsa = Tsa / dbl1secInTacts;														// sec
 					gl_pw100 = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / gl_pTsa / 4.;				// ''/sec
 					
 					
@@ -562,7 +626,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 
 
-					gl_pTSamean = TsaMean / dbl_dT_coeff;										// sec
+					gl_pTSamean = TsaMean / dbl1secInTacts;										// sec
 	
 					//глобальное время от запуска
 					gl_dGlobalTime += gl_pTsa;
@@ -577,15 +641,19 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					//////////////////////////////////////////////////////////////////////
 					//распихивание точек по кольцевым буферам
 					//////////////////////////////////////////////////////////////////////
-					(( CSlg2App *) AfxGetApp())->m_cbW100->AddPoint( gl_pw100, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbI1->AddPoint( gl_pi1, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbI2->AddPoint( gl_pi2, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbVpc->AddPoint( gl_pVpc, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbAmplAng->AddPoint( gl_pAA, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbT1->AddPoint( gl_pT1, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbT2->AddPoint( gl_pT2, tmoment);
-          (( CSlg2App *) AfxGetApp())->m_cbT3->AddPoint( gl_pT3, tmoment);
-					(( CSlg2App *) AfxGetApp())->m_cbTsa->AddPoint( gl_pTSamean, tmoment);
+					theApp.m_cbW100->AddPoint( gl_pw100, tmoment);
+					theApp.m_cbI1->AddPoint( gl_pi1, tmoment);
+					theApp.m_cbI2->AddPoint( gl_pi2, tmoment);
+					theApp.m_cbVpc->AddPoint( gl_pVpc, tmoment);
+					theApp.m_cbAmplAng->AddPoint( gl_pAA, tmoment);
+          theApp.m_cbAmplAngDus->AddPoint( gl_pAADus, tmoment);
+					theApp.m_cbT1->AddPoint( gl_pT1, tmoment);
+					theApp.m_cbT2->AddPoint( gl_pT2, tmoment);
+          theApp.m_cbT3->AddPoint( gl_pT3, tmoment);
+					theApp.m_cbTsaMcs->AddPoint( gl_pTSamean * 1000000., tmoment);
+          theApp.m_cbTsaMs->AddPoint( gl_pTSamean * 1000., tmoment);
+          theApp.m_cbTsaHz->AddPoint( 1. / gl_pTSamean, tmoment);
+
 				}
 				else {
           //ПРОПУСК ПЕРВЫХ 100 msec
@@ -613,7 +681,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
       // **************************************************
       // ОСРЕДНЕНИЕ 1 сек
       // **************************************************
-			if( gl_avTsa1000.GetSumm() > dbl_dT_coeff) {
+			if( gl_avTsa1000.GetSumm() > dbl1secInTacts) {
 				//накопили секундную точку
 				double Nimp = gl_avW1000.GetSumm();						//количество импульсов (суммированное)
 				gl_avW1000.Reset();
@@ -621,7 +689,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				gl_avTsa1000.Reset();
 
 				//пересчет в физические величины
-				double tsa_1s = Tsa / dbl_dT_coeff;
+				double tsa_1s = Tsa / dbl1secInTacts;
 				double w_1s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_1s / 4.;
 
 				//перекладывание в кольцевой буфер
@@ -631,7 +699,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
       // **************************************************
       // ОСРЕДНЕНИЕ 10 сек
       // **************************************************
-			if( gl_avTsa10000.GetSumm() > dbl_dT_coeff * 10.) {
+			if( gl_avTsa10000.GetSumm() > dbl1secInTacts *10.) {
 				//накопили 10секундную точку
 
 				double Nimp = gl_avW10000.GetSumm();						//количество импульсов (суммированное)
@@ -640,7 +708,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				gl_avTsa10000.Reset();
 
 				//пересчет в физические величины
-				double tsa_10s = Tsa / dbl_dT_coeff;
+				double tsa_10s = Tsa / dbl1secInTacts;
 				double w_10s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_10s / 4.;
 
 				(( CSlg2App *) AfxGetApp())->m_cbW10000->AddPoint( w_10s, gl_dGlobalTime);
@@ -650,7 +718,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
       // **************************************************
       // ОСРЕДНЕНИЕ 100 сек
       // **************************************************
-			if( gl_avTsa100000.GetSumm() > dbl_dT_coeff * 100.) {
+			if( gl_avTsa100000.GetSumm() > dbl1secInTacts * 100.) {
 				//накопили 100секундную точку
 				
 				double Nimp = gl_avW100000.GetSumm();						//количество импульсов (суммированное)
@@ -659,7 +727,8 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				gl_avTsa100000.Reset();
 
 				//пересчет в физические величины
-				double tsa_100s = Tsa / dbl_dT_coeff;
+        
+				double tsa_100s = Tsa / dbl1secInTacts;
 				double w_100s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_100s / 4.;
 
 				(( CSlg2App *) AfxGetApp())->m_cbW100000->AddPoint( w_100s, gl_dGlobalTime);
@@ -703,6 +772,7 @@ CSlg2App::CSlg2App()
 	fhNew = NULL;
 	m_shSignCoeff = 0;
 	//m_bThermoCalibrated = FALSE;
+  m_bDeviceSerialNumber = false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -771,10 +841,13 @@ BOOL CSlg2App::InitInstance()
 	m_cbI2 = new CSlgCircleBuffer( n);
 	m_cbVpc = new CSlgCircleBuffer( n);
 	m_cbAmplAng = new CSlgCircleBuffer( n);
+  m_cbAmplAngDus = new CSlgCircleBuffer( n);
 	m_cbT1 = new CSlgCircleBuffer( n);
 	m_cbT2 = new CSlgCircleBuffer( n);
   m_cbT3 = new CSlgCircleBuffer( n);
-	m_cbTsa = new CSlgCircleBuffer( n);
+	m_cbTsaMcs = new CSlgCircleBuffer( n);
+  m_cbTsaMs = new CSlgCircleBuffer( n);
+  m_cbTsaHz = new CSlgCircleBuffer( n);
 
 	gl_dGlobalTime = 0.;
 
@@ -841,6 +914,9 @@ BOOL CSlg2App::InitInstance()
 	fhNew = NULL;
 	fhb = NULL;
 	
+  m_bSyncAsync = 2;
+  m_bWdNdU = 2;
+
 	//m_strSoftwareVer = _T("v0.0.0.0");
 	m_strSoftwareVer = _T("unknown");
 
@@ -933,10 +1009,13 @@ int CSlg2App::ExitInstance()
 	m_cbI2->free();
 	m_cbVpc->free();
 	m_cbAmplAng->free();
+  m_cbAmplAngDus->free();
 	m_cbT1->free();
 	m_cbT2->free();
   m_cbT3->free();
-	m_cbTsa->free();
+	m_cbTsaMcs->free();
+  m_cbTsaMs->free();
+  m_cbTsaHz->free();
 
 	delete m_cbW100;
 	delete m_cbW1000;
@@ -946,10 +1025,13 @@ int CSlg2App::ExitInstance()
 	delete m_cbI2;
 	delete m_cbVpc;
 	delete m_cbAmplAng;
+  delete m_cbAmplAngDus;
 	delete m_cbT1;
 	delete m_cbT2;
   delete m_cbT3;
-	delete m_cbTsa;
+	delete m_cbTsaMcs;
+  delete m_cbTsaMs;
+  delete m_cbTsaHz;
 
 	return CWinApp::ExitInstance();
 }

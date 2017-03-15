@@ -33,7 +33,7 @@
 #include "NiAll.h"
 using namespace NI;
 
-#define CYCLE_BUFFER_DN_DU 100
+#define CYCLE_BUFFER_DN_DU 2500
 //#define K_IMP_SEC   1.866						//большой лазер
 //#define K_IMP_SEC   2.903					//малый лазер
 #define ERROR_1 1

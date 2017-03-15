@@ -16,9 +16,16 @@
 /////////////////////////////////////////////////////////////////////////////
 // CMainView form view
 
+
 #ifndef __AFXEXT_H__
 #include <afxext.h>
 #endif
+
+#include "DecCoeffCalc.h"
+#include "McCommandItem.h"
+#include <queue>
+
+#define POLL_PARAMS_LEN 7
 
 class CMainView : public CFormView
 {
@@ -40,13 +47,6 @@ public:
 	CNiGraph	m_ctlSmallGraph8;
 	CNiGraph	m_ctlMainGraph;
 	CNiButton	m_ctlComButton;
-	CString	m_strL1;
-	CString	m_strL2;
-	CString	m_strL3;
-	CString	m_strL4;
-	CString	m_strL5;
-	CString	m_strL6;
-	CString	m_strL7;
 	BOOL	m_bBtnCwStart;
 	int		m_nComPort;
 	CString	m_strGraphMaxVal;
@@ -94,16 +94,8 @@ public:
 	CNiNumEdit	m_ctlNedtParam2;
 	CNiNumEdit	m_ctlNedtParam3;
 	CNiNumEdit	m_ctlNedtParam4;
-	CString	m_strParam5Val;
-	CString	m_strParam6Val;
-	CString	m_strParam7Val;
 	CString	m_strParam8Val;
-	CString	m_strParam9Val;
-	CNiNumEdit	m_ctlNedtParam5;
-	CNiNumEdit	m_ctlNedtParam6;
-	CNiNumEdit	m_ctlNedtParam7;
 	CNiNumEdit	m_ctlNedtParam8;
-	CNiNumEdit	m_ctlNedtParam9;
 	int		m_nTMeaningInd;
 	double	m_dKimpSec;
 	CMSComm	m_ctlCOM;
@@ -114,12 +106,14 @@ public:
 	CNiNumEdit	m_ctlNedtThermoCalibTemperature;
 	CString	m_strThermoCalib_T1;
 	CString	m_strThermoCalib_T2;
-	CNiNumEdit	m_ctlNedtParam10;
-	CString	m_strParam10Val;
 	int		m_nT1_RadSelection;
 	int		m_nT2_RadSelection;
 	CString	m_strMarkerFails;
 	CString	m_strCheckSummFails;
+	int		m_nTsaRadSelection;
+	int		m_nRadAmplAng;
+	CString	m_strCounterFails;
+	CString	m_strDeviceSerialNumber;
 	//}}AFX_DATA
 
 // Attributes
@@ -127,7 +121,7 @@ public:
 
 // Operations
 public:
-	void SendCommandToMc( BYTE b1, BYTE b2, BYTE b3);
+	void SendCommandToMc( BYTE b1, BYTE b2, BYTE b3, BYTE b4);
 	void SetSendButtonsState( bool bState);
 
 // Overrides
@@ -156,7 +150,7 @@ protected:
 	afx_msg void OnClickGraph3();
 	afx_msg void OnClickGraph4();
 	afx_msg void OnClickGraph5();
-	afx_msg void OnClickGraph6();
+  afx_msg void OnClickGraph6();
 	afx_msg void OnClickGraph7();
 	afx_msg void OnClickGraph8();
 	afx_msg void OnValueChangedCwStart(BOOL Value);
@@ -170,18 +164,13 @@ protected:
 	afx_msg void OnChangeParam3Edt();
 	afx_msg void OnChangeParam4Edt();
 	afx_msg void OnBtnSaveParams();
-	afx_msg void OnParam5Btn();
-	afx_msg void OnParam6Btn();
-	afx_msg void OnParam7Btn();
 	afx_msg void OnParam8Btn();
-	afx_msg void OnParam9Btn();
 	afx_msg void OnBtnRestoreParams();
 	afx_msg void OnKillfocusEdtKImpSec();
 	afx_msg void OnDecCoeffCalc();
 	afx_msg void OnOnCommComm();
 	afx_msg void OnBtnThermoCalibSet();
 	afx_msg void OnBtnThermoCalibClear();
-	afx_msg void OnParam10Btn();
 	afx_msg void OnBtnLaserOff();
 	afx_msg void OnBtnIntegrOff();
 	afx_msg void OnBtnIntegrOn();
@@ -192,6 +181,26 @@ protected:
 	afx_msg void OnRadT2Td1();
 	afx_msg void OnRadT2Td2();
 	afx_msg void OnRadT2Td3();
+	afx_msg void OnRadTsaMcs();
+	afx_msg void OnRadTsaMs();
+	afx_msg void OnRadTsaHz();
+	afx_msg void OnBtnReqVersion();
+	afx_msg void OnBtnReqAmpl();
+	afx_msg void OnBtnReqTactcode();
+	afx_msg void OnBtnReqMCoeff();
+	afx_msg void OnBtnReqStartMode();
+	afx_msg void OnBtnReqDecCoeff();
+	afx_msg void OnBtnMcToOutAmplitude();
+	afx_msg void OnBtnMcToOutTactcode();
+	afx_msg void OnBtnMcToOutMcoeff();
+	afx_msg void OnBtnMcToOutStartmode();
+	afx_msg void OnBtnMcToOutDeccoeff();
+	afx_msg void OnBtnSwitchWDndu();
+	afx_msg void OnBtnReset();
+	afx_msg void OnRadAaImp();
+	afx_msg void OnRadAaDus();
+	afx_msg void OnBtnReqHvApplies();
+	afx_msg void OnBtnReqSn();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -202,7 +211,11 @@ private:
 	CFont m_pFont;
 	int m_nMainGraph;
 	void RefreshGraphs( void);
-	BOOL m_bSwitchDuAs;
+  std::queue <CMcCommandItem *> m_queCommandQueue;
+  void QueueCommandToMc( char btCmd, char btParam1, char btParam2, char btParam3);
+  CDecCoeffCalc *m_dlgDecCoeffCalc;
+  int m_nPollParams[ POLL_PARAMS_LEN];
+  int m_nPollCounter;
 };
 
 /////////////////////////////////////////////////////////////////////////////

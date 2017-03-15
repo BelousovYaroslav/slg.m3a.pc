@@ -332,11 +332,19 @@ SOURCE=.\DecCoeffCalc.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\DecCoeffCalcParams.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\MainView.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\McCommandItem.cpp
 # End Source File
 # Begin Source File
 
@@ -401,11 +409,19 @@ SOURCE=.\DecCoeffCalc.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\DecCoeffCalcParams.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\MainFrm.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\MainView.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\McCommandItem.h
 # End Source File
 # Begin Source File
 
@@ -486,10 +502,139 @@ SOURCE=.\ReadMe.txt
 # End Source File
 # End Target
 # End Project
+# Section slg2 : {9A41C7E2-9ACD-11CE-A86E-0020AF6845F6}
+# 	2:5:Class:CNiPointer
+# 	2:10:HeaderFile:NiPointer.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {C798BD20-2319-11D2-A253-00A024D8324D}
+# 	2:5:Class:CNiAxis3D
+# 	2:10:HeaderFile:NiAxis3D.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {FD641000-322D-11D2-A3A3-00A024D8325C}
+# 	2:5:Class:CNiAxes3D
+# 	2:10:HeaderFile:NiAxes3D.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {D940E4D3-6079-11CE-88CB-0020AF6845F6}
+# 	2:5:Class:CNiKnob
+# 	2:10:HeaderFile:NiKnob.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {6F7EA122-D1A1-11D2-A4EE-00A024D63828}
+# 	2:5:Class:CNiBindings
+# 	2:10:HeaderFile:NiBindings.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {BEF6E003-A874-101A-8BBA-00AA00300CAB}
+# 	2:5:Class:CNiFont
+# 	2:10:HeaderFile:NiFont.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {17301DA3-C84D-11CF-AE6F-0020AF31CEF9}
+# 	2:21:DefaultSinkHeaderFile:NiNumEdit.h
+# 	2:16:DefaultSinkClass:CNiNumEdit
+# End Section
+# Section slg2 : {D940E4D2-6079-11CE-88CB-0020AF6845F6}
+# 	2:21:DefaultSinkHeaderFile:NiKnob.h
+# 	2:16:DefaultSinkClass:CNiKnob
+# End Section
+# Section slg2 : {D940E4BE-6079-11CE-88CB-0020AF6845F6}
+# 	2:21:DefaultSinkHeaderFile:NiButton.h
+# 	2:16:DefaultSinkClass:CNiButton
+# End Section
+# Section slg2 : {B68DBFAC-16A0-11CE-80BF-0020AF31CEF9}
+# 	2:5:Class:CNiGraph
+# 	2:10:HeaderFile:u
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {0EED9920-0DF3-11CF-9617-0020AF6845F6}
+# 	2:5:Class:CNiStatistics
+# 	2:10:HeaderFile:NiStatistics.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {6F7EA121-D1A1-11D2-A4EE-00A024D63828}
+# 	2:5:Class:CNiBinding
+# 	2:10:HeaderFile:NiBinding.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {37715970-C76B-11CE-A890-0020AF6845F6}
+# 	2:5:Class:CNiValuepair
+# 	2:10:HeaderFile:NiValuepair.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {2AFA9F11-0B6A-11D2-A250-00A024D8324D}
+# 	2:5:Class:CNiGraph3D
+# 	2:10:HeaderFile:NiGraph3D.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {7BF80981-BF32-101A-8BBB-00AA00300CAB}
+# 	2:5:Class:CNiPicture
+# 	2:10:HeaderFile:NiPicture.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {F32E05B0-15B6-11D2-A253-00A024D8324D}
+# 	2:5:Class:CNiLights
+# 	2:10:HeaderFile:NiLights.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {6810EEF1-232D-11D2-BEC7-00A024585300}
+# 	2:5:Class:CNiTicks3D
+# 	2:10:HeaderFile:NiTicks3D.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {14AE3BE4-1A81-11CF-AE6F-0020AF31CEF9}
+# 	2:5:Class:CNiAxes
+# 	2:10:HeaderFile:NiAxes.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {B1AABB61-15B1-11D2-A253-00A024D8324D}
+# 	2:5:Class:CNiLight
+# 	2:10:HeaderFile:NiLight.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {B68DBFAB-16A0-11CE-80BF-0020AF31CEF9}
+# 	2:21:DefaultSinkHeaderFile:NiGraph.h
+# 	2:16:DefaultSinkClass:CNiGraph
+# End Section
+# Section slg2 : {9B41D330-36CF-11D2-A3A3-00A024D8325C}
+# 	2:5:Class:CNiContours
+# 	2:10:HeaderFile:NiContours.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {2C36E3E8-478D-11D0-A547-0020AF1E73B9}
+# 	2:5:Class:CNiImage
+# 	2:10:HeaderFile:NiImage.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {B29D1C40-5270-11D0-A547-0020AF1E73B9}
+# 	2:5:Class:CNiPicturedisp
+# 	2:10:HeaderFile:NiPicturedisp.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {2AFA9F10-0B6A-11D2-A250-00A024D8324D}
+# 	2:21:DefaultSinkHeaderFile:NiGraph3D.h
+# 	2:16:DefaultSinkClass:CNiGraph3D
+# End Section
+# Section slg2 : {17301DA1-C84D-11CF-AE6F-0020AF31CEF9}
+# 	2:5:Class:CNiNumEdit
+# 	2:10:HeaderFile:NiNumEdit.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {85041CC0-E78C-11CE-AE6E-0020AF31CEF9}
+# 	2:5:Class:CNiCursor
+# 	2:10:HeaderFile:NiCursor.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
 # Section slg2 : {E6E17E90-DF38-11CF-8E74-00A0C90F26F8}
 # 	2:5:Class:CMSComm
 # 	2:10:HeaderFile:mscomm1.h
 # 	2:8:ImplFile:mscomm1.cpp
+# End Section
+# Section slg2 : {648A5600-2C6E-101B-82B6-000000000014}
+# 	2:21:DefaultSinkHeaderFile:mscomm1.h
+# 	2:16:DefaultSinkClass:CMSComm
 # End Section
 # Section slg2 : {65FD2500-C067-11CE-A88D-0020AF6845F6}
 # 	2:5:Class:CNiTicks
@@ -564,133 +709,4 @@ SOURCE=.\ReadMe.txt
 # 	2:5:Class:CNiButton
 # 	2:10:HeaderFile:NiButton.h
 # 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {9A41C7E2-9ACD-11CE-A86E-0020AF6845F6}
-# 	2:5:Class:CNiPointer
-# 	2:10:HeaderFile:NiPointer.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {C798BD20-2319-11D2-A253-00A024D8324D}
-# 	2:5:Class:CNiAxis3D
-# 	2:10:HeaderFile:NiAxis3D.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {FD641000-322D-11D2-A3A3-00A024D8325C}
-# 	2:5:Class:CNiAxes3D
-# 	2:10:HeaderFile:NiAxes3D.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {D940E4D3-6079-11CE-88CB-0020AF6845F6}
-# 	2:5:Class:CNiKnob
-# 	2:10:HeaderFile:NiKnob.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {6F7EA122-D1A1-11D2-A4EE-00A024D63828}
-# 	2:5:Class:CNiBindings
-# 	2:10:HeaderFile:NiBindings.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {BEF6E003-A874-101A-8BBA-00AA00300CAB}
-# 	2:5:Class:CNiFont
-# 	2:10:HeaderFile:NiFont.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {17301DA3-C84D-11CF-AE6F-0020AF31CEF9}
-# 	2:21:DefaultSinkHeaderFile:NiNumEdit.h
-# 	2:16:DefaultSinkClass:CNiNumEdit
-# End Section
-# Section slg2 : {D940E4BE-6079-11CE-88CB-0020AF6845F6}
-# 	2:21:DefaultSinkHeaderFile:NiButton.h
-# 	2:16:DefaultSinkClass:CNiButton
-# End Section
-# Section slg2 : {B68DBFAC-16A0-11CE-80BF-0020AF31CEF9}
-# 	2:5:Class:CNiGraph
-# 	2:10:HeaderFile:u
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {0EED9920-0DF3-11CF-9617-0020AF6845F6}
-# 	2:5:Class:CNiStatistics
-# 	2:10:HeaderFile:NiStatistics.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {6F7EA121-D1A1-11D2-A4EE-00A024D63828}
-# 	2:5:Class:CNiBinding
-# 	2:10:HeaderFile:NiBinding.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {D940E4D2-6079-11CE-88CB-0020AF6845F6}
-# 	2:21:DefaultSinkHeaderFile:NiKnob.h
-# 	2:16:DefaultSinkClass:CNiKnob
-# End Section
-# Section slg2 : {37715970-C76B-11CE-A890-0020AF6845F6}
-# 	2:5:Class:CNiValuepair
-# 	2:10:HeaderFile:NiValuepair.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {2AFA9F11-0B6A-11D2-A250-00A024D8324D}
-# 	2:5:Class:CNiGraph3D
-# 	2:10:HeaderFile:NiGraph3D.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {7BF80981-BF32-101A-8BBB-00AA00300CAB}
-# 	2:5:Class:CNiPicture
-# 	2:10:HeaderFile:NiPicture.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {14AE3BE4-1A81-11CF-AE6F-0020AF31CEF9}
-# 	2:5:Class:CNiAxes
-# 	2:10:HeaderFile:NiAxes.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {B1AABB61-15B1-11D2-A253-00A024D8324D}
-# 	2:5:Class:CNiLight
-# 	2:10:HeaderFile:NiLight.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {F32E05B0-15B6-11D2-A253-00A024D8324D}
-# 	2:5:Class:CNiLights
-# 	2:10:HeaderFile:NiLights.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {B68DBFAB-16A0-11CE-80BF-0020AF31CEF9}
-# 	2:21:DefaultSinkHeaderFile:NiGraph.h
-# 	2:16:DefaultSinkClass:CNiGraph
-# End Section
-# Section slg2 : {2C36E3E8-478D-11D0-A547-0020AF1E73B9}
-# 	2:5:Class:CNiImage
-# 	2:10:HeaderFile:NiImage.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {9B41D330-36CF-11D2-A3A3-00A024D8325C}
-# 	2:5:Class:CNiContours
-# 	2:10:HeaderFile:NiContours.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {6810EEF1-232D-11D2-BEC7-00A024585300}
-# 	2:5:Class:CNiTicks3D
-# 	2:10:HeaderFile:NiTicks3D.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {B29D1C40-5270-11D0-A547-0020AF1E73B9}
-# 	2:5:Class:CNiPicturedisp
-# 	2:10:HeaderFile:NiPicturedisp.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {2AFA9F10-0B6A-11D2-A250-00A024D8324D}
-# 	2:21:DefaultSinkHeaderFile:NiGraph3D.h
-# 	2:16:DefaultSinkClass:CNiGraph3D
-# End Section
-# Section slg2 : {17301DA1-C84D-11CF-AE6F-0020AF31CEF9}
-# 	2:5:Class:CNiNumEdit
-# 	2:10:HeaderFile:NiNumEdit.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {85041CC0-E78C-11CE-AE6E-0020AF31CEF9}
-# 	2:5:Class:CNiCursor
-# 	2:10:HeaderFile:NiCursor.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {648A5600-2C6E-101B-82B6-000000000014}
-# 	2:21:DefaultSinkHeaderFile:mscomm1.h
-# 	2:16:DefaultSinkClass:CMSComm
 # End Section

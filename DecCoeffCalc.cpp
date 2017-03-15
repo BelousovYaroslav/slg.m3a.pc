@@ -4,6 +4,9 @@
 #include "stdafx.h"
 #include "slg2.h"
 #include "DecCoeffCalc.h"
+#include "DecCoeffCalcParams.h"
+#include "MainFrm.h"
+#include "MainView.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -11,18 +14,7 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-extern double gl_dNdU_dN[];
-extern double gl_dNdU_dU[];
-extern double gl_dNdU_DecCoeff[];
-extern int gl_dec_coeff_cntr;
-extern BOOL gl_dec_coeff_overround;
-
-extern double gl_dec_coeff_dN_acc;
-extern double gl_dec_coeff_dU_acc;
-extern double gl_dec_coeff_acc;
-extern int gl_dec_coeff_acc_cntr;
-
-extern double gl_dec_coeff_low_filter;
+extern CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 extern bool PutByteInCircleBuffer(BYTE bt);
 
@@ -57,6 +49,8 @@ void CDecCoeffCalc::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDecCoeffCalc, CDialog)
 	//{{AFX_MSG_MAP(CDecCoeffCalc)
 	ON_WM_TIMER()
+	ON_BN_CLICKED(IDC_BTN_RESET, OnBtnReset)
+	ON_BN_CLICKED(IDC_BTN_SAVE, OnBtnSave)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -67,22 +61,14 @@ BOOL CDecCoeffCalc::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	for( int i=0; i<CYCLE_BUFFER_DN_DU; i++) {
-		gl_dNdU_dN[ i] = 0.;
-		gl_dNdU_dU[ i] = 0.;
-		gl_dNdU_DecCoeff[i] = 0.;
-	}
-	gl_dec_coeff_dN_acc = 0.;
-	gl_dec_coeff_dU_acc = 0.;
-
-	gl_dec_coeff_acc = 0.;
-	gl_dec_coeff_cntr = 0;
-	gl_dec_coeff_overround = false;
+	gl_pDecCoeffCalcParams.Reset();
 	
-	m_ctlNedtLowFilter.SetValue( gl_dec_coeff_low_filter);
+	m_ctlNedtLowFilter.SetValue( gl_pDecCoeffCalcParams.m_dbl_du_low_filter);
 
 	SetTimer( MY_REFRESH_TIMER, 100, NULL);
 	
+  //m_ctlGraphDecCoeff.GetAxes().Item( "YAxis-1").SetMinimum( 0.0325);
+  //m_ctlGraphDecCoeff.GetAxes().Item( "YAxis-1").SetMaximum( 0.0327);
 	
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
@@ -90,6 +76,7 @@ BOOL CDecCoeffCalc::OnInitDialog()
 
 void CDecCoeffCalc::OnOK() 
 {
+  gl_pDecCoeffCalcParams.m_bDecCoeffCalculation = false;
 	CDialog::OnOK();
 }
 
@@ -99,7 +86,7 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 
 	if( nIDEvent == MY_REFRESH_TIMER) {
 		
-		if( gl_dec_coeff_overround) {
+		if( gl_pDecCoeffCalcParams.m_bGraph_overround) {
 			
 			CNiReal64Matrix line_dN( 2, CYCLE_BUFFER_DN_DU, 1.0);
 			CNiReal64Matrix line_dU( 2, CYCLE_BUFFER_DN_DU, 1.0);
@@ -107,13 +94,13 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 
 			for( int i=0; i < CYCLE_BUFFER_DN_DU; i++) {
 				line_dN( 0, i) = i;
-				line_dN( 1, i) = gl_dNdU_dN[ ( gl_dec_coeff_cntr + i) % CYCLE_BUFFER_DN_DU];
+				line_dN( 1, i) = gl_pDecCoeffCalcParams.m_dbl_dN[ ( gl_pDecCoeffCalcParams.m_nGraph_cntr + i) % CYCLE_BUFFER_DN_DU];
 
 				line_dU( 0, i) = i;
-				line_dU( 1, i) = gl_dNdU_dU[ ( gl_dec_coeff_cntr + i) % CYCLE_BUFFER_DN_DU];
+				line_dU( 1, i) = gl_pDecCoeffCalcParams.m_dbl_dU[ ( gl_pDecCoeffCalcParams.m_nGraph_cntr + i) % CYCLE_BUFFER_DN_DU];
 
 				line_K( 0, i) = i;
-				line_K( 1, i) = gl_dNdU_DecCoeff[ ( gl_dec_coeff_cntr + i) % CYCLE_BUFFER_DN_DU];
+				line_K( 1, i) = gl_pDecCoeffCalcParams.m_dbl_kDec[ ( gl_pDecCoeffCalcParams.m_nGraph_cntr + i) % CYCLE_BUFFER_DN_DU];
 			}
 
 			m_ctlGraphDn.PlotXY( line_dN, true);
@@ -121,20 +108,20 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 			m_ctlGraphDecCoeff.PlotXY( line_K, true);
 		}
 		else {
-			if( gl_dec_coeff_cntr > 5) {
-				CNiReal64Matrix line_dN( 2, gl_dec_coeff_cntr - 1, 1.0);
-				CNiReal64Matrix line_dU( 2, gl_dec_coeff_cntr - 1, 1.0);
-				CNiReal64Matrix line_K(  2, gl_dec_coeff_cntr - 1, 1.0);
+			if( gl_pDecCoeffCalcParams.m_nGraph_cntr > 5) {
+				CNiReal64Matrix line_dN( 2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
+				CNiReal64Matrix line_dU( 2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
+				CNiReal64Matrix line_K(  2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
 
-				for( int i = 0; i < gl_dec_coeff_cntr - 1; i++) {
+				for( int i = 0; i < gl_pDecCoeffCalcParams.m_nGraph_cntr - 1; i++) {
 					line_dN( 0, i) = i;
-					line_dN( 1, i) = gl_dNdU_dN[ i];
+					line_dN( 1, i) = gl_pDecCoeffCalcParams.m_dbl_dN[ i];
 
 					line_dU( 0, i) = i;
-					line_dU( 1, i) = gl_dNdU_dU[ i];
+					line_dU( 1, i) = gl_pDecCoeffCalcParams.m_dbl_dU[ i];
 
 					line_K( 0, i) = i;
-					line_K( 1, i) = gl_dNdU_DecCoeff[ i];
+					line_K( 1, i) = gl_pDecCoeffCalcParams.m_dbl_kDec[ i];
 				}
 
 				m_ctlGraphDn.PlotXY( line_dN, true);
@@ -146,7 +133,7 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 		}
 
 		//m_strDecCoeff.Format( _T("%.6f"), gl_dec_coeff_acc / gl_dec_coeff_acc_cntr);
-		m_strDecCoeff.Format( _T("%.6f"), gl_dec_coeff_dN_acc / gl_dec_coeff_dU_acc);
+		m_strDecCoeff.Format( _T("%.10f"), gl_pDecCoeffCalcParams.m_dbl_dN_acc / gl_pDecCoeffCalcParams.m_dbl_dU_acc);
 		UpdateData( false);
 	}
 
@@ -156,10 +143,30 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 BEGIN_EVENTSINK_MAP(CDecCoeffCalc, CDialog)
     //{{AFX_EVENTSINK_MAP(CDecCoeffCalc)
 	ON_EVENT(CDecCoeffCalc, IDC_CWE_DU_LOW_EDGE, 1 /* ValueChanged */, OnValueChangedCweDuLowEdge, VTS_PVARIANT VTS_PVARIANT VTS_BOOL)
+	ON_EVENT(CDecCoeffCalc, IDC_CWE_DW_HIGH_EDGE, 1 /* ValueChanged */, OnValueChangedCweDwHighEdge, VTS_PVARIANT VTS_PVARIANT VTS_BOOL)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
-void CDecCoeffCalc::OnValueChangedCweDuLowEdge(VARIANT FAR* Value, VARIANT FAR* PreviousValue, BOOL OutOfRange) 
+void CDecCoeffCalc::OnValueChangedCweDuLowEdge( VARIANT FAR *Value, VARIANT FAR *PreviousValue, BOOL OutOfRange) 
 {
-	gl_dec_coeff_low_filter = m_ctlNedtLowFilter.GetValue();
+	gl_pDecCoeffCalcParams.m_dbl_du_low_filter = m_ctlNedtLowFilter.GetValue();
+}
+
+void CDecCoeffCalc::OnValueChangedCweDwHighEdge(VARIANT FAR* Value, VARIANT FAR* PreviousValue, BOOL OutOfRange) 
+{
+	gl_pDecCoeffCalcParams.m_dbl_dw_high_filter = m_ctlNedtLowFilter.GetValue();
+}
+
+void CDecCoeffCalc::OnBtnReset() 
+{
+  gl_pDecCoeffCalcParams.Reset();
+}
+
+void CDecCoeffCalc::OnBtnSave() 
+{
+  CMainFrame *pFrame = ( CMainFrame *) theApp.m_pMainWnd;
+  CMainView *pView = ( CMainView *) pFrame->GetActiveView();
+  pView->m_ctlNedtParam8.SetValue( gl_pDecCoeffCalcParams.m_dbl_dN_acc / gl_pDecCoeffCalcParams.m_dbl_dU_acc);
+  gl_pDecCoeffCalcParams.m_bDecCoeffCalculation = false;
+	CDialog::OnOK();
 }
