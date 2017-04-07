@@ -49,10 +49,6 @@ public:
 	CNiButton	m_ctlComButton;
 	BOOL	m_bBtnCwStart;
 	int		m_nComPort;
-	CString	m_strGraphMaxVal;
-	CString	m_strGraphMeanVal;
-	CString	m_strGraphMinVal;
-	CString	m_strGraphRmsVal;
 	CString	m_strSmGr1_max;
 	CString	m_strSmGr1_mean;
 	CString	m_strSmGr1_min;
@@ -106,14 +102,17 @@ public:
 	CNiNumEdit	m_ctlNedtThermoCalibTemperature;
 	CString	m_strThermoCalib_T1;
 	CString	m_strThermoCalib_T2;
-	int		m_nT1_RadSelection;
-	int		m_nT2_RadSelection;
 	CString	m_strMarkerFails;
 	CString	m_strCheckSummFails;
-	int		m_nTsaRadSelection;
-	int		m_nRadAmplAng;
 	CString	m_strCounterFails;
-	CString	m_strDeviceSerialNumber;
+	int		m_nRadGraph8;
+	int		m_nRadGraph7;
+	int		m_nRadGraph6;
+	int		m_nRadGraph5;
+	int		m_nRadGraph4;
+	int		m_nRadGraph3;
+	int		m_nRadGraph2;
+	int		m_nRadGraph1;
 	//}}AFX_DATA
 
 // Attributes
@@ -121,6 +120,8 @@ public:
 
 // Operations
 public:
+  void MakeDeltaLine( CTrackedParam *tp1, CTrackedParam *tp2, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
+  void MakeLine( CTrackedParam *tp, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
 	void SendCommandToMc( BYTE b1, BYTE b2, BYTE b3, BYTE b4);
 	void SetSendButtonsState( bool bState);
 
@@ -175,15 +176,6 @@ protected:
 	afx_msg void OnBtnIntegrOff();
 	afx_msg void OnBtnIntegrOn();
 	afx_msg void OnBtnIntegrReset();
-	afx_msg void OnRadT1Td1();
-	afx_msg void OnRadT1Td2();
-	afx_msg void OnRadT1Td3();
-	afx_msg void OnRadT2Td1();
-	afx_msg void OnRadT2Td2();
-	afx_msg void OnRadT2Td3();
-	afx_msg void OnRadTsaMcs();
-	afx_msg void OnRadTsaMs();
-	afx_msg void OnRadTsaHz();
 	afx_msg void OnBtnReqVersion();
 	afx_msg void OnBtnReqAmpl();
 	afx_msg void OnBtnReqTactcode();
@@ -197,10 +189,13 @@ protected:
 	afx_msg void OnBtnMcToOutDeccoeff();
 	afx_msg void OnBtnSwitchWDndu();
 	afx_msg void OnBtnReset();
-	afx_msg void OnRadAaImp();
-	afx_msg void OnRadAaDus();
 	afx_msg void OnBtnReqHvApplies();
 	afx_msg void OnBtnReqSn();
+	afx_msg void OnRadMeaning1();
+	afx_msg void OnRadMeaning2();
+	afx_msg void OnRadMeaning3();
+	afx_msg void OnRadMeaning4();
+	afx_msg void OnMouseUpGraph1(short Button, short Shift, long x, long y);
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

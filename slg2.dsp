@@ -336,6 +336,10 @@ SOURCE=.\DecCoeffCalcParams.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Logger.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\MainFrm.cpp
 # End Source File
 # Begin Source File
@@ -360,6 +364,10 @@ SOURCE=.\Serial.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Settings.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\slg2.cpp
 # End Source File
 # Begin Source File
@@ -380,6 +388,10 @@ SOURCE=.\SlgCircleBuffer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\SlgGroupNewAverager.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\SlgMeasurement.cpp
 # End Source File
 # Begin Source File
@@ -390,6 +402,10 @@ SOURCE=.\SlgNewAverager.cpp
 
 SOURCE=.\StdAfx.cpp
 # ADD CPP /Yc"stdafx.h"
+# End Source File
+# Begin Source File
+
+SOURCE=.\TrackedParam.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -402,6 +418,10 @@ SOURCE=.\DecCoeffCalc.h
 # Begin Source File
 
 SOURCE=.\DecCoeffCalcParams.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Logger.h
 # End Source File
 # Begin Source File
 
@@ -433,6 +453,10 @@ SOURCE=.\Serial.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\Settings.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\slg2.h
 # End Source File
 # Begin Source File
@@ -449,6 +473,10 @@ SOURCE=.\SlgCircleBuffer.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\SlgGroupNewAverager.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\SlgMeasurement.h
 # End Source File
 # Begin Source File
@@ -459,10 +487,18 @@ SOURCE=.\SlgNewAverager.h
 
 SOURCE=.\StdAfx.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\TrackedParam.h
+# End Source File
 # End Group
 # Begin Group "Resource Files"
 
 # PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
+# Begin Source File
+
+SOURCE=.\res\icon1.ico
+# End Source File
 # Begin Source File
 
 SOURCE=.\res\slg2.ico
@@ -486,14 +522,38 @@ SOURCE=.\ReadMe.txt
 # End Source File
 # End Target
 # End Project
+# Section slg2 : {E6E17E90-DF38-11CF-8E74-00A0C90F26F8}
+# 	2:5:Class:CMSComm
+# 	2:10:HeaderFile:mscomm1.h
+# 	2:8:ImplFile:mscomm1.cpp
+# End Section
+# Section slg2 : {648A5600-2C6E-101B-82B6-000000000014}
+# 	2:21:DefaultSinkHeaderFile:mscomm1.h
+# 	2:16:DefaultSinkClass:CMSComm
+# End Section
+# Section slg2 : {E168E231-C75C-11CE-A890-0020AF6845F6}
+# 	2:5:Class:CNiValuepairs
+# 	2:10:HeaderFile:NiValuepairs.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {D940E4C9-6079-11CE-88CB-0020AF6845F6}
+# 	2:5:Class:CNiSlide
+# 	2:10:HeaderFile:NiSlide.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {B8ED1000-53EE-11CE-80BF-0020AF31CEF9}
+# 	2:5:Class:CNiPlot
+# 	2:10:HeaderFile:NiPlot.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {65FD2500-C067-11CE-A88D-0020AF6845F6}
+# 	2:5:Class:CNiTicks
+# 	2:10:HeaderFile:NiTicks.h
+# 	2:8:ImplFile:NiAll.cpp
+# End Section
 # Section slg2 : {E93425C7-2038-11CF-A543-0020AF1E73B9}
 # 	2:5:Class:CNiPointers
 # 	2:10:HeaderFile:NiPointers.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {B86A73A0-15E3-11D2-A39B-00A024D8325C}
-# 	2:5:Class:CNiPlot3D
-# 	2:10:HeaderFile:NiPlot3D.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
 # Section slg2 : {CA90E9C0-6D11-11CF-A543-0020AF1E73B9}
@@ -501,9 +561,10 @@ SOURCE=.\ReadMe.txt
 # 	2:10:HeaderFile:NiPlots.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
-# Section slg2 : {D940E4C8-6079-11CE-88CB-0020AF6845F6}
-# 	2:21:DefaultSinkHeaderFile:NiSlide.h
-# 	2:16:DefaultSinkClass:CNiSlide
+# Section slg2 : {B86A73A0-15E3-11D2-A39B-00A024D8325C}
+# 	2:5:Class:CNiPlot3D
+# 	2:10:HeaderFile:NiPlot3D.h
+# 	2:8:ImplFile:NiAll.cpp
 # End Section
 # Section slg2 : {E4012F00-1073-11CF-9617-0020AF6845F6}
 # 	2:5:Class:CNiLabels
@@ -514,6 +575,10 @@ SOURCE=.\ReadMe.txt
 # 	2:5:Class:CNiContour
 # 	2:10:HeaderFile:NiContour.h
 # 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {D940E4C8-6079-11CE-88CB-0020AF6845F6}
+# 	2:21:DefaultSinkHeaderFile:NiSlide.h
+# 	2:16:DefaultSinkClass:CNiSlide
 # End Section
 # Section slg2 : {D940E4BF-6079-11CE-88CB-0020AF6845F6}
 # 	2:5:Class:CNiButton
@@ -570,18 +635,13 @@ SOURCE=.\ReadMe.txt
 # 	2:10:HeaderFile:NiFont.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
-# Section slg2 : {D940E4BE-6079-11CE-88CB-0020AF6845F6}
-# 	2:21:DefaultSinkHeaderFile:NiButton.h
-# 	2:16:DefaultSinkClass:CNiButton
-# End Section
 # Section slg2 : {17301DA3-C84D-11CF-AE6F-0020AF31CEF9}
 # 	2:21:DefaultSinkHeaderFile:NiNumEdit.h
 # 	2:16:DefaultSinkClass:CNiNumEdit
 # End Section
-# Section slg2 : {6F7EA121-D1A1-11D2-A4EE-00A024D63828}
-# 	2:5:Class:CNiBinding
-# 	2:10:HeaderFile:NiBinding.h
-# 	2:8:ImplFile:NiAll.cpp
+# Section slg2 : {D940E4BE-6079-11CE-88CB-0020AF6845F6}
+# 	2:21:DefaultSinkHeaderFile:NiButton.h
+# 	2:16:DefaultSinkClass:CNiButton
 # End Section
 # Section slg2 : {0EED9920-0DF3-11CF-9617-0020AF6845F6}
 # 	2:5:Class:CNiStatistics
@@ -596,6 +656,11 @@ SOURCE=.\ReadMe.txt
 # Section slg2 : {D940E4D2-6079-11CE-88CB-0020AF6845F6}
 # 	2:21:DefaultSinkHeaderFile:NiKnob.h
 # 	2:16:DefaultSinkClass:CNiKnob
+# End Section
+# Section slg2 : {6F7EA121-D1A1-11D2-A4EE-00A024D63828}
+# 	2:5:Class:CNiBinding
+# 	2:10:HeaderFile:NiBinding.h
+# 	2:8:ImplFile:NiAll.cpp
 # End Section
 # Section slg2 : {37715970-C76B-11CE-A890-0020AF6845F6}
 # 	2:5:Class:CNiValuepair
@@ -612,24 +677,24 @@ SOURCE=.\ReadMe.txt
 # 	2:10:HeaderFile:NiGraph3D.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
-# Section slg2 : {B1AABB61-15B1-11D2-A253-00A024D8324D}
-# 	2:5:Class:CNiLight
-# 	2:10:HeaderFile:NiLight.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
 # Section slg2 : {F32E05B0-15B6-11D2-A253-00A024D8324D}
 # 	2:5:Class:CNiLights
 # 	2:10:HeaderFile:NiLights.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
-# Section slg2 : {9B41D330-36CF-11D2-A3A3-00A024D8325C}
-# 	2:5:Class:CNiContours
-# 	2:10:HeaderFile:NiContours.h
+# Section slg2 : {B1AABB61-15B1-11D2-A253-00A024D8324D}
+# 	2:5:Class:CNiLight
+# 	2:10:HeaderFile:NiLight.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
 # Section slg2 : {B68DBFAB-16A0-11CE-80BF-0020AF31CEF9}
 # 	2:21:DefaultSinkHeaderFile:NiGraph.h
 # 	2:16:DefaultSinkClass:CNiGraph
+# End Section
+# Section slg2 : {9B41D330-36CF-11D2-A3A3-00A024D8325C}
+# 	2:5:Class:CNiContours
+# 	2:10:HeaderFile:NiContours.h
+# 	2:8:ImplFile:NiAll.cpp
 # End Section
 # Section slg2 : {14AE3BE4-1A81-11CF-AE6F-0020AF31CEF9}
 # 	2:5:Class:CNiAxes
@@ -641,14 +706,14 @@ SOURCE=.\ReadMe.txt
 # 	2:10:HeaderFile:NiTicks3D.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section
-# Section slg2 : {2AFA9F10-0B6A-11D2-A250-00A024D8324D}
-# 	2:21:DefaultSinkHeaderFile:NiGraph3D.h
-# 	2:16:DefaultSinkClass:CNiGraph3D
-# End Section
 # Section slg2 : {B29D1C40-5270-11D0-A547-0020AF1E73B9}
 # 	2:5:Class:CNiPicturedisp
 # 	2:10:HeaderFile:NiPicturedisp.h
 # 	2:8:ImplFile:NiAll.cpp
+# End Section
+# Section slg2 : {2AFA9F10-0B6A-11D2-A250-00A024D8324D}
+# 	2:21:DefaultSinkHeaderFile:NiGraph3D.h
+# 	2:16:DefaultSinkClass:CNiGraph3D
 # End Section
 # Section slg2 : {2C36E3E8-478D-11D0-A547-0020AF1E73B9}
 # 	2:5:Class:CNiImage
@@ -663,34 +728,5 @@ SOURCE=.\ReadMe.txt
 # Section slg2 : {17301DA1-C84D-11CF-AE6F-0020AF31CEF9}
 # 	2:5:Class:CNiNumEdit
 # 	2:10:HeaderFile:NiNumEdit.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {648A5600-2C6E-101B-82B6-000000000014}
-# 	2:21:DefaultSinkHeaderFile:mscomm1.h
-# 	2:16:DefaultSinkClass:CMSComm
-# End Section
-# Section slg2 : {E6E17E90-DF38-11CF-8E74-00A0C90F26F8}
-# 	2:5:Class:CMSComm
-# 	2:10:HeaderFile:mscomm1.h
-# 	2:8:ImplFile:mscomm1.cpp
-# End Section
-# Section slg2 : {65FD2500-C067-11CE-A88D-0020AF6845F6}
-# 	2:5:Class:CNiTicks
-# 	2:10:HeaderFile:NiTicks.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {E168E231-C75C-11CE-A890-0020AF6845F6}
-# 	2:5:Class:CNiValuepairs
-# 	2:10:HeaderFile:NiValuepairs.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {D940E4C9-6079-11CE-88CB-0020AF6845F6}
-# 	2:5:Class:CNiSlide
-# 	2:10:HeaderFile:NiSlide.h
-# 	2:8:ImplFile:NiAll.cpp
-# End Section
-# Section slg2 : {B8ED1000-53EE-11CE-80BF-0020AF31CEF9}
-# 	2:5:Class:CNiPlot
-# 	2:10:HeaderFile:NiPlot.h
 # 	2:8:ImplFile:NiAll.cpp
 # End Section

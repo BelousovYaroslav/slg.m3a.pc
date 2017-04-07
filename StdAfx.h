@@ -44,6 +44,13 @@ using namespace NI;
 #define ERROR_6 6
 //#define ERROR_7 7
 
+#define MEANING_TIME_TACTS 0
+#define MEANING_TIME_100MS 1
+#define MEANING_TIME_1S    2
+#define MEANING_TIME_10S   3
+#define MEANING_TIME_100S  4
+
+
 #define MIN_T_THERMO_CALIBRATION -60
 #define MAX_T_THERMO_CALIBRATION 60
 #define THERMO_CALIB_PARAMS_BASE 10000

@@ -9,14 +9,16 @@
 #endif // _MSC_VER > 1000
 
 #ifndef __AFXWIN_H__
-	#error include 'stdafx.h' before including this file for PCH
+  #error include 'stdafx.h' before including this file for PCH
 #endif
 
 #include "resource.h"       // main symbols
 //#include "Serial.h"
+#include "settings.h"
+#include "logger.h"
 
 #include "SlgCircleBuffer.h"
-
+#include "TrackedParam.h"
 /////////////////////////////////////////////////////////////////////////////
 // CSlg2App:
 // See slg2.cpp for the implementation of this class
@@ -25,78 +27,74 @@
 class CSlg2App : public CWinApp
 {
 public:
-	CString strDirName;
+  CSlg2App();
+  CString strDirName;
 
-	int m_nComPort;           //сохраняемый-вычитываемый из реестра COM-порт
-	int m_nComBaudrate;       //сохраняемая-вычитываемая из реестра скорость COM-порта
-	int m_nControlButtons;    //сохраняемый-вычитываемый из реестра флаг показывать ли управляющие контролы
-	double m_dKimpSec;        //сохраняемый-вычитываемый из реестра масштабный коэффициент ("/imp)
+  CLogger * GetLogger() { return &m_pLogger;}
+  CSettings *GetSettings() { return &m_pSettings;}
 
-	CSlg2App();
-	
-	BYTE m_btParam1;          //амплитуда виброподвеса
-	BYTE m_btParam2;
-	BYTE m_btParam3;
-	BYTE m_btParam4;
-	unsigned short m_shFlashI1min;
-	unsigned short m_shFlashI2min;
-	unsigned short m_shFlashAmplAng1min;
-	short m_shFlashDecCoeff;
-	short m_shSignCoeff;
+  BYTE m_btParam1;          //амплитуда виброподвеса
+  BYTE m_btParam2;
+  BYTE m_btParam3;
+  BYTE m_btParam4;
+  unsigned short m_shFlashI1min;
+  unsigned short m_shFlashI2min;
+  unsigned short m_shFlashAmplAng1min;
+  short m_shFlashDecCoeff;
+  short m_shSignCoeff;
 
   int m_nHvAppliesThisRun;    //кол-во 3kV импульсов поджига в этом запуске
 
-	unsigned short m_shFlashT1, m_shFlashTD1_1, m_shFlashTD2_1, m_shFlashTD3_1;
-	unsigned short m_shFlashT2, m_shFlashTD1_2, m_shFlashTD2_2, m_shFlashTD3_2;
-	/*BOOL m_bThermoCalibrated;
-	double m_dThermoCalibK_1TD, m_dThermoCalibB_1TD;
-	double m_dThermoCalibK_2TD, m_dThermoCalibB_2TD;*/
-	
-	int m_nEmergencyCode;
-	CString m_strSoftwareVer;
-	bool m_bDeviceSerialNumber;
+
+  unsigned short m_shFlashT1, m_shFlashTD1_1, m_shFlashTD2_1, m_shFlashTD3_1;
+  unsigned short m_shFlashT2, m_shFlashTD1_2, m_shFlashTD2_2, m_shFlashTD3_2;
+  /*
+  BOOL m_bThermoCalibrated;
+  double m_dThermoCalibK_1TD, m_dThermoCalibB_1TD;
+  double m_dThermoCalibK_2TD, m_dThermoCalibB_2TD;
+  */
+
+  int m_nEmergencyCode;
+  CString m_strSoftwareVer;
+  bool m_bDeviceSerialNumber;
   int m_nDeviceSerialNumber;
 
-	FILE *fh;
-	FILE *fhb;
-	FILE *fhNew;
-	
-	//ПОТОКИ
-	void StartThreads( void);
-	
-	//CSlgCircleMeasurement *m_pCircleBuffer;
-	CSlgCircleBuffer *m_cbW100;
-	CSlgCircleBuffer *m_cbW1000;
-	CSlgCircleBuffer *m_cbW10000;
-	CSlgCircleBuffer *m_cbW100000;
-	CSlgCircleBuffer *m_cbI1;
-	CSlgCircleBuffer *m_cbI2;
-	CSlgCircleBuffer *m_cbVpc;
-	CSlgCircleBuffer *m_cbAmplAng;
-  CSlgCircleBuffer *m_cbAmplAngDus;
-	CSlgCircleBuffer *m_cbT1;
-  CSlgCircleBuffer *m_cbT2;
-	CSlgCircleBuffer *m_cbT3;
-	CSlgCircleBuffer *m_cbTsaMcs;
-  CSlgCircleBuffer *m_cbTsaMs;
-  CSlgCircleBuffer *m_cbTsaHz;
+  FILE *fh;
+  FILE *fhb;
+  FILE *fhNew;
+
+  //ПОТОКИ
+  void StartThreads( void);
+
+  CTrackedParam *m_tpW;
+  CTrackedParam *m_tpI1;
+  CTrackedParam *m_tpI2;
+  CTrackedParam *m_tpVpc;
+  CTrackedParam *m_tpAmplAng;
+  CTrackedParam *m_tpAmplAngDus;
+  CTrackedParam *m_tpT1;
+  CTrackedParam *m_tpT2;
+  CTrackedParam *m_tpT3;
+  CTrackedParam *m_tpTsaMcs;
+  CTrackedParam *m_tpTsaMs;
+  CTrackedParam *m_tpTsaHz;
+  CTrackedParam *m_tpDecCoeff;
 
   int m_nMarkerFails;
-	int m_nCounterFails;
+  int m_nCounterFails;
   int m_nCheckSummFails;
-  
-  
+
   char m_bLockBit;
   char m_bSyncAsync;
   char m_bWdNdU;
 
 // Overrides
-	// ClassWizard generated virtual function overrides
-	//{{AFX_VIRTUAL(CSlg2App)
-	public:
-	virtual BOOL InitInstance();
-	virtual int ExitInstance();
-	//}}AFX_VIRTUAL
+  // ClassWizard generated virtual function overrides
+  //{{AFX_VIRTUAL(CSlg2App)
+  public:
+  virtual BOOL InitInstance();
+  virtual int ExitInstance();
+  //}}AFX_VIRTUAL
 
 // Implementation
 	//{{AFX_MSG(CSlg2App)
@@ -106,6 +104,8 @@ public:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:
+  CSettings m_pSettings;
+  CLogger m_pLogger;
 };
 
 extern CSlg2App theApp;

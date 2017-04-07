@@ -42,7 +42,7 @@ void CLogger::LogTrace( const char *strMessage, ...)
   SYSTEMTIME lt;
   GetLocalTime(&lt);
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [TRACE] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [TRACE] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);
@@ -65,7 +65,7 @@ void CLogger::LogDebug( const char *strMessage, ...)
   GetLocalTime(&lt);
   
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [DEBUG] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [DEBUG] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);
@@ -87,7 +87,7 @@ void CLogger::LogInfo( const char *strMessage, ...)
   GetLocalTime(&lt);
 
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [INFO ] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [INFO ] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);
@@ -110,7 +110,7 @@ void CLogger::LogWarn( const char *strMessage, ...)
   GetLocalTime(&lt);
   
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [WARN ] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [WARN ] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);
@@ -131,7 +131,7 @@ void CLogger::LogError( const char *strMessage, ...)
   SYSTEMTIME lt;
   GetLocalTime(&lt);
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [ERROR] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [ERROR] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);
@@ -152,7 +152,7 @@ void CLogger::LogFatal( const char *strMessage, ...)
   SYSTEMTIME lt;
   GetLocalTime(&lt);
   if( m_fh != NULL)
-    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d [FATAL] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond);
+    fprintf( m_fh, "%d.%02d.%02d %02d:%02d:%02d.%03d [FATAL] ", lt.wYear, lt.wMonth, lt.wDay, lt.wHour, lt.wMinute, lt.wSecond, lt.wMilliseconds);
 
   va_list arglist;
   va_start( arglist, strMessage);

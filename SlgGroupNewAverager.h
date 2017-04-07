@@ -18,10 +18,10 @@ public:
 	void CommonReset();
 	CSlgGroupNewAverager();
 	virtual ~CSlgGroupNewAverager();
-  CSlgNewAverager Get_100ms() { return m_100ms; }
-  CSlgNewAverager Get_1s()    { return m_1s;    }
-  CSlgNewAverager Get_10s()   { return m_10s;   }
-  CSlgNewAverager Get_100s()  { return m_100s;  }
+  CSlgNewAverager *Get_100ms() { return &m_100ms; }
+  CSlgNewAverager *Get_1s()    { return &m_1s;    }
+  CSlgNewAverager *Get_10s()   { return &m_10s;   }
+  CSlgNewAverager *Get_100s()  { return &m_100s;  }
 private:
   CSlgNewAverager m_100ms;
   CSlgNewAverager m_1s;

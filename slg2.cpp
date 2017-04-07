@@ -10,6 +10,8 @@
 #include "MainView.h"
 
 #include "SlgNewAverager.h"
+#include "SlgGroupNewAverager.h"
+
 #include "Serial.h"
 #include "AnalogueParamsConstList.h"
 #include "DecCoeffCalcParams.h"
@@ -21,21 +23,8 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 
-/////////////////////////////////////////////////////////////////////////////
-// GLOBAL VARIABLES!!!!
-double gl_pTsa;
-double gl_pw100;
-double gl_pi1;
-double gl_pi2;
-double gl_pVpc;
-double gl_pAA;
-double gl_pAADus;
-double gl_pT1;
-double gl_pT2;
-double gl_pT3;
-double gl_pTSamean;
 
-//КОЛЬЦЕВОЙ БУФЕР БАЙТ
+//КОЛЬЦЕВОЙ БУФЕР БАЙТ ПРИХОДЯЩИХ В COM-ПОРТ
 #define CYCLE_BUFFER_LEN 32768
 
 char gl_bCircleBuffer[ CYCLE_BUFFER_LEN];
@@ -45,34 +34,39 @@ bool gl_PutByteInCircleBuffer( BYTE bt);
 
 int gl_GetCircleBufferDistance( void)
 {
-	return( ( CYCLE_BUFFER_LEN + gl_nCircleBufferPut - gl_nCircleBufferGet) % CYCLE_BUFFER_LEN);
+  return( ( CYCLE_BUFFER_LEN + gl_nCircleBufferPut - gl_nCircleBufferGet) % CYCLE_BUFFER_LEN);
 }
 
 bool PutByteInCircleBuffer(BYTE bt)
 {
-	if( gl_nCircleBufferPut == gl_nCircleBufferGet - 1) return false;
-	gl_bCircleBuffer[ gl_nCircleBufferPut] = bt;
-	gl_nCircleBufferPut = ( ++gl_nCircleBufferPut) % CYCLE_BUFFER_LEN;
-	return true;
+  if( gl_nCircleBufferPut == gl_nCircleBufferGet - 1) return false;
+  gl_bCircleBuffer[ gl_nCircleBufferPut] = bt;
+  gl_nCircleBufferPut = ( ++gl_nCircleBufferPut) % CYCLE_BUFFER_LEN;
+  return true;
 }
 
+
+//Время прошедешее с момента начала измерения
 double gl_dGlobalTime;
-CSlgNewAverager gl_avW100;
-CSlgNewAverager gl_avW1000;
-CSlgNewAverager gl_avW10000;
-CSlgNewAverager gl_avW100000;
-CSlgNewAverager gl_avI1;
-CSlgNewAverager gl_avI2;
-CSlgNewAverager gl_avVpc;
-CSlgNewAverager gl_avAmplAng;
-CSlgNewAverager gl_avAmplAngDus;
-CSlgNewAverager gl_avT1;
-CSlgNewAverager gl_avT2;
-CSlgNewAverager gl_avT3;
-CSlgNewAverager gl_avTsa;
-CSlgNewAverager gl_avTsa1000;
-CSlgNewAverager gl_avTsa10000;
-CSlgNewAverager gl_avTsa100000;
+
+//текущие (обновляемые ежетактно переменные)
+double gl_dblW_tact;
+double gl_dblTD1_tact, gl_dblTD2_tact, gl_dblTD3_tact;
+double gl_dblI1_tact, gl_dblI2_tact;
+double gl_dblVpc_tact;
+double gl_dblAA_tact;
+
+//Усреднители
+CSlgGroupNewAverager gl_avgW;
+CSlgGroupNewAverager gl_avgI1;
+CSlgGroupNewAverager gl_avgI2;
+CSlgGroupNewAverager gl_avgVpc;
+CSlgGroupNewAverager gl_avgAmplAng;
+CSlgGroupNewAverager gl_avgAmplAngDus;
+CSlgGroupNewAverager gl_avgT1;
+CSlgGroupNewAverager gl_avgT2;
+CSlgGroupNewAverager gl_avgT3;
+CSlgGroupNewAverager gl_avgTsa;
 
 CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
@@ -91,8 +85,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 	m_bStopBigThreadFlag = false;
 
-	gl_pTsa = gl_pw100 = gl_pi1 = gl_pi2 = gl_pVpc = gl_pAA = gl_pT1 = gl_pT2 = gl_pT3 = gl_pTSamean = 0.;
-  
+  BOOL bInveracityTact = FALSE;
+  BOOL bInveracity100ms = FALSE;
+  BOOL bInveracity1s = FALSE;
+  BOOL bInveracity10s = FALSE;
+  BOOL bInveracity100s = FALSE;
+
   int btPrevPackCounter = 500;
 
 	while( !m_bStopBigThreadFlag) {
@@ -250,6 +248,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
       char bdWdNdU    = ( byte11 & 0x10) >> 4;
       char bErrorCode = byte11 & 0x0F;
 
+      bInveracityTact   |= bVeracity;
+      bInveracity100ms  |= bVeracity;
+      bInveracity1s     |= bVeracity;
+      bInveracity10s    |= bVeracity;
+      bInveracity100s   |= bVeracity;
+
       //локбит
       if( theApp.m_bLockBit != bLockBit) {
         theApp.m_bLockBit = bLockBit;
@@ -344,31 +348,60 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
       
       //осреднители
-			gl_avW100.AddPoint( dAngle_inc);
-			gl_avW1000.AddPoint( dAngle_inc);
-			gl_avW10000.AddPoint( dAngle_inc);
-			gl_avW100000.AddPoint( dAngle_inc);
+      gl_avgW.CommonAddPoint( dAngle_inc);
 
-			/*if( param & 0x80)
-				Beep( 1000, 10);*/
+			/*
+      if( param & 0x80)
+				Beep( 1000, 10);
+      */
 
       CString str;
 
 			switch( byte5) {
-				case UTD1:            gl_avT1.AddPoint( dCur1);			  break;
-				case UTD2:            gl_avT2.AddPoint( dCur1);			  break;
-        case UTD3:            gl_avT3.AddPoint( dCur1);			  break;
-			  case I1:              gl_avI1.AddPoint( dCur1);			  break;
-				case I2:              gl_avI2.AddPoint( dCur1);			  break;
-				case CNTRPC:          gl_avVpc.AddPoint( dCur1);		  break;
-				case AMPLANG_ALTERA:  gl_avAmplAng.AddPoint( dCur1);  break;
-        case AMPLANG_DUS:     gl_avAmplAngDus.AddPoint( dCur1);  break;
+				case UTD1:
+          gl_avgT1.CommonAddPoint( dCur1);
+          gl_dblTD1_tact = dCur1 / 65535. * 200. - 100.;
+        break;
+        case UTD2:
+          gl_avgT2.CommonAddPoint( dCur1);
+          gl_dblTD2_tact = dCur1 / 65535. * 200. - 100.;
+        break;
+        case UTD3:
+          gl_avgT3.CommonAddPoint( dCur1);
+          gl_dblTD3_tact = dCur1 / 65535. * 200. - 100.;
+        break;
+
+
+        case I1:
+          gl_avgI1.CommonAddPoint( dCur1);
+          gl_dblI1_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+        break;
+				case I2:
+          gl_avgI2.CommonAddPoint( dCur1);
+          gl_dblI2_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+        break;
+
+
+				case CNTRPC:
+          gl_avgVpc.CommonAddPoint( dCur1);
+          gl_dblVpc_tact = ( ( dCur1 / 4096. * 3.) - 2.048) * 100.;
+        break;
+
+
+				case AMPLANG_ALTERA:
+          gl_avgAmplAng.CommonAddPoint( dCur1);
+          gl_dblAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 4.;
+        break;
+        case AMPLANG_DUS:
+          gl_avgAmplAngDus.CommonAddPoint( dCur1);
+        break;
+
 
 				case AMPLITUDE: theApp.m_btParam1 = nCur1;        break;        //Амплитуда колебаний виброподвеса
 				case TACT_CODE: theApp.m_btParam2 = nCur1;        break;        //Код такта подставки
 				case M_COEFF:   theApp.m_btParam3 = nCur1;        break;        //коэффициент ошумления
 				case STARTMODE: theApp.m_btParam4 = nCur1;        break;        //Начальная мода
-        case DECCOEFF:    theApp.m_shFlashDecCoeff = nCur1; break;      //коэффициент вычета
+        case DECCOEFF:  theApp.m_shFlashDecCoeff = nCur1; break;      //коэффициент вычета
 
         case CONTROL_I1:  theApp.m_shFlashI1min = nCur1;  break;        //Контрольный ток I1
 			  case CONTROL_I2:  theApp.m_shFlashI2min = nCur1;  break;        //Контрольный ток I2
@@ -406,24 +439,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
         break;
 
 				case CALIB_T1:
-					( ( CSlg2App *) AfxGetApp())->m_shFlashT1 = nCur1;
-					( ( CSlg2App *) AfxGetApp())->m_shFlashT1 -= THERMO_CALIB_PARAMS_BASE;
+					theApp.m_shFlashT1 = nCur1;
+					theApp.m_shFlashT1 -= THERMO_CALIB_PARAMS_BASE;
 					/*Beep( 400, 100);*/
 				break;		//калибровка термодатчиков: min T
 
-				case T1_TD1: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_1 = nCur1; /*Beep( 500, 100);*/break; //калибровка термодатчиков: TD1_minT
-				case T1_TD2: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD2_minT
-        case T1_TD3: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD3_minT
+				case T1_TD1: theApp.m_shFlashTD1_1 = nCur1; /*Beep( 500, 100);*/break; //калибровка термодатчиков: TD1_minT
+				case T1_TD2: theApp.m_shFlashTD2_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD2_minT
+        case T1_TD3: theApp.m_shFlashTD3_1 = nCur1; /*Beep( 600, 100);*/break; //калибровка термодатчиков: TD3_minT
 
 				case CALIB_T2:
-					( ( CSlg2App *) AfxGetApp())->m_shFlashT2 = nCur1;
-					( ( CSlg2App *) AfxGetApp())->m_shFlashT2 -= THERMO_CALIB_PARAMS_BASE;
+					theApp.m_shFlashT2 = nCur1;
+					theApp.m_shFlashT2 -= THERMO_CALIB_PARAMS_BASE;
 					/*Beep( 700, 100);*/
 				break;		//калибровка термодатчиков: max T
 
-				case T2_TD1: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD1_2 = nCur1; /*Beep( 800, 100);*/break; //калибровка термодатчиков: TD1_maxT
-				case T2_TD2: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD2_maxT
-        case T2_TD3: ( ( CSlg2App *) AfxGetApp())->m_shFlashTD3_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD3_maxT
+				case T2_TD1: theApp.m_shFlashTD1_2 = nCur1; /*Beep( 800, 100);*/break; //калибровка термодатчиков: TD1_maxT
+				case T2_TD2: theApp.m_shFlashTD2_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD2_maxT
+        case T2_TD3: theApp.m_shFlashTD3_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD3_maxT
 					
 			}
 
@@ -455,17 +488,16 @@ DWORD WINAPI BigThread(LPVOID lparam)
 						y1 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_1;
 						y2 = ( ( CSlg2App *) AfxGetApp())->m_shFlashTD2_2;
 
-						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_2TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
-						( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_2TD = ( y2 - y1) / ( x2 - x1);
-					}
-				}
-			}*/
+            ( ( CSlg2App *) AfxGetApp())->m_dThermoCalibB_2TD = ( x2 * y1 - x1 * y2) / ( x1 - x2);
+            ( ( CSlg2App *) AfxGetApp())->m_dThermoCalibK_2TD = ( y2 - y1) / ( x2 - x1);
+          }
+        }
+      }*/
 
-			gl_avTsa.AddPoint( dSaTime);
-			gl_avTsa1000.AddPoint( dSaTime);
-			gl_avTsa10000.AddPoint( dSaTime);
-			gl_avTsa100000.AddPoint( dSaTime);
-			
+      theApp.GetLogger()->LogDebug ("BigThread::Tact: 1. before+ gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
+      gl_avgTsa.CommonAddPoint( dSaTime);
+      theApp.GetLogger()->LogDebug ("BigThread::Tact: 2. after+  gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
+
 
       //1275 (ФАПЧ) * 32768Hz (осцилятор) / 16 (делитель) = 2611200 Hz        
       //double dbl1secInTacts = 2611200;
@@ -480,12 +512,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
       // Запись полученных данных (фильтрованных по MF, CF)
       // **************************************************
       CSlg2App *app = ( CSlg2App *) AfxGetApp();
-			if( (( CSlg2App *) AfxGetApp())->fhNew != NULL) {
+      if( (( CSlg2App *) AfxGetApp())->fhNew != NULL) {
         
         //маркер
         fputc( 0x55, app->fhNew);
         fputc( 0xAA, app->fhNew);
-			  
+
         //приращение угла
         fputc( byte1, app->fhNew);
         fputc( byte2, app->fhNew);
@@ -512,232 +544,485 @@ DWORD WINAPI BigThread(LPVOID lparam)
         //чексумма
         fputc( byte12, app->fhNew);
       }
-			else
-			  AfxMessageBox( _T("Попытка записи данных в bin-файл с закрытым дескриптором."));		
+      else
+        AfxMessageBox( _T("Попытка записи данных в bin-файл с закрытым дескриптором."));
+
+
+      //расчёт моментальной (тактовой) угловой скорости
+      gl_dblW_tact = dAngle_inc / ( dSaTime / dbl1secInTacts);
+
+      //глобальное время от запуска
+      gl_dGlobalTime += dSaTime / dbl1secInTacts;
+
+
+      //////////////////////////////////////////////////////////////////////
+      //распихивание точек по кольцевым буферам (тактовые значения)
+      //////////////////////////////////////////////////////////////////////
+      theApp.m_tpW->Get_Tacts()->AddPoint(        gl_dblW_tact,   gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpI1->Get_Tacts()->AddPoint(       gl_dblI1_tact,  gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpI2->Get_Tacts()->AddPoint(       gl_dblI2_tact,  gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpVpc->Get_Tacts()->AddPoint(      gl_dblVpc_tact, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpAmplAng->Get_Tacts()->AddPoint(  gl_dblAA_tact,  gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpT1->Get_Tacts()->AddPoint(       gl_dblTD1_tact, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpT2->Get_Tacts()->AddPoint(       gl_dblTD2_tact, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpT3->Get_Tacts()->AddPoint(       gl_dblTD3_tact, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpTsaMs->Get_Tacts()->AddPoint(    dSaTime / dbl1secInTacts * 1.e3, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpTsaMcs->Get_Tacts()->AddPoint(   dSaTime / dbl1secInTacts * 1.e6, gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpTsaHz->Get_Tacts()->AddPoint(    dbl1secInTacts / dSaTime       , gl_dGlobalTime, bInveracityTact);
+      theApp.m_tpDecCoeff->Get_Tacts()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, bInveracityTact);
+
+      bInveracityTact = FALSE;
+
 
       // **************************************************
       // ОСРЕДНЕНИЕ 100 мсек
       // **************************************************
 
-			if( gl_avTsa.GetSumm() > dbl1secInTacts / 10.) {
-				//накопили 100мсек
-				if( bFirst100msecPointSkipped) {
-					double Nimp = gl_avW100.GetSumm();				//количество импульсов (суммированное)
-					gl_avW100.Reset();
+      if( gl_avgTsa.Get_100ms()->GetSumm() > dbl1secInTacts / 10.) {
+        //накопили 100мсек
+        if( bFirst100msecPointSkipped) {
 
-					if( gl_avI1.GetCounter()) {
-						double i1 = gl_avI1.GetMean();						//разрядный ток i1
-						gl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;	// mA
-					}
-					
+          //количество импульсов (суммированное)
+          double Nimp = gl_avgW.Get_100ms()->GetSumm();
+          gl_avgW.Get_100ms()->Reset();
 
-					if( gl_avI2.GetCounter()) {
-						double i2 = gl_avI2.GetMean();						//разрядный ток i2
-						gl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;									// mA
+          //разрядный ток i1
+          double dbl_pi1;
+          if( gl_avgI1.Get_100ms()->GetCounter()) {
+            double i1 = gl_avgI1.Get_100ms()->GetMean();
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;               // mA
+          }
+
+          //разрядный ток i2
+          double dbl_pi2;
+          if( gl_avgI2.Get_100ms()->GetCounter()) {
+            double i2 = gl_avgI2.Get_100ms()->GetMean();						
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;							// mA
             //gl_pi2 = i2;
-					}
+          }
 
-					if( gl_avVpc.GetCounter()) {
-						double Vpc = gl_avVpc.GetMean();					//напряжение на пьезокорректорах
-						gl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	// V
-					}
+          //напряжение на пьезокорректорах
+          double dbl_pVpc;
+          if( gl_avgVpc.Get_100ms()->GetCounter()) {
+            double Vpc = gl_avgVpc.Get_100ms()->GetMean();					  //напряжение на пьезокорректорах
+            dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	      // V
+          }
 
           //амплитуда от альтеры (в импульсах)
-					if( gl_avAmplAng.GetCounter()) {
-						double AmplAng = gl_avAmplAng.GetMean();	//amplang
-						gl_pAA = AmplAng / 4. * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;	  //''
-					}
+          double dbl_pAA;
+          if( gl_avgAmplAng.Get_100ms()->GetCounter()) {
+            double AmplAng = gl_avgAmplAng.Get_100ms()->GetMean();	            //amplang
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+          }
 
           //амплитуда от ДУСа
-          if( gl_avAmplAngDus.GetCounter()) {
-						double AmplAngDus = gl_avAmplAngDus.GetMean();	//amplangDus
-						gl_pAADus = AmplAngDus / 4096. * 3.;							// V
-					}
+          double dbl_pAADus;
+          if( gl_avgAmplAngDus.Get_100ms()->GetCounter()) {
+            double AmplAngDus = gl_avgAmplAngDus.Get_100ms()->GetMean();   //amplangDus
+            dbl_pAADus = AmplAngDus / 4096. * 3.;							      // V
+          }
 
-          
-          
-          if( gl_avT1.GetCounter()) {
-						double T1 = gl_avT1.GetMean();						//термодатчик 1
-						gl_pT1 = T1 / 65535. * 200. - 100.;				//V!
+          //температура 1
+          double dbl_pT1;
+          if( gl_avgT1.Get_100ms()->GetCounter()) {
+            double T1 = gl_avgT1.Get_100ms()->GetMean();             //термодатчик 1
+            dbl_pT1 = T1 / 65535. * 200. - 100.;				            //V!
             //gl_pT1 = T1;
-					}
+          }
 
-          if( gl_avT2.GetCounter()) {
-						double T2 = gl_avT2.GetMean();						//термодатчик 2
-						gl_pT2 = T2 / 65535. * 200. - 100.;				//V!
+
+          //температура 2
+          double dbl_pT2;
+          if( gl_avgT2.Get_100ms()->GetCounter()) {
+            double T2 = gl_avgT2.Get_100ms()->GetMean();	            //термодатчик 2
+            dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
             //gl_pT2 = T2;
-					}
+          }
 
           /*
-          if( gl_avT2.GetCounter()) {
-						//double T2 = gl_avT2.GetMean();						//получаемая средняя амплитуда с альтеры
-						//gl_pT2 = T2 * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;
+          if( gl_avT2->GetCounter()) {
+            //double T2 = gl_avT2->GetMean();						//получаемая средняя амплитуда с альтеры
+            //gl_pT2 = T2 * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;
 
-            double T2 = gl_avT2.GetMean();						  //RULA
-						gl_pT2 = T2;
-					}
+            double T2 = gl_avT2->GetMean();						  //RULA
+            gl_pT2 = T2;
+          }
           */
-					
-          if( gl_avT3.GetCounter()) {
-						double T3 = gl_avT3.GetMean();						//термодатчик 3
-						gl_pT3 = T3 / 65535. * 200. - 100.;				//V!
+
+          
+          //температура 3
+          double dbl_pT3;
+          if( gl_avgT3.Get_100ms()->GetCounter()) {
+            double T3 = gl_avgT3.Get_100ms()->GetMean();             //термодатчик 3
+            dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
             //gl_pT3 = T3;
-					}
-
-					/*double i1 = gl_avI1.GetMean();						//разрядный ток i1
-					double i2 = gl_avI2.GetMean();						//разрядный ток i2
-					double Vpc = gl_avVpc.GetMean();					//напряжение на пьезокорректорах
-					double AmplAng = gl_avAmplAng.GetMean();	//amplang
-					double T1 = gl_avT1.GetMean();						//термодатчик 1
-					double T2 = gl_avT2.GetMean();						//термодатчик 2*/
-
-					double Tsa = gl_avTsa.GetSumm();					//сумма времен Tsa (должно близится к 100мсек)
-					double TsaMean = gl_avTsa.GetMean();			//среднее время Tsa за эти 100мсек
-
-					//////////////////////////////////////////////////////////////////////
-					//пересчет в физические величины
-					//////////////////////////////////////////////////////////////////////
-					gl_pTsa = Tsa / dbl1secInTacts;														// sec
-					gl_pw100 = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / gl_pTsa / 4.;				// ''/sec
-					
-					
+          }
 
 
-					/*  <<--- единственный
+          //время такта
+          double Tsa = gl_avgTsa.Get_100ms()->GetSumm();            //сумма времен Tsa (должно близится к 100мсек)
+          double TsaMean = gl_avgTsa.Get_100ms()->GetMean();        //среднее время Tsa за эти 100мсек
+          
+          //////////////////////////////////////////////////////////////////////
+          //пересчет в физические величины
+          //////////////////////////////////////////////////////////////////////
+
+          //время (100мсек)
+          double dbl_pTsa = Tsa / dbl1secInTacts;                   // sec
+
+          //угловая скорость в 100мсек осреднении
+          double dbl_pw100 = Nimp / dbl_pTsa * theApp.GetSettings()->GetScaleCoeff() / 4.;				// ''/sec
+
+          double dbl_pTSamean = TsaMean / dbl1secInTacts;			      // sec
 
 
-					gl_pi1 = i1 / 4096. * 3. / 3.973;									// mA
-					gl_pi2 = i2 / 4096. * 3. / 3.973;									// mA
-					gl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	// V
-					//gl_pAA = AmplAng / 4096. * 3. / 0.5;							// V
-					gl_pAA = AmplAng / 4. * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;	
-					
-					gl_pT1 = 70.24586 * ( T1 / 4096. * 3.) - 128.209;	// (T1 / 4096. * 3.) = V!!!!! далее в градусах
-					gl_pT2 = 70.24586 * ( T2 / 4096. * 3.) - 128.209;	// V!!!!!
-					/*gl_pT1 = ( T1 / 4096. * 3.);
-					gl_pT2 = ( T2 / 4096. * 3.);*/                       //  <<--- одна закрывающая на обе!
-					
-					//gl_pT2 = T2;
+          //разделитель 100мсек точек в статистике
+          /*
+          if( (( CSlg2App *) AfxGetApp())->fh != NULL)
+            fprintf( (( CSlg2App *) AfxGetApp())->fh, _T("\n"));
+          else
+            AfxMessageBox( _T("Попытка записи в файл разделителя с закрытым дескриптором!"));
+          */
 
+          //////////////////////////////////////////////////////////////////////
+          //распихивание точек по кольцевым буферам
+          //////////////////////////////////////////////////////////////////////
+          theApp.GetLogger()->LogDebug ("BigThread::100ms: dbl_pw100=%f tmoment=%f tsasumm=%f", dbl_pw100, gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
 
-					
+          theApp.m_tpW->Get_100ms()->AddPoint(        dbl_pw100,  gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpI1->Get_100ms()->AddPoint(       dbl_pi1,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpI2->Get_100ms()->AddPoint(       dbl_pi2,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpVpc->Get_100ms()->AddPoint(      dbl_pVpc,   gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAng->Get_100ms()->AddPoint(  dbl_pAA,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAngDus->Get_100ms()->AddPoint( dbl_pAADus, gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpT1->Get_100ms()->AddPoint(       dbl_pT1,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpT2->Get_100ms()->AddPoint(       dbl_pT2,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpT3->Get_100ms()->AddPoint(       dbl_pT3,    gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpTsaMcs->Get_100ms()->AddPoint(   dbl_pTSamean * 1000000.,  gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpTsaMs->Get_100ms()->AddPoint(    dbl_pTSamean * 1000.,     gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpTsaHz->Get_100ms()->AddPoint(    1. / dbl_pTSamean,        gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpDecCoeff->Get_100ms()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
 
+          bInveracity100ms = FALSE;
 
-
-					gl_pTSamean = TsaMean / dbl1secInTacts;										// sec
-	
-					//глобальное время от запуска
-					gl_dGlobalTime += gl_pTsa;
-					double tmoment = gl_dGlobalTime;
-
-					//разделитель 100мсек точек в статистике
-					/*if( (( CSlg2App *) AfxGetApp())->fh != NULL)
-						fprintf( (( CSlg2App *) AfxGetApp())->fh, _T("\n"));
-					else
-						AfxMessageBox( _T("Попытка записи в файл разделителя с закрытым дескриптором!"));*/
-
-					//////////////////////////////////////////////////////////////////////
-					//распихивание точек по кольцевым буферам
-					//////////////////////////////////////////////////////////////////////
-					theApp.m_cbW100->AddPoint( gl_pw100, tmoment);
-					theApp.m_cbI1->AddPoint( gl_pi1, tmoment);
-					theApp.m_cbI2->AddPoint( gl_pi2, tmoment);
-					theApp.m_cbVpc->AddPoint( gl_pVpc, tmoment);
-					theApp.m_cbAmplAng->AddPoint( gl_pAA, tmoment);
-          theApp.m_cbAmplAngDus->AddPoint( gl_pAADus, tmoment);
-					theApp.m_cbT1->AddPoint( gl_pT1, tmoment);
-					theApp.m_cbT2->AddPoint( gl_pT2, tmoment);
-          theApp.m_cbT3->AddPoint( gl_pT3, tmoment);
-					theApp.m_cbTsaMcs->AddPoint( gl_pTSamean * 1000000., tmoment);
-          theApp.m_cbTsaMs->AddPoint( gl_pTSamean * 1000., tmoment);
-          theApp.m_cbTsaHz->AddPoint( 1. / gl_pTSamean, tmoment);
-
-				}
-				else {
+        }
+        else {
           //ПРОПУСК ПЕРВЫХ 100 msec
-					gl_avW100.Reset();
-					gl_avW1000.Reset();
-					gl_avW10000.Reset();
-					gl_avW100000.Reset();
-					gl_avI1.Reset();
-					gl_avI2.Reset();
-					gl_avVpc.Reset();
-					gl_avAmplAng.Reset();
-					gl_avT1.Reset();
-					gl_avT2.Reset();
-					gl_avTsa.Reset();
-					gl_avTsa1000.Reset();
-					gl_avTsa10000.Reset();
-					gl_avTsa100000.Reset();
+          gl_avgW.CommonReset();
+          gl_avgI1.CommonReset();
+          gl_avgI2.CommonReset();
+          gl_avgVpc.CommonReset();
+          gl_avgAmplAng.CommonReset();
+          gl_avgT1.CommonReset();
+          gl_avgT2.CommonReset();
+          gl_avgTsa.CommonReset();
+          
 
-					//разделитель 100мсек точек в статистике
-					//fprintf( (( CSlg2App *) AfxGetApp())->fh, _T("\n"));
-					bFirst100msecPointSkipped = true;
-				}
-			}
+          //разделитель 100мсек точек в статистике
+          //fprintf( (( CSlg2App *) AfxGetApp())->fh, _T("\n"));
+          bFirst100msecPointSkipped = true;
+        }
+      }
 
       // **************************************************
       // ОСРЕДНЕНИЕ 1 сек
       // **************************************************
-			if( gl_avTsa1000.GetSumm() > dbl1secInTacts) {
-				//накопили секундную точку
-				double Nimp = gl_avW1000.GetSumm();						//количество импульсов (суммированное)
-				gl_avW1000.Reset();
-				double Tsa = gl_avTsa1000.GetSumm();					//сумма времен Tsa (должно близится к 1 сек)
-				gl_avTsa1000.Reset();
+      if( gl_avgTsa.Get_1s()->GetSumm() > dbl1secInTacts) {
+        //накопили секундную точку
 
-				//пересчет в физические величины
-				double tsa_1s = Tsa / dbl1secInTacts;
-				double w_1s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_1s / 4.;
+        //количество импульсов (суммированное)
+        double Nimp = gl_avgW.Get_1s()->GetSumm();
+        gl_avgW.Get_1s()->Reset();
 
-				//перекладывание в кольцевой буфер
-				(( CSlg2App *) AfxGetApp())->m_cbW1000->AddPoint( w_1s, gl_dGlobalTime);				
-			}
+        //разрядный ток i1
+        double dbl_pi1;
+        if( gl_avgI1.Get_1s()->GetCounter()) {
+          double i1 = gl_avgI1.Get_1s()->GetMean();
+          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+        }
+
+        //разрядный ток i2
+        double dbl_pi2;
+        if( gl_avgI2.Get_1s()->GetCounter()) {
+          double i2 = gl_avgI2.Get_1s()->GetMean();
+          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+        }
+
+        //напряжение на пьезокорректорах
+        double dbl_pVpc;
+				if( gl_avgVpc.Get_1s()->GetCounter()) {
+					double Vpc = gl_avgVpc.Get_1s()->GetMean();					      //напряжение на пьезокорректорах
+					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+				}
+
+        //амплитуда от альтеры (в импульсах)
+        double dbl_pAA;
+				if( gl_avgAmplAng.Get_1s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAng.Get_1s()->GetMean();	              //amplang
+					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+				}
+
+        //амплитуда от ДУСа
+        double dbl_pAADus;
+        if( gl_avgAmplAngDus.Get_1s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplAngDus.Get_1s()->GetMean();  //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+				}
+
+        //температура 1
+        double dbl_pT1;
+        if( gl_avgT1.Get_1s()->GetCounter()) {
+					double T1 = gl_avgT1.Get_1s()->GetMean();                  //термодатчик 1
+					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
+          //gl_pT1 = T1;
+				}
+
+
+        //температура 2
+        double dbl_pT2;
+        if( gl_avgT2.Get_1s()->GetCounter()) {
+					double T2 = gl_avgT2.Get_1s()->GetMean();	              //термодатчик 2
+					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
+          //gl_pT2 = T2;
+				}
+
+          
+        //температура 3
+        double dbl_pT3;
+        if( gl_avgT3.Get_1s()->GetCounter()) {
+          double T3 = gl_avgT3.Get_1s()->GetMean();                //термодатчик 3
+          dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
+          //gl_pT3 = T3;
+        }
+
+        
+        double Tsa = gl_avgTsa.Get_1s()->GetSumm();               //сумма времен Tsa (должно близится к 1 сек)
+        double dbl_pTSamean = gl_avgTsa.Get_1s()->GetMean();       //среднее время Tsa за эти 1 сек
+
+        //пересчет в физические величины
+        double tsa_1s = Tsa / dbl1secInTacts;
+        double w_1s = Nimp / tsa_1s * theApp.GetSettings()->GetScaleCoeff() / 4.;
+
+        //перекладывание в кольцевой буфер
+        theApp.m_tpW->          Get_1s()->AddPoint( w_1s,       gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpI1->         Get_1s()->AddPoint( dbl_pi1,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpI2->         Get_1s()->AddPoint( dbl_pi2,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpVpc->        Get_1s()->AddPoint( dbl_pVpc,   gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpAmplAng->    Get_1s()->AddPoint( dbl_pAA,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpAmplAngDus-> Get_1s()->AddPoint( dbl_pAADus, gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpT1->         Get_1s()->AddPoint( dbl_pT1,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpT2->         Get_1s()->AddPoint( dbl_pT2,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpT3->         Get_1s()->AddPoint( dbl_pT3,    gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpTsaMcs->     Get_1s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000.,  gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpTsaMs->      Get_1s()->AddPoint( dbl_pTSamean / dbl1secInTacts* 1000.,     gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpTsaHz->      Get_1s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity1s);
+        theApp.m_tpDecCoeff->   Get_1s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+
+        bInveracity1s = FALSE;
+      }
 
       // **************************************************
       // ОСРЕДНЕНИЕ 10 сек
       // **************************************************
-			if( gl_avTsa10000.GetSumm() > dbl1secInTacts *10.) {
-				//накопили 10секундную точку
+      if( gl_avgTsa.Get_10s()->GetSumm() > dbl1secInTacts *10.) {
+        //накопили 10секундную точку
 
-				double Nimp = gl_avW10000.GetSumm();						//количество импульсов (суммированное)
-				gl_avW10000.Reset();
-				double Tsa = gl_avTsa10000.GetSumm();					//сумма времен Tsa (должно близится к 1 сек)
-				gl_avTsa10000.Reset();
+        //количество импульсов (суммированное)
+        double Nimp = gl_avgW.Get_10s()->GetSumm();
+        gl_avgW.Get_10s()->Reset();
 
-				//пересчет в физические величины
-				double tsa_10s = Tsa / dbl1secInTacts;
-				double w_10s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_10s / 4.;
+        //разрядный ток i1
+        double dbl_pi1;
+        if( gl_avgI1.Get_10s()->GetCounter()) {
+          double i1 = gl_avgI1.Get_10s()->GetMean();
+          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+        }
 
-				(( CSlg2App *) AfxGetApp())->m_cbW10000->AddPoint( w_10s, gl_dGlobalTime);
-				//(( CSlg2App *) AfxGetApp())->m_cbW10000->AddPoint( gl_avW10000.GetMean(), gl_dGlobalTime);
-			}
+        //разрядный ток i2
+        double dbl_pi2;
+        if( gl_avgI2.Get_10s()->GetCounter()) {
+          double i2 = gl_avgI2.Get_10s()->GetMean();
+          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+        }
+
+        //напряжение на пьезокорректорах
+        double dbl_pVpc;
+				if( gl_avgVpc.Get_10s()->GetCounter()) {
+					double Vpc = gl_avgVpc.Get_10s()->GetMean();					      //напряжение на пьезокорректорах
+					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+				}
+
+        //амплитуда от альтеры (в импульсах)
+        double dbl_pAA;
+				if( gl_avgAmplAng.Get_10s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAng.Get_10s()->GetMean();	              //amplang
+					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+				}
+
+        //амплитуда от ДУСа
+        double dbl_pAADus;
+        if( gl_avgAmplAngDus.Get_10s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplAngDus.Get_10s()->GetMean();  //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+				}
+
+        //температура 1
+        double dbl_pT1;
+        if( gl_avgT1.Get_10s()->GetCounter()) {
+					double T1 = gl_avgT1.Get_10s()->GetMean();                  //термодатчик 1
+					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
+          //gl_pT1 = T1;
+				}
+
+
+        //температура 2
+        double dbl_pT2;
+        if( gl_avgT2.Get_10s()->GetCounter()) {
+					double T2 = gl_avgT2.Get_10s()->GetMean();	              //термодатчик 2
+					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
+          //gl_pT2 = T2;
+				}
+
+          
+        //температура 3
+        double dbl_pT3;
+        if( gl_avgT3.Get_10s()->GetCounter()) {
+          double T3 = gl_avgT3.Get_10s()->GetMean();                //термодатчик 3
+          dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
+          //gl_pT3 = T3;
+        }
+
+        //сумма времен Tsa (должно близится к 1 сек)
+        double Tsa = gl_avgTsa.Get_10s()->GetSumm();
+        double dbl_pTSamean = gl_avgTsa.Get_10s()->GetMean();       //среднее время Tsa за эти 10 сек
+
+        //пересчет в физические величины
+        double tsa_10s = Tsa / dbl1secInTacts;
+        double w_10s = Nimp / tsa_10s * theApp.GetSettings()->GetScaleCoeff() / 4.;
+
+
+        //перекладывание в кольцевой буфер
+        theApp.m_tpW->          Get_10s()->AddPoint( w_10s,                   gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpI1->         Get_10s()->AddPoint( dbl_pi1,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpI2->         Get_10s()->AddPoint( dbl_pi2,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpVpc->        Get_10s()->AddPoint( dbl_pVpc,                gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpAmplAng->    Get_10s()->AddPoint( dbl_pAA,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpAmplAngDus-> Get_10s()->AddPoint( dbl_pAADus,              gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpT1->         Get_10s()->AddPoint( dbl_pT1,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpT2->         Get_10s()->AddPoint( dbl_pT2,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpT3->         Get_10s()->AddPoint( dbl_pT3,                 gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpTsaMcs->     Get_10s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000., gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpTsaMs->      Get_10s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,    gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpTsaHz->      Get_10s()->AddPoint( dbl1secInTacts / dbl_pTSamean,       gl_dGlobalTime, bInveracity10s);
+        theApp.m_tpDecCoeff->   Get_10s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+
+        bInveracity10s = FALSE;
+      }
 
       // **************************************************
       // ОСРЕДНЕНИЕ 100 сек
       // **************************************************
-			if( gl_avTsa100000.GetSumm() > dbl1secInTacts * 100.) {
-				//накопили 100секундную точку
-				
-				double Nimp = gl_avW100000.GetSumm();						//количество импульсов (суммированное)
-				gl_avW100000.Reset();
-				double Tsa = gl_avTsa100000.GetSumm();					//сумма времен Tsa (должно близится к 1 сек)
-				gl_avTsa100000.Reset();
+      if( gl_avgTsa.Get_100s()->GetSumm() > dbl1secInTacts * 100.) {
+        //накопили 100секундную точку
 
-				//пересчет в физические величины
-        
-				double tsa_100s = Tsa / dbl1secInTacts;
-				double w_100s = Nimp * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec / tsa_100s / 4.;
+        //количество импульсов (суммированное)
+        double Nimp = gl_avgW.Get_100s()->GetSumm();
+        gl_avgW.Get_100s()->Reset();
 
-				(( CSlg2App *) AfxGetApp())->m_cbW100000->AddPoint( w_100s, gl_dGlobalTime);
-				//(( CSlg2App *) AfxGetApp())->m_cbW100000->AddPoint( gl_avW100000.GetMean(), gl_dGlobalTime);
-				
-			}	//обработка 100сек точек
+        //разрядный ток i1
+        double dbl_pi1;
+        if( gl_avgI1.Get_100s()->GetCounter()) {
+          double i1 = gl_avgI1.Get_100s()->GetMean();
+          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                // mA
+        }
 
-		} //если растояние кольцевого буфера > 50		
-		else
-			Sleep( 1);
-	} //while жизни потока
+        //разрядный ток i2
+        double dbl_pi2;
+        if( gl_avgI2.Get_100s()->GetCounter()) {
+          double i2 = gl_avgI2.Get_100s()->GetMean();
+          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+        }
+
+        //напряжение на пьезокорректорах
+        double dbl_pVpc;
+				if( gl_avgVpc.Get_100s()->GetCounter()) {
+					double Vpc = gl_avgVpc.Get_100s()->GetMean();					      //напряжение на пьезокорректорах
+					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+				}
+
+        //амплитуда от альтеры (в импульсах)
+        double dbl_pAA;
+				if( gl_avgAmplAng.Get_100s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAng.Get_100s()->GetMean();	          //amplang
+					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+				}
+
+        //амплитуда от ДУСа
+        double dbl_pAADus;
+        if( gl_avgAmplAngDus.Get_100s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplAngDus.Get_100s()->GetMean();  //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+				}
+
+        //температура 1
+        double dbl_pT1;
+        if( gl_avgT1.Get_100s()->GetCounter()) {
+					double T1 = gl_avgT1.Get_100s()->GetMean();                  //термодатчик 1
+					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
+          //gl_pT1 = T1;
+				}
+
+
+        //температура 2
+        double dbl_pT2;
+        if( gl_avgT2.Get_100s()->GetCounter()) {
+					double T2 = gl_avgT2.Get_100s()->GetMean();	              //термодатчик 2
+					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
+          //gl_pT2 = T2;
+				}
+
+          
+        //температура 3
+        double dbl_pT3;
+        if( gl_avgT3.Get_100s()->GetCounter()) {
+          double T3 = gl_avgT3.Get_100s()->GetMean();                //термодатчик 3
+          dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
+          //gl_pT3 = T3;
+        }
+
+        //сумма времен Tsa (должно близится к 1 сек)
+        double Tsa = gl_avgTsa.Get_100s()->GetSumm();
+        double dbl_pTSamean = gl_avgTsa.Get_100s()->GetMean();       //среднее время Tsa за эти 10 сек
+
+        //пересчет в физические величины
+        double tsa_100s = Tsa / dbl1secInTacts;
+        double w_100s = Nimp / tsa_100s * theApp.GetSettings()->GetScaleCoeff() / 4.;
+
+
+        //перекладывание в кольцевой буфер
+        theApp.m_tpW->          Get_100s()->AddPoint( w_100s,                   gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpI1->         Get_100s()->AddPoint( dbl_pi1,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpI2->         Get_100s()->AddPoint( dbl_pi2,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpVpc->        Get_100s()->AddPoint( dbl_pVpc,                 gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpAmplAng->    Get_100s()->AddPoint( dbl_pAA,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpAmplAngDus-> Get_100s()->AddPoint( dbl_pAADus,               gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpT1->         Get_100s()->AddPoint( dbl_pT1,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpT2->         Get_100s()->AddPoint( dbl_pT2,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpT3->         Get_100s()->AddPoint( dbl_pT3,                  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpTsaMcs->     Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000.,  gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpTsaMs->      Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,     gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpTsaHz->      Get_100s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity100s);
+        theApp.m_tpDecCoeff->   Get_100s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+
+        bInveracity100s = FALSE;
+
+      } //обработка 100сек точек
+
+    } //если растояние кольцевого буфера > 50		
+    else
+      Sleep( 1);
+
+  } //while жизни потока
 
 	return 1;
 }
@@ -800,13 +1085,29 @@ BOOL CSlg2App::InitInstance()
 	// TODO: You should modify this string to be something appropriate
 	// such as the name of your company or organization.
 	SetRegistryKey(_T("Alcor Laboratories"));
-	
+  LoadStdProfileSettings();	
+  m_pSettings.LoadSettings();
+
+  /*
 	int kimpsec = GetProfileInt( _T("SETTINGS"), _T("K_IMP_SEC"), 1000);
-	m_nComPort = GetProfileInt( _T("SETTINGS"), _T("COM_PORT"), 0);
+	m_dKimpSec = kimpsec / 1000.;
+
+  m_nComPort = GetProfileInt( _T("SETTINGS"), _T("COM_PORT"), 0);
 	m_nComBaudrate = GetProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), 0);
 	m_nControlButtons = GetProfileInt( _T("SETTINGS"), _T("CONTROL_BUTTONS"), 0);
-	
-	m_dKimpSec = kimpsec / 1000.;
+  m_nSaveGraph1 = GetProfileInt( _T("SETTINGS"), _T("GRAPH1_PARAM"), 0);
+  m_nSaveGraph2 = GetProfileInt( _T("SETTINGS"), _T("GRAPH2_PARAM"), 0);
+  m_nSaveGraph3 = GetProfileInt( _T("SETTINGS"), _T("GRAPH3_PARAM"), 0);
+  m_nSaveGraph4 = GetProfileInt( _T("SETTINGS"), _T("GRAPH4_PARAM"), 0);
+  m_nSaveGraph5 = GetProfileInt( _T("SETTINGS"), _T("GRAPH5_PARAM"), 0);
+  m_nSaveGraph6 = GetProfileInt( _T("SETTINGS"), _T("GRAPH6_PARAM"), 0);
+  m_nSaveGraph7 = GetProfileInt( _T("SETTINGS"), _T("GRAPH7_PARAM"), 0);
+  m_nSaveGraph8 = GetProfileInt( _T("SETTINGS"), _T("GRAPH8_PARAM"), 0);
+
+  */
+
+  m_pLogger.Init();
+  GetLogger()->LogInfo( "CSlg2App::InitInstance(): in");
 
 	SYSTEMTIME sysTime;
 	GetSystemTime( &sysTime);
@@ -822,30 +1123,26 @@ BOOL CSlg2App::InitInstance()
 	else
 		strDirName += _T("\\");
 
-	LoadStdProfileSettings();  // Load standard INI file options (including MRU)
-
 	//ОЧИСТКА КОЛЬЦЕВОГО БУФФЕРА ПРИЕМА ДАННЫХ
 	for( int i=0; i<CYCLE_BUFFER_LEN; i++) {
 		gl_bCircleBuffer[ i]= 0;
 	}
 
-	//кольцевые буфера
-	int n = 1024;
-	m_cbW100 = new CSlgCircleBuffer( n);
-	m_cbW1000  = new CSlgCircleBuffer( n);
-	m_cbW10000 = new CSlgCircleBuffer( n);
-	m_cbW100000 = new CSlgCircleBuffer( n);
-	m_cbI1 = new CSlgCircleBuffer( n);
-	m_cbI2 = new CSlgCircleBuffer( n);
-	m_cbVpc = new CSlgCircleBuffer( n);
-	m_cbAmplAng = new CSlgCircleBuffer( n);
-  m_cbAmplAngDus = new CSlgCircleBuffer( n);
-	m_cbT1 = new CSlgCircleBuffer( n);
-	m_cbT2 = new CSlgCircleBuffer( n);
-  m_cbT3 = new CSlgCircleBuffer( n);
-	m_cbTsaMcs = new CSlgCircleBuffer( n);
-  m_cbTsaMs = new CSlgCircleBuffer( n);
-  m_cbTsaHz = new CSlgCircleBuffer( n);
+  //кольцевые буфера
+  int n = 1024;
+  m_tpW  =        new CTrackedParam( n);
+  m_tpI1 =        new CTrackedParam( n);
+  m_tpI2  =       new CTrackedParam( n);
+  m_tpVpc =       new CTrackedParam( n);
+	m_tpAmplAng =   new CTrackedParam( n);
+  m_tpAmplAngDus = new CTrackedParam( n);
+	m_tpT1 =        new CTrackedParam( n);
+	m_tpT2 =        new CTrackedParam( n);
+  m_tpT3 =        new CTrackedParam( n);
+	m_tpTsaMcs =    new CTrackedParam( n);
+  m_tpTsaMs =     new CTrackedParam( n);
+  m_tpTsaHz =     new CTrackedParam( n);
+  m_tpDecCoeff =  new CTrackedParam( n);
 
 	gl_dGlobalTime = 0.;
 
@@ -918,7 +1215,7 @@ BOOL CSlg2App::InitInstance()
 	//m_strSoftwareVer = _T("v0.0.0.0");
 	m_strSoftwareVer = _T("unknown");
 
-	return TRUE;
+  return TRUE;
 }
 
 
@@ -983,55 +1280,64 @@ void CSlg2App::OnAppAbout()
 
 int CSlg2App::ExitInstance() 
 {
-	m_bStopBigThreadFlag = true;
-	
-	int kimpsec = m_dKimpSec * 1000;
-	WriteProfileInt( _T("SETTINGS"), _T("K_IMP_SEC"), kimpsec);
-	WriteProfileInt( _T("SETTINGS"), _T("COM_PORT"), m_nComPort);
-	WriteProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), m_nComBaudrate);
-	
+  m_bStopBigThreadFlag = true;
 
-	if( fh != NULL)
-		fclose( fh);
-	if( fhb != NULL)
-		fclose( fhb);
-	if( fhNew != NULL)
-		fclose( fhNew);
+  m_pSettings.SaveSettings();
+  /*
+  int kimpsec = m_dKimpSec * 1000;
+  WriteProfileInt( _T("SETTINGS"), _T("K_IMP_SEC"), kimpsec);
+  WriteProfileInt( _T("SETTINGS"), _T("COM_PORT"), m_nComPort);
+  WriteProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), m_nComBaudrate);
 
-	//кольцевые буфера
-	m_cbW100->free();
-	m_cbW1000->free();
-	m_cbW10000->free();
-	m_cbW100000->free();
-	m_cbI1->free();
-	m_cbI2->free();
-	m_cbVpc->free();
-	m_cbAmplAng->free();
-  m_cbAmplAngDus->free();
-	m_cbT1->free();
-	m_cbT2->free();
-  m_cbT3->free();
-	m_cbTsaMcs->free();
-  m_cbTsaMs->free();
-  m_cbTsaHz->free();
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_PARAM"), m_nSaveGraph1);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH2_PARAM"), m_nSaveGraph2);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH3_PARAM"), m_nSaveGraph3);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH4_PARAM"), m_nSaveGraph4);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH5_PARAM"), m_nSaveGraph5);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH6_PARAM"), m_nSaveGraph6);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH7_PARAM"), m_nSaveGraph7);
+  WriteProfileInt( _T("SETTINGS"), _T("GRAPH8_PARAM"), m_nSaveGraph8);
+  */
 
-	delete m_cbW100;
-	delete m_cbW1000;
-	delete m_cbW10000;
-	delete m_cbW100000;
-	delete m_cbI1;
-	delete m_cbI2;
-	delete m_cbVpc;
-	delete m_cbAmplAng;
-  delete m_cbAmplAngDus;
-	delete m_cbT1;
-	delete m_cbT2;
-  delete m_cbT3;
-	delete m_cbTsaMcs;
-  delete m_cbTsaMs;
-  delete m_cbTsaHz;
+  if( fh != NULL)
+    fclose( fh);
 
-	return CWinApp::ExitInstance();
+  if( fhb != NULL)
+    fclose( fhb);
+
+  if( fhNew != NULL)
+    fclose( fhNew);
+
+  //кольцевые буфера
+  m_tpW->FreeUnder();
+  m_tpI1->FreeUnder();
+  m_tpI2->FreeUnder();
+  m_tpVpc->FreeUnder();
+  m_tpAmplAng->FreeUnder();
+  m_tpAmplAngDus->FreeUnder();
+  m_tpT1->FreeUnder();
+  m_tpT2->FreeUnder();
+  m_tpT3->FreeUnder();
+  m_tpTsaMcs->FreeUnder();
+  m_tpTsaMs->FreeUnder();
+  m_tpTsaHz->FreeUnder();
+  m_tpDecCoeff->FreeUnder();
+
+  delete m_tpW;   m_tpW   = NULL;
+  delete m_tpI1;  m_tpI1  = NULL;
+  delete m_tpI2;  m_tpI2  = NULL;
+  delete m_tpVpc; m_tpVpc = NULL;
+  delete m_tpAmplAng;     m_tpAmplAng = NULL;
+  delete m_tpAmplAngDus;  m_tpAmplAngDus = NULL;
+  delete m_tpT1;          m_tpT1 = NULL;
+  delete m_tpT2;          m_tpT2 = NULL;
+  delete m_tpT3;          m_tpT3 = NULL;
+  delete m_tpTsaMcs;      m_tpTsaMcs = NULL;
+  delete m_tpTsaMs;       m_tpTsaMs = NULL;
+  delete m_tpTsaHz;       m_tpTsaHz = NULL;
+  delete m_tpDecCoeff;    m_tpDecCoeff = NULL;
+
+  return CWinApp::ExitInstance();
 }
 
 void CSlg2App::StartThreads()

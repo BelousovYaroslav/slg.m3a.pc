@@ -6,6 +6,7 @@
 #include "MainView.h"
 #include "MainFrm.h"
 #include "SlgNewAverager.h"
+#include "SlgGroupNewAverager.h"
 #include "DecCoeffCalc.h"
 #include "McCommands.h"
 #include "AnalogueParamsConstList.h"
@@ -37,45 +38,16 @@ extern int gl_nCircleBufferPut;
 extern bool PutByteInCircleBuffer(BYTE bt);
 
 extern double gl_dGlobalTime;
-extern CSlgNewAverager gl_avW100;
-extern CSlgNewAverager gl_avW1000;
-extern CSlgNewAverager gl_avW10000;
-extern CSlgNewAverager gl_avW100000;
-extern CSlgNewAverager gl_avI1;
-extern CSlgNewAverager gl_avI2;
-extern CSlgNewAverager gl_avVpc;
-extern CSlgNewAverager gl_avAmplAng;
-extern CSlgNewAverager gl_avAmplAngDus;
-extern CSlgNewAverager gl_avT1;
-extern CSlgNewAverager gl_avT2;
-extern CSlgNewAverager gl_avTsa;
-extern CSlgNewAverager gl_avTsa1000;
-extern CSlgNewAverager gl_avTsa10000;
-extern CSlgNewAverager gl_avTsa100000;
+extern CSlgGroupNewAverager gl_avgW;
+extern CSlgGroupNewAverager gl_avgI1;
+extern CSlgGroupNewAverager gl_avgI2;
+extern CSlgGroupNewAverager gl_avgVpc;
+extern CSlgGroupNewAverager gl_avgAmplAng;
+extern CSlgGroupNewAverager gl_avgAmplAngDus;
+extern CSlgGroupNewAverager gl_avgT1;
+extern CSlgGroupNewAverager gl_avgT2;
+extern CSlgGroupNewAverager gl_avgTsa;
 
-extern double gl_pTsa;
-extern double gl_pw100;
-extern double gl_pi1;
-extern double gl_pi2;
-extern double gl_pVpc;
-extern double gl_pAA;
-extern double gl_pT1;
-extern double gl_pT2;
-extern double gl_pT3;
-extern double gl_pTSamean;
-
-/*extern BOOL gl_bDecCoeffCalculation;
-extern double gl_dNdU_dN[];
-extern double gl_dNdU_dU[];
-extern double gl_dNdU_DecCoeff[];
-extern int gl_dec_coeff_cntr;
-extern BOOL gl_dec_coeff_overround;
-
-extern double gl_dec_coeff_dN_acc;
-extern double gl_dec_coeff_dU_acc;
-extern double gl_dec_coeff_acc;
-extern int gl_dec_coeff_acc_cntr;
-*/
 extern CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -89,10 +61,6 @@ CMainView::CMainView()
 	//{{AFX_DATA_INIT(CMainView)
 	m_bBtnCwStart = FALSE;
 	m_nComPort = 0;
-	m_strGraphMaxVal = _T("");
-	m_strGraphMeanVal = _T("");
-	m_strGraphMinVal = _T("");
-	m_strGraphRmsVal = _T("");
 	m_strSmGr1_max = _T("");
 	m_strSmGr1_mean = _T("");
 	m_strSmGr1_min = _T("");
@@ -137,14 +105,17 @@ CMainView::CMainView()
 	m_nComPortBaudrate = 1;
 	m_strThermoCalib_T1 = _T("");
 	m_strThermoCalib_T2 = _T("");
-	m_nT1_RadSelection = 0;
-	m_nT2_RadSelection = 1;
 	m_strMarkerFails = _T("");
 	m_strCheckSummFails = _T("");
-	m_nTsaRadSelection = 0;
-	m_nRadAmplAng = 0;
 	m_strCounterFails = _T("");
-	m_strDeviceSerialNumber = _T("");
+	m_nRadGraph8 = 0;
+	m_nRadGraph7 = 0;
+	m_nRadGraph6 = 0;
+	m_nRadGraph5 = 0;
+	m_nRadGraph4 = 0;
+  m_nRadGraph3 = 0;
+  m_nRadGraph2 = 0;
+	m_nRadGraph1 = 0;
 	//}}AFX_DATA_INIT
 	m_nCounterSkippedPoints = 0;
 	m_nPointsSkipped = 0;	
@@ -184,10 +155,6 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_INDICATOR_COM, m_ctlComButton);
 	DDX_OCBool(pDX, IDC_CW_START, DISPID(2), m_bBtnCwStart);
 	DDX_CBIndex(pDX, IDC_CMB_COM_PORT, m_nComPort);
-	DDX_Text(pDX, IDC_MAXVAL_LABEL, m_strGraphMaxVal);
-	DDX_Text(pDX, IDC_MEANVAL_LABEL, m_strGraphMeanVal);
-	DDX_Text(pDX, IDC_MINVAL_LABEL, m_strGraphMinVal);
-	DDX_Text(pDX, IDC_RMSVAL_LABEL, m_strGraphRmsVal);
 	DDX_Text(pDX, IDC_GRAPH1_MAXVAL_LABEL, m_strSmGr1_max);
 	DDX_Text(pDX, IDC_GRAPH1_MEANVAL_LABEL, m_strSmGr1_mean);
 	DDX_Text(pDX, IDC_GRAPH1_MINVAL_LABEL, m_strSmGr1_min);
@@ -241,14 +208,17 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CWNUMEDIT_THERMO_CURR_TEMP, m_ctlNedtThermoCalibTemperature);
 	DDX_Text(pDX, IDC_THERMO_CALIB_T1, m_strThermoCalib_T1);
 	DDX_Text(pDX, IDC_THERMO_CALIB_T2, m_strThermoCalib_T2);
-	DDX_Radio(pDX, IDC_RAD_T1_TD1, m_nT1_RadSelection);
-	DDX_Radio(pDX, IDC_RAD_T2_TD1, m_nT2_RadSelection);
 	DDX_Text(pDX, IDC_LBL_MARKER_FAILS, m_strMarkerFails);
 	DDX_Text(pDX, IDC_LBL_CHECKSUMM_FAILS, m_strCheckSummFails);
-	DDX_Radio(pDX, IDC_RAD_TSA_MCS, m_nTsaRadSelection);
-	DDX_Radio(pDX, IDC_RAD_AA_IMP, m_nRadAmplAng);
 	DDX_Text(pDX, IDC_LBL_COUNTER_FAILS, m_strCounterFails);
-	DDX_Text(pDX, IDC_LBL_DEVICE_SERIAL_NUMBER, m_strDeviceSerialNumber);
+	DDX_Radio(pDX, IDC_RAD_G8_T0, m_nRadGraph8);
+	DDX_Radio(pDX, IDC_RAD_G7_T0, m_nRadGraph7);
+	DDX_Radio(pDX, IDC_RAD_G6_T0, m_nRadGraph6);
+	DDX_Radio(pDX, IDC_RAD_G5_T0, m_nRadGraph5);
+	DDX_Radio(pDX, IDC_RAD_G4_T0, m_nRadGraph4);
+	DDX_Radio(pDX, IDC_RAD_G3_T0, m_nRadGraph3);
+	DDX_Radio(pDX, IDC_RAD_G2_T0, m_nRadGraph2);
+	DDX_Radio(pDX, IDC_RAD_G1_T0, m_nRadGraph1);
 	//}}AFX_DATA_MAP
 }
 
@@ -273,15 +243,6 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_BTN_INTEGR_OFF, OnBtnIntegrOff)
 	ON_BN_CLICKED(IDC_BTN_INTEGR_ON, OnBtnIntegrOn)
 	ON_BN_CLICKED(IDC_BTN_INTEGR_RESET, OnBtnIntegrReset)
-	ON_BN_CLICKED(IDC_RAD_T1_TD1, OnRadT1Td1)
-	ON_BN_CLICKED(IDC_RAD_T1_TD2, OnRadT1Td2)
-	ON_BN_CLICKED(IDC_RAD_T1_TD3, OnRadT1Td3)
-	ON_BN_CLICKED(IDC_RAD_T2_TD1, OnRadT2Td1)
-	ON_BN_CLICKED(IDC_RAD_T2_TD2, OnRadT2Td2)
-	ON_BN_CLICKED(IDC_RAD_T2_TD3, OnRadT2Td3)
-	ON_BN_CLICKED(IDC_RAD_TSA_MCS, OnRadTsaMcs)
-	ON_BN_CLICKED(IDC_RAD_TSA_MS, OnRadTsaMs)
-	ON_BN_CLICKED(IDC_RAD_TSA_HZ, OnRadTsaHz)
 	ON_BN_CLICKED(IDC_BTN_REQ_VERSION, OnBtnReqVersion)
 	ON_BN_CLICKED(IDC_BTN_REQ_AMPL, OnBtnReqAmpl)
 	ON_BN_CLICKED(IDC_BTN_REQ_TACTCODE, OnBtnReqTactcode)
@@ -295,10 +256,12 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_BTN_MC_TO_OUT_DECCOEFF, OnBtnMcToOutDeccoeff)
 	ON_BN_CLICKED(IDC_BTN_SWITCH_W_DNDU, OnBtnSwitchWDndu)
 	ON_BN_CLICKED(IDC_BTN_RESET, OnBtnReset)
-	ON_BN_CLICKED(IDC_RAD_AA_IMP, OnRadAaImp)
-	ON_BN_CLICKED(IDC_RAD_AA_DUS, OnRadAaDus)
 	ON_BN_CLICKED(IDC_BTN_REQ_HV_APPLIES, OnBtnReqHvApplies)
 	ON_BN_CLICKED(IDC_BTN_REQ_SN, OnBtnReqSn)
+	ON_BN_CLICKED(IDC_RAD_MEANING1, OnRadMeaning1)
+	ON_BN_CLICKED(IDC_RAD_MEANING2, OnRadMeaning2)
+	ON_BN_CLICKED(IDC_RAD_MEANING3, OnRadMeaning3)
+	ON_BN_CLICKED(IDC_RAD_MEANING4, OnRadMeaning4)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -328,63 +291,103 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	CRect rc;
 
 	if( m_ctlSmallGraph1.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0,                 50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph1.GetWindowRect( &rc);
-		m_ctlSmallGraph1.SetWindowPos( NULL, 0, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph1.SetWindowPos(               NULL, 0,                 70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH1_X)->SetWindowPos( NULL, 0,                 70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G1_T0)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G1_T1)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G1_T2)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G1_T3)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G1_T4)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 	
 	if( m_ctlSmallGraph2.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos( NULL, nGrWidth,          50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph2.GetWindowRect( &rc);
-		m_ctlSmallGraph2.SetWindowPos( NULL, nGrWidth, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph2.SetWindowPos(               NULL, nGrWidth,          70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH2_X)->SetWindowPos( NULL, nGrWidth,          70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G2_T0)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G2_T1)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G2_T2)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G2_T3)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G2_T4)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph3.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos( NULL, nGrWidth * 2,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph3.GetWindowRect( &rc);
-		m_ctlSmallGraph3.SetWindowPos( NULL, nGrWidth * 2, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph3.SetWindowPos(               NULL, nGrWidth * 2,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH3_X)->SetWindowPos( NULL, nGrWidth * 2,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G3_T0)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G3_T1)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G3_T2)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G3_T3)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G3_T4)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph4.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos( NULL, nGrWidth * 3,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph4.GetWindowRect( &rc);
-		m_ctlSmallGraph4.SetWindowPos( NULL, nGrWidth * 3, 50, nGrWidth - 2, rc.Height(), SWP_NOZORDER);
+		m_ctlSmallGraph4.SetWindowPos(               NULL, nGrWidth * 3,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH4_X)->SetWindowPos( NULL, nGrWidth * 3,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G4_T0)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G4_T1)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G4_T2)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G4_T3)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G4_T4)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph5.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos( NULL, nGrWidth * 4,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph5.GetWindowRect( &rc);
-		m_ctlSmallGraph5.SetWindowPos( NULL, nGrWidth * 4, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-
-    GetDlgItem( IDC_RAD_AA_IMP)->SetWindowPos( NULL, nGrWidth * 5 - 21, 70, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_AA_DUS)->SetWindowPos( NULL, nGrWidth * 5 - 21, 110, 20, 12, SWP_NOZORDER);
-    
-
+		m_ctlSmallGraph5.SetWindowPos(               NULL, nGrWidth * 4,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH5_X)->SetWindowPos( NULL, nGrWidth * 4,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G5_T0)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G5_T1)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G5_T2)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G5_T3)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G5_T4)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph6.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos( NULL, nGrWidth * 5,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph6.GetWindowRect( &rc);
-		m_ctlSmallGraph6.SetWindowPos( NULL, nGrWidth * 5, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-
-    GetDlgItem( IDC_RAD_T1_TD1)->SetWindowPos( NULL, nGrWidth * 6 - 21, 70, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_T1_TD2)->SetWindowPos( NULL, nGrWidth * 6 - 21, 90, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_T1_TD3)->SetWindowPos( NULL, nGrWidth * 6 - 21, 110, 20, 12, SWP_NOZORDER);
+		m_ctlSmallGraph6.SetWindowPos(               NULL, nGrWidth * 5,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH6_X)->SetWindowPos( NULL, nGrWidth * 5,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G6_T0)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G6_T1)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G6_T2)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G6_T3)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G6_T4)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph7.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos( NULL, nGrWidth * 6,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph7.GetWindowRect( &rc);
-		m_ctlSmallGraph7.SetWindowPos( NULL, nGrWidth * 6, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-
-    GetDlgItem( IDC_RAD_T2_TD1)->SetWindowPos( NULL, nGrWidth * 7 - 21, 70, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_T2_TD2)->SetWindowPos( NULL, nGrWidth * 7 - 21, 90, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_T2_TD3)->SetWindowPos( NULL, nGrWidth * 7 - 21, 110, 20, 12, SWP_NOZORDER);
+		m_ctlSmallGraph7.SetWindowPos(               NULL, nGrWidth * 6,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH7_X)->SetWindowPos( NULL, nGrWidth * 6,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G7_T0)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G7_T1)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G7_T2)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G7_T3)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G7_T4)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph8.m_hWnd) {
+    GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos( NULL, nGrWidth * 7,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph8.GetWindowRect( &rc);
-		m_ctlSmallGraph8.SetWindowPos( NULL, nGrWidth * 7, 50, nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-
-    GetDlgItem( IDC_RAD_TSA_MCS)->SetWindowPos( NULL, nGrWidth * 8 - 21, 70, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_TSA_MS)->SetWindowPos( NULL, nGrWidth * 8 - 21, 90, 20, 12, SWP_NOZORDER);
-    GetDlgItem( IDC_RAD_TSA_HZ)->SetWindowPos( NULL, nGrWidth * 8 - 21, 110, 20, 12, SWP_NOZORDER);
+		m_ctlSmallGraph8.SetWindowPos(               NULL, nGrWidth * 7,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH8_X)->SetWindowPos( NULL, nGrWidth * 7,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G8_T0)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 75,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G8_T1)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 90,               20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G8_T2)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 105,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G8_T3)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 120,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_RAD_G8_T4)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 135,              20,            12,          SWP_NOZORDER);
 	}
 
-	int base = 50 + rc.Height();
+
+	int base = 70 + rc.Height() + 15;
 	CWnd *pWnd;
 	/*pWnd = GetDlgItem( IDC_GRAPH1_MIN_LABEL);
 	if( pWnd != NULL) {
@@ -925,661 +928,955 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	
 }
 
+void CMainView::MakeLine( CTrackedParam *tp, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s) {
+  int jndx, j, j1, j2, j3;
+
+  //100 msec
+  j1 = tp->Get_100ms()->GetFirstIndex();
+	j2 = tp->Get_100ms()->GetLastIndex();
+	j3 = tp->Get_100ms()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp->Get_100ms()->GetSize()) % tp->Get_100ms()->GetSize();
+		l100ms->operator()( 0, j) = tp->Get_100ms()->GetDataX()[ jndx];
+		l100ms->operator()( 1, j) = tp->Get_100ms()->GetDataY()[ jndx];
+	}
+	
+	//1 sec
+	j1 = tp->Get_1s()->GetFirstIndex();
+	j2 = tp->Get_1s()->GetLastIndex();
+	j3 = tp->Get_1s()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp->Get_1s()->GetSize()) % tp->Get_1s()->GetSize();
+		l1s->operator()( 0, j) = tp->Get_1s()->GetDataX()[ jndx];
+		l1s->operator()( 1, j) = tp->Get_1s()->GetDataY()[ jndx];
+	}
+
+	//10 sec
+	j1 = tp->Get_10s()->GetFirstIndex();
+	j2 = tp->Get_10s()->GetLastIndex();
+	j3 = tp->Get_10s()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp->Get_10s()->GetSize()) % tp->Get_10s()->GetSize();
+		l10s->operator()( 0, j) = tp->Get_10s()->GetDataX()[ jndx];
+		l10s->operator()( 1, j) = tp->Get_10s()->GetDataY()[ jndx];
+	}
+
+	//100 sec
+	j1 = tp->Get_100s()->GetFirstIndex();
+	j2 = tp->Get_100s()->GetLastIndex();
+	j3 = tp->Get_100s()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp->Get_100s()->GetSize()) % tp->Get_100s()->GetSize();
+		l100s->operator()( 0, j) = tp->Get_100s()->GetDataX()[ jndx];
+		l100s->operator()( 1, j) = tp->Get_100s()->GetDataY()[ jndx];
+	}
+}
+
+
+
+void CMainView::MakeDeltaLine( CTrackedParam *tp1, CTrackedParam *tp2, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s) {
+  int jndx, j, j1, j2, j3;
+
+  //100 msec
+  j1 = tp1->Get_100ms()->GetFirstIndex();
+	j2 = tp1->Get_100ms()->GetLastIndex();
+	j3 = tp1->Get_100ms()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp1->Get_100ms()->GetSize()) % tp1->Get_100ms()->GetSize();
+		l100ms->operator()( 0, j) = tp1->Get_100ms()->GetDataX()[ jndx];
+		l100ms->operator()( 1, j) = tp1->Get_100ms()->GetDataY()[ jndx] - tp2->Get_100ms()->GetDataY()[ jndx];
+	}
+	
+	//1 sec
+	j1 = tp1->Get_1s()->GetFirstIndex();
+	j2 = tp1->Get_1s()->GetLastIndex();
+	j3 = tp1->Get_1s()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp1->Get_1s()->GetSize()) % tp1->Get_1s()->GetSize();
+		l1s->operator()( 0, j) = tp1->Get_1s()->GetDataX()[ jndx];
+		l1s->operator()( 1, j) = tp1->Get_1s()->GetDataY()[ jndx] - tp2->Get_1s()->GetDataY()[ jndx];
+	}
+
+	//10 sec
+	j1 = tp1->Get_10s()->GetFirstIndex();
+	j2 = tp1->Get_10s()->GetLastIndex();
+	j3 = tp1->Get_10s()->GetActualSize();
+	if( !j3) j3 = 1;
+	for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp1->Get_10s()->GetSize()) % tp1->Get_10s()->GetSize();
+		l10s->operator()( 0, j) = tp1->Get_10s()->GetDataX()[ jndx];
+		l10s->operator()( 1, j) = tp1->Get_10s()->GetDataY()[ jndx] - tp2->Get_10s()->GetDataY()[ jndx];
+	}
+
+  //100 sec
+  j1 = tp1->Get_100s()->GetFirstIndex();
+  j2 = tp1->Get_100s()->GetLastIndex();
+  j3 = tp1->Get_100s()->GetActualSize();
+  if( !j3) j3 = 1;
+  for( j = 0; j < j3; j++) {
+    jndx = ( j1 + j + tp1->Get_100s()->GetSize()) % tp1->Get_100s()->GetSize();
+    l100s->operator()( 0, j) = tp1->Get_100s()->GetDataX()[ jndx];
+    l100s->operator()( 1, j) = tp1->Get_100s()->GetDataY()[ jndx] - tp2->Get_100s()->GetDataY()[ jndx];
+  }
+}
+
+
 void CMainView::RefreshGraphs()
 {
-	int jndx, j, j1, j2, j3;
-	//100сек точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbW100->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbW100->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbW100->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineW100( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbW100->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbW100->GetSize();
-		lineW100( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbW100->GetDataX()[jndx];
-		lineW100( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbW100->GetDataY()[jndx];
-	}
-	
+  /*
+  BOOL bW[]       = { false, false, false, false, false};
+  BOOL bI1[]      = { false, false, false, false, false};
+  BOOL bI2[]      = { false, false, false, false, false};
+  BOOL bVpc[]     = { false, false, false, false, false};
+  BOOL bAA_A[]    = { false, false, false, false, false};
+  BOOL bAA_D[]    = { false, false, false, false, false};
+  BOOL bT1_D[]    = { false, false, false, false, false};
+  BOOL bT2_D[]    = { false, false, false, false, false};
+  BOOL bT3_D[]    = { false, false, false, false, false};
+  BOOL bdT12_D[]  = { false, false, false, false, false};
+  BOOL bdT13_D[]  = { false, false, false, false, false};
+  BOOL bdT23_D[]  = { false, false, false, false, false};
 
-	//секундные точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbW1000->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbW1000->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbW1000->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineW1000( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbW1000->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbW1000->GetSize();
-		lineW1000( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbW1000->GetDataX()[jndx];
-		lineW1000( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbW1000->GetDataY()[jndx];
-	}
+  //Здесь будем хранить уже 
+  CNiReal64Matrix *lines[10][5];
+  memset( &bLineCalculated, 0, 5 * 10 * sizeof( CNiReal64Matrix*));
+  */
 
-	//10сек точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbW10000->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbW10000->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbW10000->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineW10000( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbW10000->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbW10000->GetSize();
-		lineW10000( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbW10000->GetDataX()[jndx];
-		lineW10000( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbW10000->GetDataY()[jndx];
-	}
 
-	//100сек точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbW100000->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbW100000->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbW100000->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineW100000( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbW100000->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbW100000->GetSize();
-		lineW100000( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbW100000->GetDataX()[jndx];
-		lineW100000( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbW100000->GetDataY()[jndx];
-	}
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p1");
 
-	//I1 точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbI1->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbI1->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbI1->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineI1( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbI1->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbI1->GetSize();
-		lineI1( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbI1->GetDataX()[jndx];
-		lineI1( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbI1->GetDataY()[jndx];
-	}
+  //цикл по всем 8 графикам
+  for( int i=0; i<8; i++) {
 
-	//I2 точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbI2->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbI2->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbI2->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineI2( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbI2->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbI2->GetSize();
-		lineI2( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbI2->GetDataX()[jndx];
-		lineI2( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbI2->GetDataY()[jndx];
-	}
+    CNiGraph *obj = NULL, *obj2 = NULL;
 
-	//Vpc точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbVpc->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbVpc->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbVpc->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineVpc( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbVpc->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbVpc->GetSize();
-		lineVpc( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbVpc->GetDataX()[jndx];
-		lineVpc( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbVpc->GetDataY()[jndx];
-	}
+    //Заодно нарисуем главный график
+    if( m_nMainGraph == i+1) {
+      obj2 = &m_ctlMainGraph;
+    }
 
-	//AmplAng точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineAA( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetSize();
-		lineAA( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetDataX()[jndx];
-		lineAA( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetDataY()[jndx];
-	}
+    //определим ID комбобокса графика, и его время осреднения
+    int nResId, nResIdX, nMeaningTime;
+    switch( i) {
+      case 1:  obj = &m_ctlSmallGraph2; nResId = IDC_CMB_GRAPH2_Y; nResIdX = IDC_CMB_GRAPH2_X; nMeaningTime = m_nRadGraph2; break;
+      case 2:  obj = &m_ctlSmallGraph3; nResId = IDC_CMB_GRAPH3_Y; nResIdX = IDC_CMB_GRAPH3_X; nMeaningTime = m_nRadGraph3; break;
+      case 3:  obj = &m_ctlSmallGraph4; nResId = IDC_CMB_GRAPH4_Y; nResIdX = IDC_CMB_GRAPH4_X; nMeaningTime = m_nRadGraph4; break;
+      case 4:  obj = &m_ctlSmallGraph5; nResId = IDC_CMB_GRAPH5_Y; nResIdX = IDC_CMB_GRAPH5_X; nMeaningTime = m_nRadGraph5; break;
+      case 5:  obj = &m_ctlSmallGraph6; nResId = IDC_CMB_GRAPH6_Y; nResIdX = IDC_CMB_GRAPH6_X; nMeaningTime = m_nRadGraph6; break;
+      case 6:  obj = &m_ctlSmallGraph7; nResId = IDC_CMB_GRAPH7_Y; nResIdX = IDC_CMB_GRAPH7_X; nMeaningTime = m_nRadGraph7; break;
+      case 7:  obj = &m_ctlSmallGraph8; nResId = IDC_CMB_GRAPH8_Y; nResIdX = IDC_CMB_GRAPH8_X; nMeaningTime = m_nRadGraph8; break;
+      default: obj = &m_ctlSmallGraph1; nResId = IDC_CMB_GRAPH1_Y; nResIdX = IDC_CMB_GRAPH1_X; nMeaningTime = m_nRadGraph1; break;
+    }
+
+    //определеим отображаемый параметр для обрабатываемого графика
+    int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nResId))->GetCurSel();
+
+    //определим какой кольцефой буфер нам использовать
+    CSlgCircleBuffer *cbfrY = NULL;
+    switch( nSelectedDisplayableParam) {
+      case 0:  cbfrY = theApp.m_tpW->Get_CB( nMeaningTime);          break;   //w, Угловая скорость, ["/sec]
+      case 1:  cbfrY = theApp.m_tpI1->Get_CB( nMeaningTime);         break;   //I1, Разрядный ток 1, [mA]
+      case 2:  cbfrY = theApp.m_tpI2->Get_CB( nMeaningTime);         break;   //I2, Разрядный ток 2, [mA]
+      case 3:  cbfrY = theApp.m_tpVpc->Get_CB( nMeaningTime);        break;   //Vrpc, Напряжение на пьезокрр., [V]
+      case 4:  cbfrY = theApp.m_tpAmplAng->Get_CB( nMeaningTime);    break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
+      case 5:  cbfrY = theApp.m_tpAmplAngDus->Get_CB( nMeaningTime); break;   //Ampl_dus, Амплитуда колебаний (ДУС), ["]
+      case 6:  cbfrY = theApp.m_tpAmplAng->Get_CB( nMeaningTime);    break;   // ************* RULA, Задатчик амплитуды, []
+      case 7:  cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //T1, Термодатчик 1, [°C]
+      case 8:  cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //T2, Термодатчик 2, [°C]
+      case 9:  cbfrY = theApp.m_tpT3->Get_CB( nMeaningTime);         break;   //T3, Термодатчик 3, [°C]
+      case 10: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT12, Разница T1 T2, [°C]
+      case 11: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT13, Разница T1 T3, [°C]
+      case 12: cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //dT23, Разница T2 T3, [°C]
+      case 13: cbfrY = theApp.m_tpTsaMs->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [msec]
+      case 14: cbfrY = theApp.m_tpTsaMcs->Get_CB( nMeaningTime);     break;   //dTsa, Время такта, [mcsec]
+      case 15: cbfrY = theApp.m_tpTsaHz->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [Hz]
+      case 16: cbfrY = theApp.m_tpDecCoeff->Get_CB( nMeaningTime);   break;   //dc, Коэффициент вычета, ["/В]
+    }
+
+    if( cbfrY == NULL) {
+      theApp.GetLogger()->LogError( "Не смогли определить какой параметр отображается для графика #%d", i);
+      continue;
+    }
+
+    //определеим ось X
+    int nSelectedAxisX = ( ( CComboBox *) GetDlgItem( nResIdX))->GetCurSel();
+
+    //заготовим объект линии
+    int len;
+    if( cbfrY->GetActualSize() > 0) len = cbfrY->GetActualSize(); else len = 1;
+    CNiReal64Matrix line( 2, len, 1.0);
+    
+    //рассчитаем линию
+    int jndx, j, j1, j2, j3;
+    j1 = cbfrY->GetFirstIndex();
+    j2 = cbfrY->GetLastIndex();
+    j3 = cbfrY->GetActualSize();
+    if( !j3) j3 = 1;
+
+    //Флаг есть ли у нас в этом диапазоне на графике недостоверные точки
+    int nInveracityPoints = 0;
+    
+    //просмотрим недостоверные точки
+    for( j = 0; j < j3; j++) {
+      jndx = ( j1 + j + cbfrY->GetSize()) % cbfrY->GetSize();
+      if( cbfrY->GetInveracity()[ jndx])
+        nInveracityPoints++;
+    }
+
+    //подготовим буфер для недостоверных точек
+    CNiReal64Matrix lineInveracity( 2, nInveracityPoints, 1.0);
+
+    int nInveracityFillIndex = 0;
+    //особые случаи - где надо считать дельту
+    switch( nSelectedDisplayableParam) {
+      case 10:  //delta T12
+        for( j = 0; j < j3; j++) {
+          jndx = ( j1 + j + cbfrY->GetSize()) % cbfrY->GetSize();
+          double x = cbfrY->GetDataX()[ jndx];
+          switch( nSelectedAxisX) {
+            case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+          }
+          line( 0, j) = x;
+          line( 1, j) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx];
+          if( cbfrY->GetInveracity()[ jndx]) {
+            lineInveracity( 0, nInveracityFillIndex)   = x;
+            lineInveracity( 1, nInveracityFillIndex++) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx];
+          }
+        }
+      break;
+
+      case 11:  //delta 13
+      case 12:  //delta 23
+        for( j = 0; j < j3; j++) {
+          jndx = ( j1 + j + cbfrY->GetSize()) % cbfrY->GetSize();
+          double x = cbfrY->GetDataX()[ jndx];
+          switch( nSelectedAxisX) {
+            case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+          }
+          line( 0, j) = x;
+          line( 1, j) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx];
+          if( cbfrY->GetInveracity()[ jndx]) {
+            lineInveracity( 0, nInveracityFillIndex) = x;
+            lineInveracity( 1, nInveracityFillIndex++) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx];
+          }
+        }
+      break;
+
+      //основные случаи - где просто рисуем линию
+      default:
+        for( j = 0; j < j3; j++) {
+          jndx = ( j1 + j + cbfrY->GetSize()) % cbfrY->GetSize();
+          double x = cbfrY->GetDataX()[ jndx];
+          switch( nSelectedAxisX) {
+            case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+          }
+          line( 0, j) = x;
+          line( 1, j) = cbfrY->GetDataY()[ jndx];
+          if( cbfrY->GetInveracity()[ jndx]) {
+            lineInveracity( 0, nInveracityFillIndex) = x;
+            lineInveracity( 1, nInveracityFillIndex++) = cbfrY->GetDataY()[ jndx];
+          }
+        }
+    }
+
+    //нарисуем линию
+    obj->GetPlots().Item( "Data").PlotXY( line, true);
+
+    
+
+    //если большой график совпадает с маленьким - нарисуем это же самое на большом
+    if( obj2 != NULL) {
+      obj2->PlotXY( line, true);
+
+      if( nInveracityPoints != 0)
+        obj2->GetPlots().Item( "Inveracity").PlotXY( lineInveracity, true);
+      else
+        obj2->GetPlots().Item( "Inveracity").ClearData();
+    }
+  }
+
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p2");
+
+
+
+  /*
+  //int jndx, j, j1, j2, j3;
+  int len;
+
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs:p1");
+
+
+  //******************************************************************************************
+  //угловая скорость
+  if( theApp.m_tpW->Get_Tacts()->GetActualSize() > 0) len = theApp.m_tpW->Get_Tacts()->GetActualSize(); else len = 1;
+  CNiReal64Matrix lineW_Tacts( 2, len, 1.0);
+
+  if( theApp.m_tpW->Get_100ms()->GetActualSize() > 0) len = theApp.m_tpW->Get_100ms()->GetActualSize(); else len = 1;
+  CNiReal64Matrix lineW_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpW->Get_1s()->GetActualSize() > 0)    len = theApp.m_tpW->Get_1s()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineW_1s(    2, len,    1.0);
+
+  if( theApp.m_tpW->Get_10s()->GetActualSize() > 0)   len = theApp.m_tpW->Get_10s()->GetActualSize();   else len = 1;
+  CNiReal64Matrix lineW_10s(   2, len,   1.0);
+
+  if( theApp.m_tpW->Get_100s()->GetActualSize() > 0)  len = theApp.m_tpW->Get_100s()->GetActualSize();  else len = 1;
+  CNiReal64Matrix lineW_100s(  2, len,  1.0);
+
+  MakeLine( theApp.m_tpW, &lineW_100ms, &lineW_1s, &lineW_10s, &lineW_100s);
+
+
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs:p2");
+
+
+
+  //разрядный ток I1
+  if( theApp.m_tpI1->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpI1->Get_100ms()->GetActualSize(); else len = 1;
+	CNiReal64Matrix lineI1_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpI1->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpI1->Get_1s()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineI1_1s(    2, len, 1.0);
+  
+  if( theApp.m_tpI1->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpI1->Get_10s()->GetActualSize();   else len = 1;
+  CNiReal64Matrix lineI1_10s(   2, len, 1.0);
+
+  if( theApp.m_tpI1->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpI1->Get_100s()->GetActualSize();  else len = 1;
+  CNiReal64Matrix lineI1_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpI1, &lineI1_100ms, &lineI1_1s, &lineI1_10s, &lineI1_100s);
+
+
+
+  //разрядный ток I2
+  if( theApp.m_tpI2->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpI2->Get_100ms()->GetActualSize();  else len = 1;
+	CNiReal64Matrix lineI2_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpI2->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpI2->Get_1s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineI2_1s(    2, len, 1.0);
+
+  if( theApp.m_tpI2->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpI2->Get_10s()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineI2_10s(   2, len, 1.0);
+
+  if( theApp.m_tpI2->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpI2->Get_100s()->GetActualSize();   else len = 1;
+  CNiReal64Matrix lineI2_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpI2, &lineI2_100ms, &lineI2_1s, &lineI2_10s, &lineI2_100s);
+
+
+
+  //Напряжение на пьезокорректорах
+  if( theApp.m_tpVpc->Get_100ms()->GetActualSize() > 0)   len = theApp.m_tpVpc->Get_100ms()->GetActualSize(); else len = 1;
+	CNiReal64Matrix lineVpc_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpVpc->Get_1s()->GetActualSize() > 0)      len = theApp.m_tpVpc->Get_1s()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineVpc_1s(    2, len, 1.0);
+
+  if( theApp.m_tpVpc->Get_10s()->GetActualSize() > 0)     len = theApp.m_tpVpc->Get_10s()->GetActualSize();   else len = 1;
+  CNiReal64Matrix lineVpc_10s(   2, len, 1.0);
+
+  if( theApp.m_tpVpc->Get_100s()->GetActualSize() > 0)    len = theApp.m_tpVpc->Get_100s()->GetActualSize();  else len = 1;
+  CNiReal64Matrix lineVpc_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpVpc, &lineVpc_100ms, &lineVpc_1s, &lineVpc_10s, &lineVpc_100s);
+
+
+
+  //AmplAng точки
+  if( theApp.m_tpAmplAng->Get_100ms()->GetActualSize() > 0)   len = theApp.m_tpAmplAng->Get_100ms()->GetActualSize();  else len = 1;
+  CNiReal64Matrix lineAA_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpAmplAng->Get_1s()->GetActualSize() > 0)      len = theApp.m_tpAmplAng->Get_1s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineAA_1s(    2, len, 1.0);
+
+  if( theApp.m_tpAmplAng->Get_10s()->GetActualSize() > 0)     len = theApp.m_tpAmplAng->Get_10s()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineAA_10s(   2, len, 1.0);
+
+  if( theApp.m_tpAmplAng->Get_100s()->GetActualSize() > 0)    len = theApp.m_tpAmplAng->Get_100s()->GetActualSize();   else len = 1;
+  CNiReal64Matrix lineAA_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpAmplAng, &lineAA_100ms, &lineAA_1s, &lineAA_10s, &lineAA_100s);
+
+
 
   //AmplAngDus точки
-	j1 = theApp.m_cbAmplAngDus->GetFirstIndex();
-	j2 = theApp.m_cbAmplAngDus->GetLastIndex();
-	j3 = theApp.m_cbAmplAngDus->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineAADus( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + theApp.m_cbAmplAngDus->GetSize()) % theApp.m_cbAmplAngDus->GetSize();
-		lineAADus( 0, j) = theApp.m_cbAmplAngDus->GetDataX()[ jndx];
-		lineAADus( 1, j) = theApp.m_cbAmplAngDus->GetDataY()[ jndx];
-	}
+  if( theApp.m_tpAmplAngDus->Get_100ms()->GetActualSize() > 0)  len = theApp.m_tpAmplAngDus->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineAADus_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpAmplAngDus->Get_1s()->GetActualSize() > 0)     len = theApp.m_tpAmplAngDus->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineAADus_1s(    2, len,    1.0);
+
+  if( theApp.m_tpAmplAngDus->Get_10s()->GetActualSize() > 0)    len = theApp.m_tpAmplAngDus->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineAADus_10s(   2, len,   1.0);
+
+  if( theApp.m_tpAmplAngDus->Get_100s()->GetActualSize() > 0)   len = theApp.m_tpAmplAngDus->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineAADus_100s(  2, len,  1.0);
+
+  MakeLine( theApp.m_tpAmplAngDus, &lineAADus_100ms, &lineAADus_1s, &lineAADus_10s, &lineAADus_100s);
+
+
 
 	//T1 точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbT1->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbT1->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbT1->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineT1( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbT1->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbT1->GetSize();
-		lineT1( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbT1->GetDataX()[jndx];
-		lineT1( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbT1->GetDataY()[jndx];
-	}
+  if( theApp.m_tpT1->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT1->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineT1_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT1->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineT1_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT1->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineT1_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT1->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineT1_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpT1, &lineT1_100ms, &lineT1_1s, &lineT1_10s, &lineT1_100s);
+
+
 
 	//T2 точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbT2->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbT2->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbT2->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineT2( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbT2->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbT2->GetSize();
-		lineT2( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbT2->GetDataX()[jndx];
-		lineT2( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbT2->GetDataY()[jndx];
-	}
+  if( theApp.m_tpT2->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT2->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineT2_100ms( 2, len, 1.0);
 
+  if( theApp.m_tpT2->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT2->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineT2_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT2->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT2->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineT2_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT2->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT2->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineT2_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpT2, &lineT2_100ms, &lineT2_1s, &lineT2_10s, &lineT2_100s);
+
+
+  
   //T3 точки
-	j1 = (( CSlg2App *) AfxGetApp())->m_cbT3->GetFirstIndex();
-	j2 = (( CSlg2App *) AfxGetApp())->m_cbT3->GetLastIndex();
-	j3 = (( CSlg2App *) AfxGetApp())->m_cbT3->GetActualSize();
-	if( !j3) j3 = 1;
-	CNiReal64Matrix lineT3( 2, j3, 1.0);
-	for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + (( CSlg2App *) AfxGetApp())->m_cbT3->GetSize()) % (( CSlg2App *) AfxGetApp())->m_cbT3->GetSize();
-		lineT3( 0, j) = (( CSlg2App *) AfxGetApp())->m_cbT3->GetDataX()[jndx];
-		lineT3( 1, j) = (( CSlg2App *) AfxGetApp())->m_cbT3->GetDataY()[jndx];
-	}
+  if( theApp.m_tpT3->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT3->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineT3_100ms( 2, len, 1.0);
 
+  if( theApp.m_tpT3->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT3->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineT3_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT3->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineT3_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT3->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineT3_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpT3, &lineT3_100ms, &lineT3_1s, &lineT3_10s, &lineT3_100s);
+
+
+  //deltaT12 точки
+  if( theApp.m_tpT1->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT1->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineDeltaT12_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT1->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineDeltaT12_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT1->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineDeltaT12_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT1->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT1->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineDeltaT12_100s(  2, len, 1.0);
+
+  MakeDeltaLine( theApp.m_tpT1, theApp.m_tpT2, &lineDeltaT12_100ms, &lineDeltaT12_1s, &lineDeltaT12_10s, &lineDeltaT12_100s);
+  
+
+  // ************************************************************
+  //deltaT13 точки
+  if( theApp.m_tpT3->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT3->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineDeltaT13_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT3->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineDeltaT13_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT3->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineDeltaT13_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT3->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineDeltaT13_100s(  2, len, 1.0);
+
+  MakeDeltaLine( theApp.m_tpT1, theApp.m_tpT3, &lineDeltaT13_100ms, &lineDeltaT13_1s, &lineDeltaT13_10s, &lineDeltaT13_100s);
+
+
+  // ************************************************************
+  //deltaT23 точки
+  if( theApp.m_tpT3->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpT3->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineDeltaT23_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpT3->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineDeltaT23_1s(    2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpT3->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineDeltaT23_10s(   2, len, 1.0);
+
+  if( theApp.m_tpT3->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpT3->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineDeltaT23_100s(  2, len, 1.0);
+
+  MakeDeltaLine( theApp.m_tpT2, theApp.m_tpT3, &lineDeltaT23_100ms, &lineDeltaT23_1s, &lineDeltaT23_10s, &lineDeltaT23_100s);
+
+
+  // ************************************************************
 	//Tsa.mcs точки
-	j1 = theApp.m_cbTsaMcs->GetFirstIndex();
-	j2 = theApp.m_cbTsaMcs->GetLastIndex();
-	j3 = theApp.m_cbTsaMcs->GetActualSize();
-	if( !j3) j3 = 1;
-	
-  CNiReal64Matrix lineTsaMcs( 2, j3, 1.0);
-  for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + theApp.m_cbTsaMcs->GetSize()) % theApp.m_cbTsaMcs->GetSize();
-		
-    lineTsaMcs( 0, j) = theApp.m_cbTsaMcs->GetDataX()[jndx];
-		lineTsaMcs( 1, j) = theApp.m_cbTsaMcs->GetDataY()[jndx];
-	}
+  if( theApp.m_tpTsaMcs->Get_100ms()->GetActualSize() > 0)    len = theApp.m_tpTsaMcs->Get_100ms()->GetActualSize();    else len = 1;
+  CNiReal64Matrix lineTsaMcs_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpTsaMcs->Get_1s()->GetActualSize() > 0)       len = theApp.m_tpTsaMcs->Get_1s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineTsaMcs_1s(    2, len, 1.0);
+
+  if( theApp.m_tpTsaMcs->Get_10s()->GetActualSize() > 0)      len = theApp.m_tpTsaMcs->Get_10s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineTsaMcs_10s(   2, len, 1.0);
+
+  if( theApp.m_tpTsaMcs->Get_100s()->GetActualSize() > 0)     len = theApp.m_tpTsaMcs->Get_100s()->GetActualSize();     else len = 1;
+  CNiReal64Matrix lineTsaMcs_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpTsaMcs, &lineTsaMcs_100ms, &lineTsaMcs_1s, &lineTsaMcs_10s, &lineTsaMcs_100s);
+
 
 
   //Tsa.ms точки
-	j1 = theApp.m_cbTsaMs->GetFirstIndex();
-	j2 = theApp.m_cbTsaMs->GetLastIndex();
-	j3 = theApp.m_cbTsaMs->GetActualSize();
-	if( !j3) j3 = 1;
-	
-  CNiReal64Matrix lineTsaMs( 2, j3, 1.0);
-  for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + theApp.m_cbTsaMs->GetSize()) % theApp.m_cbTsaMs->GetSize();
-		
-    lineTsaMs( 0, j) = theApp.m_cbTsaMs->GetDataX()[jndx];
-		lineTsaMs( 1, j) = theApp.m_cbTsaMs->GetDataY()[jndx];
-	}
+  if( theApp.m_tpTsaMs->Get_100ms()->GetActualSize() > 0)     len = theApp.m_tpTsaMs->Get_100ms()->GetActualSize();     else len = 1;
+	CNiReal64Matrix lineTsaMs_100ms( 2, len, 1.0);
+
+  if( theApp.m_tpTsaMs->Get_1s()->GetActualSize() > 0)        len = theApp.m_tpTsaMs->Get_1s()->GetActualSize();        else len = 1;
+  CNiReal64Matrix lineTsaMs_1s(    2, len, 1.0);
+
+  if( theApp.m_tpTsaMs->Get_10s()->GetActualSize() > 0)       len = theApp.m_tpTsaMs->Get_10s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineTsaMs_10s(   2, len, 1.0);
+
+  if( theApp.m_tpTsaMs->Get_100s()->GetActualSize() > 0)      len = theApp.m_tpTsaMs->Get_100s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineTsaMs_100s(  2, len, 1.0);
+
+  MakeLine( theApp.m_tpTsaMs, &lineTsaMs_100ms, &lineTsaMs_1s, &lineTsaMs_10s, &lineTsaMs_100s);
+
+
 
 
   //Tsa.hz точки
-	j1 = theApp.m_cbTsaHz->GetFirstIndex();
-	j2 = theApp.m_cbTsaHz->GetLastIndex();
-	j3 = theApp.m_cbTsaHz->GetActualSize();
-	if( !j3) j3 = 1;
-	
-  CNiReal64Matrix lineTsaHz( 2, j3, 1.0);
-  for( j = 0; j < j3; j++) {
-		jndx = ( j1 + j + theApp.m_cbTsaHz->GetSize()) % theApp.m_cbTsaHz->GetSize();
-		
-    lineTsaHz( 0, j) = theApp.m_cbTsaHz->GetDataX()[jndx];
-		lineTsaHz( 1, j) = theApp.m_cbTsaHz->GetDataY()[jndx];
-	}
+  if( theApp.m_tpTsaHz->Get_100ms()->GetActualSize() > 0)     len = theApp.m_tpTsaHz->Get_100ms()->GetActualSize();     else len = 1;
+	CNiReal64Matrix lineTsaHz_100ms( 2, len, 1.0);
 
+  if( theApp.m_tpTsaHz->Get_1s()->GetActualSize() > 0)        len = theApp.m_tpTsaHz->Get_1s()->GetActualSize();        else len = 1;
+  CNiReal64Matrix lineTsaHz_1s(    2, len, 1.0);
 
-	//маленькие экранчики
-	switch( m_nTMeaningInd) {
-		case 0: m_ctlSmallGraph1.PlotXY( lineW100, true); break;
-		case 1: m_ctlSmallGraph1.PlotXY( lineW1000, true); break;
-		case 2: m_ctlSmallGraph1.PlotXY( lineW10000, true); break;
-		case 3: m_ctlSmallGraph1.PlotXY( lineW100000, true); break;
-	}
-	m_ctlSmallGraph2.PlotXY( lineI1, true);
-	m_ctlSmallGraph3.PlotXY( lineI2, true);
-	m_ctlSmallGraph4.PlotXY( lineVpc, true);
-	
-  switch( m_nRadAmplAng) {
-    case 0: m_ctlSmallGraph5.PlotXY( lineAA, true); break;
-    case 1: m_ctlSmallGraph5.PlotXY( lineAADus, true); break;
-  }
+  if( theApp.m_tpTsaHz->Get_10s()->GetActualSize() > 0)       len = theApp.m_tpTsaHz->Get_10s()->GetActualSize();       else len = 1;
+  CNiReal64Matrix lineTsaHz_10s(   2, len, 1.0);
 
-  switch( m_nT1_RadSelection) {
-    case 0: m_ctlSmallGraph6.PlotXY( lineT1, true); break;
-    case 1: m_ctlSmallGraph6.PlotXY( lineT2, true); break;
-    case 2: m_ctlSmallGraph6.PlotXY( lineT3, true); break;
-  }
-	
-  switch( m_nT2_RadSelection) {
-    case 0: m_ctlSmallGraph7.PlotXY( lineT1, true); break;
-    case 1: m_ctlSmallGraph7.PlotXY( lineT2, true); break;
-    case 2: m_ctlSmallGraph7.PlotXY( lineT3, true); break;
-  }
+  if( theApp.m_tpTsaHz->Get_100s()->GetActualSize() > 0)      len = theApp.m_tpTsaHz->Get_100s()->GetActualSize();      else len = 1;
+  CNiReal64Matrix lineTsaHz_100s(  2, len, 1.0);
 
-  switch( m_nTsaRadSelection) {
-    case 0: m_ctlSmallGraph8.PlotXY( lineTsaMcs, true); break;
-    case 1: m_ctlSmallGraph8.PlotXY( lineTsaMs, true); break;
-    case 2: m_ctlSmallGraph8.PlotXY( lineTsaHz, true); break;
-  }
+  MakeLine( theApp.m_tpTsaHz, &lineTsaHz_100ms, &lineTsaHz_1s, &lineTsaHz_10s, &lineTsaHz_100s);
 
-	//Статистика
-	(( CSlg2App *) AfxGetApp())->m_cbW100->RecalculateStatistic();
-	
-	if( (( CSlg2App *) AfxGetApp())->m_cbW1000->GetLastIndex() > 0 &&
-			(( CSlg2App *) AfxGetApp())->m_cbW1000->GetLastIndex() < 10) {
-		CSlg2App *app = (( CSlg2App *) AfxGetApp());
-		int q = sizeof( double);
-	}
-	(( CSlg2App *) AfxGetApp())->m_cbW1000->RecalculateStatistic();
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs:p3");
 
-	(( CSlg2App *) AfxGetApp())->m_cbW10000->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbW100000->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbI1->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbI2->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbVpc->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbAmplAng->RecalculateStatistic();
-  (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbT1->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbT2->RecalculateStatistic();
-  (( CSlg2App *) AfxGetApp())->m_cbT3->RecalculateStatistic();
-	(( CSlg2App *) AfxGetApp())->m_cbTsaMcs->RecalculateStatistic();
-  (( CSlg2App *) AfxGetApp())->m_cbTsaMs->RecalculateStatistic();
-  (( CSlg2App *) AfxGetApp())->m_cbTsaHz->RecalculateStatistic();
+  //маленькие экранчики
+  for( int nGraph=0; nGraph<8; nGraph++) {
 
-	switch( m_nMainGraph) {
-		case 1:
-			if( m_nTMeaningInd == 0) {
-				m_ctlMainGraph.PlotXY( lineW100, true);
-				m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMin());
-				m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMean());
-				m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMax());
-				m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetRMS());
-			}
+    CNiGraph *obj = NULL, *obj2 = NULL;
+    int nCombo, nRad;
+    switch( nGraph) {
+      case 0: obj = &m_ctlSmallGraph1; nCombo = IDC_CMB_GRAPH1; nRad = m_nRadGraph1; break;
+      case 1: obj = &m_ctlSmallGraph2; nCombo = IDC_CMB_GRAPH2; nRad = m_nRadGraph2; break;
+      case 2: obj = &m_ctlSmallGraph3; nCombo = IDC_CMB_GRAPH3; nRad = m_nRadGraph3; break;
+      case 3: obj = &m_ctlSmallGraph4; nCombo = IDC_CMB_GRAPH4; nRad = m_nRadGraph4; break;
+      case 4: obj = &m_ctlSmallGraph5; nCombo = IDC_CMB_GRAPH5; nRad = m_nRadGraph5; break;
+      case 5: obj = &m_ctlSmallGraph6; nCombo = IDC_CMB_GRAPH6; nRad = m_nRadGraph6; break;
+      case 6: obj = &m_ctlSmallGraph7; nCombo = IDC_CMB_GRAPH7; nRad = m_nRadGraph7; break;
+      case 7: obj = &m_ctlSmallGraph8; nCombo = IDC_CMB_GRAPH8; nRad = m_nRadGraph8; break;
+    }
 
-			if( m_nTMeaningInd == 1) {
-				m_ctlMainGraph.PlotXY( lineW1000, true);
-				m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMin());
-				m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMean());
-				m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMax());
-				m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetRMS());
-			}
-			
-			if( m_nTMeaningInd == 2) {
-				m_ctlMainGraph.PlotXY( lineW10000, true);
-				m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMin());
-				m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMean());
-				m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMax());
-				m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetRMS());
-			}
+    theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs:p4:nCombo=%d nRad=%d m_nMainGraph=%d", nCombo, nRad, m_nMainGraph);
 
-			if( m_nTMeaningInd == 3) {
-				m_ctlMainGraph.PlotXY( lineW100000, true);
-				m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMin());
-				m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMean());
-				m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMax());
-				m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetRMS());
-			}
-			
-		break;
-
-		case 2:
-			m_ctlMainGraph.PlotXY( lineI1, true);
-			m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMin());
-			m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMean());
-			m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMax());
-			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetRMS());
-		break;
-
-		case 3:
-			m_ctlMainGraph.PlotXY( lineI2, true);
-			m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMin());
-			m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMean());
-			m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMax());
-			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetRMS());
-		break;
-
-		case 4:
-			m_ctlMainGraph.PlotXY( lineVpc, true);
-			m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMin());
-			m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMean());
-			m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMax());
-			m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetRMS());
-		break;
-
-		case 5:			
-      switch( m_nRadAmplAng) {
-        case 0:
-          m_ctlMainGraph.PlotXY( lineAA, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetRMS());
+    //Заодно нарисуем главный график
+    if( m_nMainGraph == ( nGraph + 1)) {
+      obj2 = &m_ctlMainGraph;
+    }
+    
+    if( obj != NULL) {
+      int nSelection = ( ( CComboBox *) GetDlgItem( nCombo))->GetCurSel();
+      switch( nSelection) {
+        case  1:    //I1
+          switch( nRad) {
+            case 0: obj->PlotXY( lineI1_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineI1_100ms, true); break;
+            case 1: obj->PlotXY( lineI1_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineI1_1s,    true); break;
+            case 2: obj->PlotXY( lineI1_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineI1_10s,   true); break;
+            case 3: obj->PlotXY( lineI1_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineI1_100s,  true); break;
+          }
         break;
-
-        case 1:
-          m_ctlMainGraph.PlotXY( lineAADus, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAngDus->GetRMS());
+        case  2:    //I2
+          switch( nRad) {
+            case 0: obj->PlotXY( lineI2_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineI2_100ms, true); break;
+            case 1: obj->PlotXY( lineI2_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineI2_1s,    true); break;
+            case 2: obj->PlotXY( lineI2_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineI2_10s,   true); break;
+            case 3: obj->PlotXY( lineI2_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineI2_100s,  true); break;
+          }
         break;
+        case  3:    //Vrpc
+          switch( nRad) {
+            case 0: obj->PlotXY( lineVpc_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineVpc_100ms, true); break;
+            case 1: obj->PlotXY( lineVpc_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineVpc_1s,    true); break;
+            case 2: obj->PlotXY( lineVpc_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineVpc_10s,   true); break;
+            case 3: obj->PlotXY( lineVpc_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineVpc_100s,  true); break;
+          }
+        break;
+        case  4:    //Ampl_alt
+          switch( nRad) {
+            case 0: obj->PlotXY( lineAA_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineAA_100ms, true); break;
+            case 1: obj->PlotXY( lineAA_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineAA_1s,    true); break;
+            case 2: obj->PlotXY( lineAA_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineAA_10s,   true); break;
+            case 3: obj->PlotXY( lineAA_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineAA_100s,  true); break;
+          }
+        break;
+        case  5:    //Ampl_dus
+          switch( nRad) {
+            case 0: obj->PlotXY( lineAADus_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineAADus_100ms, true); break;
+            case 1: obj->PlotXY( lineAADus_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineAADus_1s,    true); break;
+            case 2: obj->PlotXY( lineAADus_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineAADus_10s,   true); break;
+            case 3: obj->PlotXY( lineAADus_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineAADus_100s,  true); break;
+          }
+        break;
+        case  6:    //Ampl_RULA
+          //switch( nRad) {
+          //  case 0: obj->PlotXY( lineAArula_100ms, true);  if( obj2! = NULL) obj2->PlotXY( lineAArula_100ms, true); break;
+          //  case 1: obj->PlotXY( lineAArula_1s,    true);  if( obj2! = NULL) obj2->PlotXY( lineAArula_1s,    true); break;
+          //  case 2: obj->PlotXY( lineAArula_10s,   true);  if( obj2! = NULL) obj2->PlotXY( lineAArula_10s,   true); break;
+          //  case 3: obj->PlotXY( lineAArula_100s,  true);  if( obj2! = NULL) obj2->PlotXY( lineAArula_100s,  true); break;
+          //}
+        break;
+        case  7:    //T1
+          switch( nRad) {
+            case 0: obj->PlotXY( lineT1_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineT1_100ms, true); break;
+            case 1: obj->PlotXY( lineT1_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineT1_1s,    true); break;
+            case 2: obj->PlotXY( lineT1_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineT1_10s,   true); break;
+            case 3: obj->PlotXY( lineT1_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineT1_100s,  true); break;
+          }
+        break;
+        case  8:    //T2
+          switch( nRad) {
+            case 0: obj->PlotXY( lineT2_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineT2_100ms, true); break;
+            case 1: obj->PlotXY( lineT2_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineT2_1s,    true); break;
+            case 2: obj->PlotXY( lineT2_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineT2_10s,   true); break;
+            case 3: obj->PlotXY( lineT2_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineT2_100s,  true); break;
+          }
+        break;
+        case  9:    //T3
+          switch( nRad) {
+            case 0: obj->PlotXY( lineT3_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineT3_100ms, true); break;
+            case 1: obj->PlotXY( lineT3_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineT3_1s,    true); break;
+            case 2: obj->PlotXY( lineT3_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineT3_10s,   true); break;
+            case 3: obj->PlotXY( lineT3_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineT3_100s,  true); break;
+          }
+        break;
+        case 10:    //deltaT12
+          switch( nRad) {
+            case 0: obj->PlotXY( lineDeltaT12_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT12_100ms, true); break;
+            case 1: obj->PlotXY( lineDeltaT12_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT12_1s,    true); break;
+            case 2: obj->PlotXY( lineDeltaT12_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT12_10s,   true); break;
+            case 3: obj->PlotXY( lineDeltaT12_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT12_100s,  true); break;
+          }
+        break;
+        case 11:    //deltaT13
+          switch( nRad) {
+            case 0: obj->PlotXY( lineDeltaT13_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT13_100ms, true); break;
+            case 1: obj->PlotXY( lineDeltaT13_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT13_1s,    true); break;
+            case 2: obj->PlotXY( lineDeltaT13_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT13_10s,   true); break;
+            case 3: obj->PlotXY( lineDeltaT13_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT13_100s,  true); break;
+          }
+        break;
+        case 12:    //deltaT23
+          switch( nRad) {
+            case 0: obj->PlotXY( lineDeltaT23_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT23_100ms, true); break;
+            case 1: obj->PlotXY( lineDeltaT23_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT23_1s,    true); break;
+            case 2: obj->PlotXY( lineDeltaT23_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT23_10s,   true); break;
+            case 3: obj->PlotXY( lineDeltaT23_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineDeltaT23_100s,  true); break;
+          }
+        break;
+        case 13:    //dt_sa,msec
+          switch( nRad) {
+            case 0: obj->PlotXY( lineTsaMs_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMs_100ms, true); break;
+            case 1: obj->PlotXY( lineTsaMs_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMs_1s,    true); break;
+            case 2: obj->PlotXY( lineTsaMs_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMs_10s,   true); break;
+            case 3: obj->PlotXY( lineTsaMs_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMs_100s,  true); break;
+          }
+        break;
+        case 14:    //dt_sa, mcsec
+          switch( nRad) {
+            case 0: obj->PlotXY( lineTsaMcs_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMcs_100ms, true); break;
+            case 1: obj->PlotXY( lineTsaMcs_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMcs_1s,    true); break;
+            case 2: obj->PlotXY( lineTsaMcs_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMcs_10s,   true); break;
+            case 3: obj->PlotXY( lineTsaMcs_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineTsaMcs_100s,  true); break;
+          }
+        break;
+        case 15:    //dt_sa, hz
+          switch( nRad) {
+            case 0: obj->PlotXY( lineTsaHz_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineTsaHz_100ms, true); break;
+            case 1: obj->PlotXY( lineTsaHz_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineTsaHz_1s,    true); break;
+            case 2: obj->PlotXY( lineTsaHz_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineTsaHz_10s,   true); break;
+            case 3: obj->PlotXY( lineTsaHz_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineTsaHz_100s,  true); break;
+          }
+        break;        
+
+        default:
+          switch( nRad) {
+            case 0: obj->PlotXY( lineW_100ms, true);  if( obj2 != NULL) obj2->PlotXY( lineW_100ms, true); break;
+            case 1: obj->PlotXY( lineW_1s,    true);  if( obj2 != NULL) obj2->PlotXY( lineW_1s,    true); break;
+            case 2: obj->PlotXY( lineW_10s,   true);  if( obj2 != NULL) obj2->PlotXY( lineW_10s,   true); break;
+            case 3: obj->PlotXY( lineW_100s,  true);  if( obj2 != NULL) obj2->PlotXY( lineW_100s,  true); break;
+          }
       }
-		break;
-
-		case 6:
-      switch( m_nT1_RadSelection) {
-        case 0:
-			    m_ctlMainGraph.PlotXY( lineT1, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetRMS());
-        break;
-        case 1:
-			    m_ctlMainGraph.PlotXY( lineT2, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetRMS());
-        break;
-        case 2:
-			    m_ctlMainGraph.PlotXY( lineT3, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetRMS());
-        break;
-      }
-		break;
-
-		case 7:
-			switch( m_nT2_RadSelection) {
-        case 0:
-			    m_ctlMainGraph.PlotXY( lineT1, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetRMS());
-        break;
-        case 1:
-			    m_ctlMainGraph.PlotXY( lineT2, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetRMS());
-        break;
-        case 2:
-			    m_ctlMainGraph.PlotXY( lineT3, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetRMS());
-        break;
-      }
-		break;
-
-		case 8:
-      switch( m_nTsaRadSelection) {
-        case 0:
-          m_ctlMainGraph.PlotXY( lineTsaMcs, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetRMS());
-        break;
-        case 1:
-          m_ctlMainGraph.PlotXY( lineTsaMs, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaMs->GetRMS());
-        break;
-        case 2:
-          m_ctlMainGraph.PlotXY( lineTsaHz, true);
-			    m_strGraphMinVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMin());
-			    m_strGraphMeanVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMean());
-			    m_strGraphMaxVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMax());
-			    m_strGraphRmsVal.Format( _T("%.4f"), theApp.m_cbTsaHz->GetRMS());
-        break;
-      }
-
-			
-		break;
-
-		default:
-			m_nMainGraph = 1;
-		break;
-	}
-
-	//статистика по каждому параметру
-	switch( m_nTMeaningInd) {
-		case 0:
-			m_strSmGr1_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMin());
-			m_strSmGr1_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMean());
-			m_strSmGr1_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetMax());
-			m_strSmGr1_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100->GetRMS());
-		break;
-
-		case 1:
-			m_strSmGr1_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMin());
-			m_strSmGr1_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMean());
-			m_strSmGr1_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetMax());
-			m_strSmGr1_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW1000->GetRMS());
-		break;
-
-		case 2:
-			m_strSmGr1_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMin());
-			m_strSmGr1_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMean());
-			m_strSmGr1_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetMax());
-			m_strSmGr1_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW10000->GetRMS());
-		break;
-
-		case 3:
-			m_strSmGr1_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMin());
-			m_strSmGr1_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMean());
-			m_strSmGr1_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetMax());
-			m_strSmGr1_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbW100000->GetRMS());
-		break;
-	}
-
-	m_strSmGr2_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMin());
-	m_strSmGr2_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMean());
-	m_strSmGr2_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetMax());
-	m_strSmGr2_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI1->GetRMS());
-
-	m_strSmGr3_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMin());
-	m_strSmGr3_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMean());
-	m_strSmGr3_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetMax());
-	m_strSmGr3_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbI2->GetRMS());
-	
-	m_strSmGr4_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMin());
-	m_strSmGr4_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMean());
-	m_strSmGr4_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetMax());
-	m_strSmGr4_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbVpc->GetRMS());
-	
-	m_strSmGr5_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMin());
-	m_strSmGr5_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMean());
-	m_strSmGr5_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetMax());
-	m_strSmGr5_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbAmplAng->GetRMS());
-	
-  switch( m_nT1_RadSelection) {
-    case 0:
-	    m_strSmGr6_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMin());
-	    m_strSmGr6_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMean());
-	    m_strSmGr6_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMax());
-	    m_strSmGr6_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetRMS());
-    break;
-    case 1:
-	    m_strSmGr6_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMin());
-	    m_strSmGr6_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMean());
-	    m_strSmGr6_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMax());
-	    m_strSmGr6_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetRMS());
-    break;
-    case 2:
-	    m_strSmGr6_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMin());
-	    m_strSmGr6_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMean());
-	    m_strSmGr6_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMax());
-	    m_strSmGr6_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetRMS());
-    break;
+    }
   }
-	
-	switch( m_nT2_RadSelection) {
-    case 0:
-	    m_strSmGr7_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMin());
-	    m_strSmGr7_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMean());
-	    m_strSmGr7_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetMax());
-	    m_strSmGr7_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT1->GetRMS());
-    break;
-    case 1:
-	    m_strSmGr7_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMin());
-	    m_strSmGr7_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMean());
-	    m_strSmGr7_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetMax());
-	    m_strSmGr7_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT2->GetRMS());
-    break;
-    case 2:
-	    m_strSmGr7_min.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMin());
-	    m_strSmGr7_mean.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMean());
-	    m_strSmGr7_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetMax());
-	    m_strSmGr7_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbT3->GetRMS());
-    break;
+  */
+
+  //Перерасчёт статистики
+  theApp.m_tpW->RecalculateStatisticUnder();
+  theApp.m_tpI1->RecalculateStatisticUnder();
+  theApp.m_tpI2->RecalculateStatisticUnder();
+  theApp.m_tpVpc->RecalculateStatisticUnder();
+  theApp.m_tpAmplAng->RecalculateStatisticUnder();
+  theApp.m_tpAmplAngDus->RecalculateStatisticUnder();
+  theApp.m_tpT1->RecalculateStatisticUnder();
+  theApp.m_tpT2->RecalculateStatisticUnder();
+  theApp.m_tpT3->RecalculateStatisticUnder();
+  theApp.m_tpTsaMcs->RecalculateStatisticUnder();
+  theApp.m_tpTsaMs->RecalculateStatisticUnder();
+  theApp.m_tpTsaHz->RecalculateStatisticUnder();
+  theApp.m_tpDecCoeff->RecalculateStatisticUnder();
+
+  //******************************************************************************************
+  //Обновим панель статистики справа от большого графика
+  BOOL bShowStatistic = FALSE;
+
+  int nCombo = IDC_CMB_GRAPH1_Y;
+  int nMeaningTimeRad = 0;
+  switch( m_nMainGraph) {
+    case 1: nCombo = IDC_CMB_GRAPH1_Y; nMeaningTimeRad = m_nRadGraph1; break;
+    case 2: nCombo = IDC_CMB_GRAPH2_Y; nMeaningTimeRad = m_nRadGraph2; break;
+    case 3: nCombo = IDC_CMB_GRAPH3_Y; nMeaningTimeRad = m_nRadGraph3; break;
+    case 4: nCombo = IDC_CMB_GRAPH4_Y; nMeaningTimeRad = m_nRadGraph4; break;
+    case 5: nCombo = IDC_CMB_GRAPH5_Y; nMeaningTimeRad = m_nRadGraph5; break;
+    case 6: nCombo = IDC_CMB_GRAPH6_Y; nMeaningTimeRad = m_nRadGraph6; break;
+    case 7: nCombo = IDC_CMB_GRAPH7_Y; nMeaningTimeRad = m_nRadGraph7; break;
+    case 8: nCombo = IDC_CMB_GRAPH8_Y; nMeaningTimeRad = m_nRadGraph8; break;
   }
-	
-  switch( m_nTsaRadSelection) {
-    case 0:
-	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMin());
-	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMean());
-	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetMax());
-	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaMcs->GetRMS());
-    break;
-    case 1:
-	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMin());
-	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMean());
-	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaMs->GetMax());
-	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaMs->GetRMS());
-    break;
-    case 2:
-	    m_strSmGr8_min.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMin());
-	    m_strSmGr8_mean.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMean());
-	    m_strSmGr8_max.Format( _T("%.4f"), theApp.m_cbTsaHz->GetMax());
-	    m_strSmGr8_rms.Format( _T("%.4f"), theApp.m_cbTsaHz->GetRMS());
-    break;
+  
+  int nMainDisplayedParam = ( ( CComboBox *) GetDlgItem( nCombo))->GetCurSel();
+  CSlgCircleBuffer *cbfr;
+  switch( nMainDisplayedParam) {
+    case  0:  cbfr = theApp.m_tpW->Get_CB( nMeaningTimeRad);          bShowStatistic = TRUE; break;    //w  
+    case  1:  cbfr = theApp.m_tpI1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //I1
+    case  2:  cbfr = theApp.m_tpI2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //I2
+    case  3:  cbfr = theApp.m_tpVpc->Get_CB( nMeaningTimeRad);        bShowStatistic = TRUE; break;    //Vpc
+    case  4:  cbfr = theApp.m_tpAmplAng->Get_CB( nMeaningTimeRad);    bShowStatistic = TRUE; break;    //Ampl_alt
+    case  5:  cbfr = theApp.m_tpAmplAngDus->Get_CB( nMeaningTimeRad); bShowStatistic = TRUE; break;    //Ampl_alt
+    case  6:  cbfr = theApp.m_tpAmplAng->Get_CB( nMeaningTimeRad);    bShowStatistic = TRUE; break;    //Ampl_alt_rula
+    case  7:  cbfr = theApp.m_tpT1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T1
+    case  8:  cbfr = theApp.m_tpT2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T2
+    case  9:  cbfr = theApp.m_tpT3->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T3
+    case 10:  break; //deltaT12
+    case 11:  break; //deltaT13
+    case 12:  break; //deltaT23
+    case 13:  cbfr = theApp.m_tpTsaMs->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa,msec
+    case 14:  cbfr = theApp.m_tpTsaMcs->Get_CB( nMeaningTimeRad);     bShowStatistic = TRUE; break;    //dt_sa, mcsec
+    case 15:  cbfr = theApp.m_tpTsaHz->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa, hz
+    case 16:  cbfr = theApp.m_tpDecCoeff->Get_CB( nMeaningTimeRad);   bShowStatistic = TRUE; break;    //dc, коэффициент вычета, ["/В]
   }
-	m_ctlComButton.SetValue( m_ctlCOM.GetPortOpen());
-	UpdateData( FALSE);
+  
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p3: bShowStatistic=%s nMainDisplayedParam=%d",
+          bShowStatistic?"TRUE":"FALSE",
+          nMainDisplayedParam);
+
+  CStatic *st;
+  CString strValue;
+  if( bShowStatistic) {
+    st = (( CStatic *) GetDlgItem( IDC_MINVAL_LABEL));
+    st->ShowWindow( SW_SHOW);
+    strValue.Format( _T("%.6f"),  cbfr->GetMin()); st->SetWindowText( strValue);
+
+    st = (( CStatic *) GetDlgItem( IDC_MEANVAL_LABEL));
+    st->ShowWindow( SW_SHOW);
+    strValue.Format( _T("%.6f"),  cbfr->GetMean()); st->SetWindowText( strValue);
+
+    st = (( CStatic *) GetDlgItem( IDC_MAXVAL_LABEL));
+    st->ShowWindow( SW_SHOW);
+    strValue.Format( _T("%.6f"),  cbfr->GetMax()); st->SetWindowText( strValue);
+
+    st = (( CStatic *) GetDlgItem( IDC_RMSVAL_LABEL));
+    st->ShowWindow( SW_SHOW);
+    strValue.Format( _T("%.6f"),  cbfr->GetRMS()); st->SetWindowText( strValue);
+  }
+  else {
+    GetDlgItem( IDC_MINVAL_LABEL)->ShowWindow(  SW_HIDE);
+    GetDlgItem( IDC_MEANVAL_LABEL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_MAXVAL_LABEL)->ShowWindow(  SW_HIDE);
+    GetDlgItem( IDC_RMSVAL_LABEL)->ShowWindow(  SW_HIDE);
+  }
+
+  //лампочка "СОМ-порт открыт"
+  m_ctlComButton.SetValue( m_ctlCOM.GetPortOpen());
+
+  UpdateData( FALSE);
 }
 
 void CMainView::OnInitialUpdate() 
 {
-	m_dKimpSec = (( CSlg2App *) AfxGetApp())->m_dKimpSec;
-	m_nComPort = (( CSlg2App *) AfxGetApp())->m_nComPort;
-	m_nComPortBaudrate = (( CSlg2App *) AfxGetApp())->m_nComBaudrate;
-	m_nMainGraph = 1;
-	CFormView::OnInitialUpdate();	
+  m_dKimpSec = theApp.GetSettings()->GetScaleCoeff();
+  m_nComPort = theApp.GetSettings()->GetComPort();
+  m_nComPortBaudrate = theApp.GetSettings()->GetComBaudrate();
 
-	LOGFONT lf;
-	memset(&lf, 0, sizeof(LOGFONT));									// Zero out the structure.
-	lf.lfHeight = 20;																	// Request a 12-pixel-height font.
-	lstrcpy(lf.lfFaceName, _T("Times New Roman"));   // Request a face name "Arial".
-	VERIFY(m_pFont.CreateFontIndirect(&lf));							// Create the font.
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph1());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph2());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph3());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph4());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph5());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph6());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph7());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph8());
 
-	m_ctlCOM.SetInBufferSize( 2048);
-	m_ctlCOM.SetCommPort( 1);
-	m_ctlCOM.SetSettings( _T("115200,N,8,1"));
-	m_ctlCOM.SetInputLen( 200);
-	m_ctlCOM.SetInputMode( 1);
-	m_ctlCOM.SetInBufferCount( 0);
-	m_ctlCOM.SetOutBufferCount( 0);
-	m_ctlCOM.SetOutBufferSize( 3);
-	
-	GetDlgItem( IDC_MIN_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_MINVAL_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_MEAN_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_MEANVAL_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_MAX_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_MAXVAL_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_RMS_LABEL)->SetFont( &m_pFont);
-	GetDlgItem( IDC_RMSVAL_LABEL)->SetFont( &m_pFont);
+  m_nRadGraph1 = theApp.GetSettings()->GetGraph1Meaning();
+  m_nRadGraph2 = theApp.GetSettings()->GetGraph2Meaning();
+  m_nRadGraph3 = theApp.GetSettings()->GetGraph3Meaning();
+  m_nRadGraph4 = theApp.GetSettings()->GetGraph4Meaning();
+  m_nRadGraph5 = theApp.GetSettings()->GetGraph5Meaning();
+  m_nRadGraph6 = theApp.GetSettings()->GetGraph6Meaning();
+  m_nRadGraph7 = theApp.GetSettings()->GetGraph7Meaning();
+  m_nRadGraph8 = theApp.GetSettings()->GetGraph8Meaning();
 
-	if( theApp.m_nControlButtons) {
-		m_ctlNedtParam1.SetDiscreteInterval( m_dKimpSec);
-		m_ctlNedtParam1.SetIncDecValue( m_dKimpSec);
-		m_ctlNedtParam1.SetAccelInc( m_dKimpSec * 5.);
-		m_ctlNedtParam1.SetMaximum( m_dKimpSec * 255.);
-		
-	
-		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->SetCurSel( theApp.GetSettings()->GetGraph1_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->SetCurSel( theApp.GetSettings()->GetGraph2_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->SetCurSel( theApp.GetSettings()->GetGraph3_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->SetCurSel( theApp.GetSettings()->GetGraph4_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->SetCurSel( theApp.GetSettings()->GetGraph5_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->SetCurSel( theApp.GetSettings()->GetGraph6_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->SetCurSel( theApp.GetSettings()->GetGraph7_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->SetCurSel( theApp.GetSettings()->GetGraph8_AxX());
+
+  m_nMainGraph = 1;
+
+  CFormView::OnInitialUpdate();
+
+  LOGFONT lf;
+  memset(&lf, 0, sizeof(LOGFONT));                  // Zero out the structure.
+  lf.lfHeight = 20;                                 // Request a 12-pixel-height font.
+  lstrcpy(lf.lfFaceName, _T("Times New Roman"));    // Request a face name "Arial".
+  VERIFY(m_pFont.CreateFontIndirect(&lf));          // Create the font.
+
+  m_ctlCOM.SetInBufferSize( 2048);
+  m_ctlCOM.SetCommPort( 1);
+  m_ctlCOM.SetSettings( _T("115200,N,8,1"));
+  m_ctlCOM.SetInputLen( 200);
+  m_ctlCOM.SetInputMode( 1);
+  m_ctlCOM.SetInBufferCount( 0);
+  m_ctlCOM.SetOutBufferCount( 0);
+  m_ctlCOM.SetOutBufferSize( 3);
+
+  GetDlgItem( IDC_MIN_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_MINVAL_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_MEAN_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_MEANVAL_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_MAX_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_MAXVAL_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_RMS_LABEL)->SetFont( &m_pFont);
+  GetDlgItem( IDC_RMSVAL_LABEL)->SetFont( &m_pFont);
+
+  if( theApp.GetSettings()->GetControlButtons()) {
+    m_ctlNedtParam1.SetDiscreteInterval( m_dKimpSec);
+    m_ctlNedtParam1.SetIncDecValue( m_dKimpSec);
+    m_ctlNedtParam1.SetAccelInc( m_dKimpSec * 5.);
+    m_ctlNedtParam1.SetMaximum( m_dKimpSec * 255.);
+
+    GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
     GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
-	}
-	else {
-		GetDlgItem( IDC_PARAM1_TITLE)->ShowWindow( SW_HIDE);
+  }
+  else {
+    GetDlgItem( IDC_PARAM1_TITLE)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_REQ_AMPL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM1_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM1_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM1_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM1_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM1_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM1_BTN)->ShowWindow( SW_HIDE);
 
-		GetDlgItem( IDC_PARAM2_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM2_TITLE)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_REQ_TACTCODE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM2_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM2_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM2_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM2_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM2_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM2_BTN)->ShowWindow( SW_HIDE);
 
-		GetDlgItem( IDC_PARAM3_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM3_TITLE)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_REQ_M_COEFF)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM3_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM3_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM3_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM3_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM3_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM3_BTN)->ShowWindow( SW_HIDE);
 
-		GetDlgItem( IDC_PARAM4_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM4_TITLE)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_REQ_START_MODE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM4_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM4_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM4_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM4_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM4_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM4_BTN)->ShowWindow( SW_HIDE);
 
     /*
-		GetDlgItem( IDC_PARAM5_TITLE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM5_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM5_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM5_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM5_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM5_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM5_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM5_BTN)->ShowWindow( SW_HIDE);
     */
     /*
-		GetDlgItem( IDC_PARAM6_TITLE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM6_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM6_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM6_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM6_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM6_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM6_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM6_BTN)->ShowWindow( SW_HIDE);
     */
     /*
-		GetDlgItem( IDC_PARAM7_TITLE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM7_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM7_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM7_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM7_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM7_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM7_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM7_BTN)->ShowWindow( SW_HIDE);
     */
-		GetDlgItem( IDC_PARAM8_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM8_TITLE)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_REQ_DEC_COEFF)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM8_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM8_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM8_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM8_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM8_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM8_BTN)->ShowWindow( SW_HIDE);
 
     /*
-		GetDlgItem( IDC_PARAM9_TITLE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM9_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM9_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM9_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM9_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM9_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM9_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM9_BTN)->ShowWindow( SW_HIDE);
     */
 
     /*
-		GetDlgItem( IDC_PARAM10_TITLE)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM10_VAL)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM10_NEDT)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_PARAM10_BTN)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM10_TITLE)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM10_VAL)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM10_NEDT)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_PARAM10_BTN)->ShowWindow( SW_HIDE);
     */
 
-		GetDlgItem( IDC_BTN_SAVE_PARAMS)->ShowWindow( SW_HIDE);
-		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->ShowWindow( SW_HIDE);
-		GetDlgItem( IDC_BTN_LASER_OFF)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SAVE_PARAMS)->ShowWindow( SW_HIDE);
+    //GetDlgItem( IDC_BTN_RESTORE_PARAMS)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_LASER_OFF)->ShowWindow( SW_HIDE);
     GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->ShowWindow( SW_HIDE);
-    
-		
-	}
+  }
 
-	SetTimer( MY_MAXIMIZE_VIEW_TIMER, 100, NULL);
+  SetTimer( MY_MAXIMIZE_VIEW_TIMER, 100, NULL);
   SetTimer( TIMER_SEND_CMDS_TO_MC, 500, NULL);
 
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
 }
 
 void CMainView::OnTimer(UINT nIDEvent) 
@@ -1649,37 +1946,29 @@ void CMainView::OnTimer(UINT nIDEvent)
 							gl_nCircleBufferPut = 0;
 
 							gl_dGlobalTime = 0.;
-							gl_avW100.Reset();
-							gl_avW1000.Reset();
-							gl_avW10000.Reset();
-							gl_avW100000.Reset();
-							gl_avI1.Reset();
-							gl_avI2.Reset();
-							gl_avVpc.Reset();
-							gl_avAmplAng.Reset();
-              gl_avAmplAngDus.Reset();
-							gl_avT1.Reset();
-							gl_avT2.Reset();
-							gl_avTsa.Reset();
-							gl_avTsa1000.Reset();
-							gl_avTsa10000.Reset();
-							gl_avTsa100000.Reset();
-		
 
-							app->m_cbW100->Reset();
-							app->m_cbW1000->Reset();
-							app->m_cbW10000->Reset();
-							app->m_cbW100000->Reset();
-							app->m_cbI1->Reset();
-							app->m_cbI2->Reset();
-							app->m_cbVpc->Reset();
-							app->m_cbAmplAng->Reset();
-							app->m_cbT1->Reset();
-							app->m_cbT2->Reset();
-              app->m_cbT3->Reset();
-							app->m_cbTsaMcs->Reset();
-              app->m_cbTsaMs->Reset();
-              app->m_cbTsaHz->Reset();
+							gl_avgW.CommonReset();
+              gl_avgI1.CommonReset();
+							gl_avgI2.CommonReset();
+							gl_avgVpc.CommonReset();
+							gl_avgAmplAng.CommonReset();
+              gl_avgAmplAngDus.CommonReset();
+							gl_avgT1.CommonReset();
+							gl_avgT2.CommonReset();
+							gl_avgTsa.CommonReset();
+
+              theApp.m_tpW->ResetUnder();
+              theApp.m_tpI1->ResetUnder();
+              theApp.m_tpI2->ResetUnder();
+              theApp.m_tpVpc->ResetUnder();
+							theApp.m_tpAmplAng->ResetUnder();
+							theApp.m_tpT1->ResetUnder();
+							theApp.m_tpT2->ResetUnder();
+              theApp.m_tpT3->ResetUnder();
+							theApp.m_tpTsaMcs->ResetUnder();
+              theApp.m_tpTsaMs->ResetUnder();
+              theApp.m_tpTsaHz->ResetUnder();
+              theApp.m_tpDecCoeff->ResetUnder();
 						}
 					}
 
@@ -1706,17 +1995,25 @@ void CMainView::OnTimer(UINT nIDEvent)
 				SYSTEMTIME sysTime;  // Win32 time information
 				GetLocalTime(&sysTime);
 				CString strStatFileName;
+
+        /*
 				strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.txt"),
 													sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);*/
 				/*if( app->fh == NULL)
 					app->fh = fopen( strStatFileName, "w");*/
 				/*else
 					AfxMessageBox( _T("Попытка открыть файл при открытом дескрипторе."));*/
 
-				strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.txt"),
-													sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+        if( theApp.m_bDeviceSerialNumber)
+				  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.dev%03d.raw"),
+					  								sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+						  							sysTime.wHour, sysTime.wMinute, sysTime.wSecond, theApp.m_nDeviceSerialNumber);
+        else
+          strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
+					  								sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+						  							sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+
 				if( app->fhNew == NULL)
 					app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
 
@@ -1734,10 +2031,12 @@ void CMainView::OnTimer(UINT nIDEvent)
 
     //обновление серийного номера
     if( theApp.m_bDeviceSerialNumber) {
-      m_strDeviceSerialNumber.Format( _T("%d"), theApp.m_nDeviceSerialNumber);
+      CString strDevSerialNumber;
+      strDevSerialNumber.Format( _T("%d"), theApp.m_nDeviceSerialNumber);
+      GetDlgItem( IDC_LBL_DEVICE_SERIAL_NUMBER)->SetWindowText( strDevSerialNumber);
     }
     else {
-      m_strDeviceSerialNumber = _T("-");
+      GetDlgItem( IDC_LBL_DEVICE_SERIAL_NUMBER)->SetWindowText( _T("-"));
     }
 
     //окошки ошибок по маркеру и чексумме
@@ -1746,7 +2045,7 @@ void CMainView::OnTimer(UINT nIDEvent)
     m_strCounterFails.Format( _T("%d"), theApp.m_nCounterFails);
 
 		//обновление на экране версии прошивки аппарата
-		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( gl_avW100.GetCounter());
+		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( gl_avgW.Get_100ms()->GetCounter());
 		m_strSoftwareVersion = app->m_strSoftwareVer;
 		
 		//////////////////////////////////////////////////////////////////////
@@ -1868,16 +2167,20 @@ void CMainView::OnTimer(UINT nIDEvent)
 		//////////////////////////////////////////////////////////////////////
 		if( (( CSlg2App *) AfxGetApp())->m_nEmergencyCode != 0 && !m_bEmergencyCodeApperance) {
 			m_bEmergencyCodeApperance = true;
-			for( int err=0; err<ERROR_1; err++) {
+			for( int err = 0; err < ERROR_1; err++) {
 				Beep( 100, 100);
 				Sleep( 200);
 			}
-			/*CDC *dc = GetDlgItem( IDC_EMERGENCY_LBL)->GetDC();
+
+			/*
+      CDC *dc = GetDlgItem( IDC_EMERGENCY_LBL)->GetDC();
 			dc->SetBkColor( RGB( 120, 0, 0));
 			dc->FloodFill( 10, 10, RGB( 120, 0, 0));
-			GetDlgItem( IDC_EMERGENCY_LBL)->ReleaseDC( dc);*/
+			GetDlgItem( IDC_EMERGENCY_LBL)->ReleaseDC( dc);
+      */
 			GetDlgItem( IDC_EMERGENCY_LBL)->SetFont( &m_pFont);
 		}
+
 		m_strLblEmergency.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_nEmergencyCode);
 
 		//////////////////////////////////////////////////////////////////////
@@ -1886,7 +2189,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 		RefreshGraphs();
 
 		//////////////////////////////////////////////////////////////////////
-		//проверка времени запуска
+		//проверка времени запуска (режим запуска на определённое время
 		//////////////////////////////////////////////////////////////////////
 		double dMeasTime = m_ctlNedtMeasTime.GetValue();
 		if( dMeasTime > 0.5) {
@@ -1915,39 +2218,34 @@ void CMainView::OnTimer(UINT nIDEvent)
 				gl_nCircleBufferPut = 0;
 
 				gl_dGlobalTime = 0.;
-				gl_avW100.Reset();
-				gl_avW1000.Reset();
-				gl_avW10000.Reset();
-				gl_avW100000.Reset();
-				gl_avI1.Reset();
-				gl_avI2.Reset();
-				gl_avVpc.Reset();
-				gl_avAmplAng.Reset();
-        gl_avAmplAngDus.Reset();
-				gl_avT1.Reset();
-				gl_avT2.Reset();
-				gl_avTsa.Reset();
-				gl_avTsa1000.Reset();
-				gl_avTsa10000.Reset();
-				gl_avTsa100000.Reset();
-		
-				app->m_cbW100->Reset();
-				app->m_cbW1000->Reset();
-				app->m_cbW10000->Reset();
-				app->m_cbW100000->Reset();
-				app->m_cbI1->Reset();
-				app->m_cbI2->Reset();
-				app->m_cbVpc->Reset();
-				app->m_cbAmplAng->Reset();
-				app->m_cbT1->Reset();
-				app->m_cbT2->Reset();
-        app->m_cbT3->Reset();
-				app->m_cbTsaMcs->Reset();
-        app->m_cbTsaMs->Reset();
-        app->m_cbTsaHz->Reset();
+
+				gl_avgW.CommonReset();
+        gl_avgI1.CommonReset();
+				gl_avgI2.CommonReset();
+				gl_avgVpc.CommonReset();
+				gl_avgAmplAng.CommonReset();
+        gl_avgAmplAngDus.CommonReset();
+				gl_avgT1.CommonReset();
+				gl_avgT2.CommonReset();
+				gl_avgTsa.CommonReset();
+				
+
+        theApp.m_tpW->ResetUnder();
+        theApp.m_tpI1->ResetUnder();
+        theApp.m_tpI2->ResetUnder();
+        theApp.m_tpVpc->ResetUnder();
+				theApp.m_tpAmplAng->ResetUnder();
+				theApp.m_tpT1->ResetUnder();
+				theApp.m_tpT2->ResetUnder();
+        theApp.m_tpT3->ResetUnder();
+				theApp.m_tpTsaMcs->ResetUnder();
+        theApp.m_tpTsaMs->ResetUnder();
+        theApp.m_tpTsaHz->ResetUnder();
+        theApp.m_tpDecCoeff->ResetUnder();
 
 				if( app->fhNew != NULL)
 					fclose( app->fhNew);
+
 				app->fhNew = NULL;
 			}
 		}
@@ -2014,185 +2312,181 @@ void CMainView::OnTimer(UINT nIDEvent)
     }
   }
 
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS) {
-		if( (( CSlg2App *) AfxGetApp())->m_nControlButtons) {
-			if( (( CSlg2App *) AfxGetApp())->m_shSignCoeff) {
-				m_ctlNedtParam1.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_btParam1 * m_dKimpSec);
-				m_ctlNedtParam2.SetValue( (( CSlg2App *) AfxGetApp())->m_btParam2);
-				m_ctlNedtParam3.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);		//
-				m_ctlNedtParam4.SetValue( 0.01 * ( double) (( CSlg2App *) AfxGetApp())->m_btParam4);
-				//m_ctlNedtParam5.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
-				//m_ctlNedtParam6.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
-				//m_ctlNedtParam7.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.);
-				m_ctlNedtParam8.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff / 65535.);
-				//m_ctlNedtParam9.SetValue( (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
-				//m_ctlNedtParam10.SetValue( (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
+  //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
+  //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
+  if( nIDEvent == MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS) {
+    if( theApp.GetSettings()->GetControlButtons()) {
+      if( theApp.m_shSignCoeff) {
+        m_ctlNedtParam1.SetValue( ( double) theApp.m_btParam1 * m_dKimpSec);
+        m_ctlNedtParam2.SetValue( theApp.m_btParam2);
+        m_ctlNedtParam3.SetValue( ( double) theApp.m_btParam3 / 250.);
+        m_ctlNedtParam4.SetValue( 0.01 * ( double) theApp.m_btParam4);
+        //m_ctlNedtParam5.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
+        //m_ctlNedtParam6.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
+        //m_ctlNedtParam7.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.);
+        m_ctlNedtParam8.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff / 65535.);
+        //m_ctlNedtParam9.SetValue( (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
+        //m_ctlNedtParam10.SetValue( (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 
-				KillTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS);
-			}
-		}
-	}
+        KillTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS);
+      }
+    }
+  }
 
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//таймер таймаута потока входящих данных
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_INPUT_DATA) {
-		KillTimer( MY_TIMER_INPUT_DATA);
-		KillTimer( MY_TIMER_COM_FLUSH);
-		KillTimer( MY_TIMER_1000);
+  //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
+  //таймер таймаута потока входящих данных
+  //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
+  if( nIDEvent == MY_TIMER_INPUT_DATA) {
+    KillTimer( MY_TIMER_INPUT_DATA);
+    KillTimer( MY_TIMER_COM_FLUSH);
+    KillTimer( MY_TIMER_1000);
 
-		if( m_ctlCOM.GetPortOpen())
-			m_ctlCOM.SetPortOpen( false);
+    if( m_ctlCOM.GetPortOpen())
+      m_ctlCOM.SetPortOpen( false);
 
-		for( int err=0; err < ERROR_6; err++) {
-			Beep( 100, 100);
-			Sleep( 200);
-		}
+    for( int err=0; err < ERROR_6; err++) {
+      Beep( 100, 100);
+      Sleep( 200);
+    }
 
-		app->m_nEmergencyCode = 1006;
-		m_strLblEmergency.Format( _T("1006"));
-		UpdateData( false);
+    app->m_nEmergencyCode = 1006;
+    m_strLblEmergency.Format( _T("1006"));
+    UpdateData( false);
 
-		AfxMessageBox( _T("Нет потока входящих данных от гироскопа."));
+    AfxMessageBox( _T("Нет потока входящих данных от гироскопа."));
 
-		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
+    //GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
+    GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
     GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
-    
-		
-		GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
-		GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
-		m_ctlComButton.SetValue( false);
-		m_ctlBtnCwStart.SetValue( false);
 
-		if( m_ctlCOM.GetPortOpen())
-			m_ctlCOM.SetPortOpen( false);
-				
-		m_bStopBigThreadFlag = true;
-		
-		gl_nCircleBufferGet = 0;
-		gl_nCircleBufferPut = 0;
+    GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
+    GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
+    m_ctlComButton.SetValue( false);
+    m_ctlBtnCwStart.SetValue( false);
 
-		gl_dGlobalTime = 0.;
-		gl_avW100.Reset();
-		gl_avW1000.Reset();
-		gl_avW10000.Reset();
-		gl_avW100000.Reset();
-		gl_avI1.Reset();
-		gl_avI2.Reset();
-		gl_avVpc.Reset();
-		gl_avAmplAng.Reset();
-    gl_avAmplAngDus.Reset();
-		gl_avT1.Reset();
-		gl_avT2.Reset();
-		gl_avTsa.Reset();
-		gl_avTsa1000.Reset();
-		gl_avTsa10000.Reset();
-		gl_avTsa100000.Reset();
-		
-		app->m_cbW100->Reset();
-		app->m_cbW1000->Reset();
-		app->m_cbW10000->Reset();
-		app->m_cbW100000->Reset();
-		app->m_cbI1->Reset();
-		app->m_cbI2->Reset();
-		app->m_cbVpc->Reset();
-		app->m_cbAmplAng->Reset();
-		app->m_cbT1->Reset();
-		app->m_cbT2->Reset();
-    app->m_cbT3->Reset();
-		app->m_cbTsaMcs->Reset();
-    app->m_cbTsaMs->Reset();
-    app->m_cbTsaHz->Reset();
-	}
+    if( m_ctlCOM.GetPortOpen())
+      m_ctlCOM.SetPortOpen( false);
 
-	CFormView::OnTimer(nIDEvent);
+    m_bStopBigThreadFlag = true;
+
+    gl_nCircleBufferGet = 0;
+    gl_nCircleBufferPut = 0;
+
+    gl_dGlobalTime = 0.;
+
+    gl_avgW.CommonReset();
+    gl_avgI1.CommonReset();
+    gl_avgI2.CommonReset();
+    gl_avgVpc.CommonReset();
+    gl_avgAmplAng.CommonReset();
+    gl_avgAmplAngDus.CommonReset();
+    gl_avgT1.CommonReset();
+    gl_avgT2.CommonReset();
+    gl_avgTsa.CommonReset();
+
+
+    theApp.m_tpW->ResetUnder();
+    theApp.m_tpI1->ResetUnder();
+    theApp.m_tpI2->ResetUnder();
+    theApp.m_tpVpc->ResetUnder();
+    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpT1->ResetUnder();
+    theApp.m_tpT2->ResetUnder();
+    theApp.m_tpT3->ResetUnder();
+    theApp.m_tpTsaMcs->ResetUnder();
+    theApp.m_tpTsaMs->ResetUnder();
+    theApp.m_tpTsaHz->ResetUnder();
+    theApp.m_tpDecCoeff->ResetUnder();
+  }
+
+  CFormView::OnTimer(nIDEvent);
 }
 
 BEGIN_EVENTSINK_MAP(CMainView, CFormView)
   //{{AFX_EVENTSINK_MAP(CMainView)
-	ON_EVENT(CMainView, IDC_GRAPH1, -600 /* Click */, OnClickGraph1, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH2, -600 /* Click */, OnClickGraph2, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH3, -600 /* Click */, OnClickGraph3, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH4, -600 /* Click */, OnClickGraph4, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH5, -600 /* Click */, OnClickGraph5, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH6, -600 /* Click */, OnClickGraph6, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH7, -600 /* Click */, OnClickGraph7, VTS_NONE)
-	ON_EVENT(CMainView, IDC_GRAPH8, -600 /* Click */, OnClickGraph8, VTS_NONE)
-	ON_EVENT(CMainView, IDC_CW_START, 1 /* ValueChanged */, OnValueChangedCwStart, VTS_BOOL)
-	ON_EVENT(CMainView, IDC_COMM, 1 /* OnComm */, OnOnCommComm, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH1, -600 /* Click */, OnClickGraph1, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH2, -600 /* Click */, OnClickGraph2, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH3, -600 /* Click */, OnClickGraph3, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH4, -600 /* Click */, OnClickGraph4, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH5, -600 /* Click */, OnClickGraph5, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH6, -600 /* Click */, OnClickGraph6, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH7, -600 /* Click */, OnClickGraph7, VTS_NONE)
+  ON_EVENT(CMainView, IDC_GRAPH8, -600 /* Click */, OnClickGraph8, VTS_NONE)
+  ON_EVENT(CMainView, IDC_CW_START, 1 /* ValueChanged */, OnValueChangedCwStart, VTS_BOOL)
+  ON_EVENT(CMainView, IDC_COMM, 1 /* OnComm */, OnOnCommComm, VTS_NONE)
+	ON_EVENT(CMainView, IDC_GRAPH1, -607 /* MouseUp */, OnMouseUpGraph1, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
-void CMainView::OnClickGraph1() 
+void CMainView::OnClickGraph1()
 {
-	UpdateData( TRUE);
-	m_nMainGraph = 1;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''/sec"));
+  m_nMainGraph = 1;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''/sec"));
 }
 
 void CMainView::OnClickGraph2() 
 {
-	m_nMainGraph = 2;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
+  m_nMainGraph = 2;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
 }
 
 void CMainView::OnClickGraph3() 
 {
-	m_nMainGraph = 3;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
+  m_nMainGraph = 3;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
 }
 
 void CMainView::OnClickGraph4() 
 {
-	m_nMainGraph = 4;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("V"));
+  m_nMainGraph = 4;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("V"));
 }
 
 void CMainView::OnClickGraph5() 
 {
-	m_nMainGraph = 5;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-  switch( m_nRadAmplAng) {
-    case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''")); break;
-    case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("В")); break;
-  }
-	
+  m_nMainGraph = 5;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''"));
+  //switch( m_nRadAmplAng) {
+  //  case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''")); break;
+  //  case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("В")); break;
+  //}
 }
 
 void CMainView::OnClickGraph6() 
 {
- 	m_nMainGraph = 6;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
- 	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
+  m_nMainGraph = 6;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
 }
 
 void CMainView::OnClickGraph7() 
 {
-	m_nMainGraph = 7;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-	m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
+  m_nMainGraph = 7;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
 }
 
-void CMainView::OnClickGraph8() 
+void CMainView::OnClickGraph8()
 {
   UpdateData( TRUE);
-	m_nMainGraph = 8;
-	m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-  switch( m_nTsaRadSelection) {
+  m_nMainGraph = 8;
+  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+
+  /*switch( m_nTsaRadSelection) {
     case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
     case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
     case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц")); break;
   }
-  /*if( m_nMainGraph == 8) {
+  */
+
+  /*/*if( m_nMainGraph == 8) {
     switch( m_nTsaRadSelection) {
       case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
       case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
@@ -2201,15 +2495,15 @@ void CMainView::OnClickGraph8()
   }*/
 }
 
-void CMainView::OnValueChangedCwStart(BOOL Value) 
+void CMainView::OnValueChangedCwStart(BOOL Value)
 {
-	m_nPointsSkipped = 0;
-	UpdateData( TRUE);
-	( ( CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
+  m_nPointsSkipped = 0;
+  UpdateData( TRUE);
+  theApp.GetSettings()->SetScaleCoeff( m_dKimpSec);
 
-	GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( Value);
-	//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( Value);	
-	GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( Value);
+  GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( Value);
+  //GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( Value);	
+  GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( Value);
 
   if( theApp.m_bSyncAsync == 2) {
     GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( FALSE);
@@ -2219,62 +2513,73 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( Value && theApp.m_bSyncAsync);
     GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( Value && theApp.m_bSyncAsync);
   }
-  
-  
-	
-	GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( !Value);
-	GetDlgItem( IDC_COM_BAUDRATE)->EnableWindow( !Value);
-	GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( !Value);
-	GetDlgItem( IDC_NEDT_MEAS_TIME)->EnableWindow( !Value);
-	
-	m_ctlComButton.SetValue( Value);
 
-	
 
-	if( Value) {
-		CSlg2App *app = (CSlg2App *) AfxGetApp();
-		theApp.m_bDeviceSerialNumber = false;
+  GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( !Value);
+  GetDlgItem( IDC_COM_BAUDRATE)->EnableWindow( !Value);
+  GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( !Value);
+  GetDlgItem( IDC_NEDT_MEAS_TIME)->EnableWindow( !Value);
 
-		if( app->m_cbW100 != NULL) { delete app->m_cbW100; app->m_cbW100 = NULL; }
-		if( app->m_cbW1000 != NULL) {	delete app->m_cbW1000; app->m_cbW1000 = NULL; }
-		if( app->m_cbW10000 != NULL) { delete app->m_cbW10000; app->m_cbW10000 = NULL; }
-		if( app->m_cbW100000 != NULL) { delete app->m_cbW100000; app->m_cbW100000 = NULL; }
-		if( app->m_cbI1 != NULL) { delete app->m_cbI1; app->m_cbI1 = NULL; }
-		if( app->m_cbI2 != NULL) { delete app->m_cbI2; app->m_cbI2 = NULL; }
-		if( app->m_cbVpc != NULL) { delete app->m_cbVpc; app->m_cbVpc = NULL; }
-		if( app->m_cbAmplAng != NULL) { delete app->m_cbAmplAng; app->m_cbAmplAng = NULL; }
-    if( app->m_cbAmplAngDus != NULL) { delete app->m_cbAmplAngDus; app->m_cbAmplAngDus = NULL; }
-		if( app->m_cbT1 != NULL) { delete app->m_cbT1; app->m_cbT1 = NULL; }
-		if( app->m_cbT2 != NULL) { delete app->m_cbT2; app->m_cbT2 = NULL; }
-    if( app->m_cbT3 != NULL) { delete app->m_cbT3; app->m_cbT3 = NULL; }
-		if( app->m_cbTsaMcs != NULL) { delete app->m_cbTsaMcs; app->m_cbTsaMcs = NULL; }
-    if( app->m_cbTsaMs != NULL)  { delete app->m_cbTsaMs;  app->m_cbTsaMs = NULL; }
-    if( app->m_cbTsaHz != NULL)  { delete app->m_cbTsaHz;  app->m_cbTsaHz = NULL; }
+  m_ctlComButton.SetValue( Value);
 
-		double dMeasTime = m_ctlNedtMeasTime.GetValue();
-		int nArraySize = 0;
-		if( dMeasTime > 0.5) {
-			nArraySize = (int) ( ( dMeasTime + 1.) * 10.);
-		}
-		else {
-			nArraySize = 1024;
-		}
-		
-		app->m_cbW100 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbW1000  = new CSlgCircleBuffer( nArraySize);
-		app->m_cbW10000 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbW100000 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbI1 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbI2 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbVpc = new CSlgCircleBuffer( nArraySize);
-		app->m_cbAmplAng = new CSlgCircleBuffer( nArraySize);
-    app->m_cbAmplAngDus = new CSlgCircleBuffer( nArraySize);
-		app->m_cbT1 = new CSlgCircleBuffer( nArraySize);
-		app->m_cbT2 = new CSlgCircleBuffer( nArraySize);
-    app->m_cbT3 = new CSlgCircleBuffer( nArraySize);
-    app->m_cbTsaMcs = new CSlgCircleBuffer( nArraySize);
-    app->m_cbTsaMs = new CSlgCircleBuffer( nArraySize);
-    app->m_cbTsaHz = new CSlgCircleBuffer( nArraySize);
+
+
+  if( Value) {
+    CSlg2App *app = (CSlg2App *) AfxGetApp();
+    //theApp.m_bDeviceSerialNumber = false;
+
+    theApp.m_tpW->FreeUnder();
+    theApp.m_tpI1->FreeUnder();
+    theApp.m_tpI2->FreeUnder();
+    theApp.m_tpVpc->FreeUnder();
+    theApp.m_tpAmplAng->FreeUnder();
+    theApp.m_tpAmplAngDus->FreeUnder();
+    theApp.m_tpT1->FreeUnder();
+    theApp.m_tpT2->FreeUnder();
+    theApp.m_tpT3->FreeUnder();
+    theApp.m_tpTsaMcs->FreeUnder();
+    theApp.m_tpTsaMs->FreeUnder();
+    theApp.m_tpTsaHz->FreeUnder();
+    theApp.m_tpDecCoeff->FreeUnder();
+
+
+    delete theApp.m_tpW;          theApp.m_tpW   = NULL;
+    delete theApp.m_tpI1;         theApp.m_tpI1  = NULL;
+    delete theApp.m_tpI2;         theApp.m_tpI2  = NULL;
+    delete theApp.m_tpVpc;        theApp.m_tpVpc = NULL;
+    delete theApp.m_tpAmplAng;    theApp.m_tpAmplAng = NULL;
+    delete theApp.m_tpAmplAngDus; theApp.m_tpAmplAngDus = NULL;
+    delete theApp.m_tpT1;         theApp.m_tpT1 = NULL;
+    delete theApp.m_tpT2;         theApp.m_tpT2 = NULL;
+    delete theApp.m_tpT3;         theApp.m_tpT3 = NULL;
+    delete theApp.m_tpTsaMcs;     theApp.m_tpTsaMcs = NULL;
+    delete theApp.m_tpTsaMs;      theApp.m_tpTsaMs = NULL;
+    delete theApp.m_tpTsaHz;      theApp.m_tpTsaHz = NULL;
+    delete theApp.m_tpDecCoeff;   theApp.m_tpDecCoeff = NULL;
+
+
+    double dMeasTime = m_ctlNedtMeasTime.GetValue();
+    int nArraySize = 0;
+    if( dMeasTime > 0.5) {
+      nArraySize = (int) ( ( dMeasTime + 1.) * 10.);
+    }
+    else {
+      nArraySize = 1024;
+    }
+
+    theApp.m_tpW = new CTrackedParam( nArraySize);
+    theApp.m_tpI1 = new CTrackedParam( nArraySize);
+    theApp.m_tpI2 = new CTrackedParam( nArraySize);
+    theApp.m_tpVpc = new CTrackedParam( nArraySize);
+    theApp.m_tpAmplAng = new CTrackedParam( nArraySize);
+    theApp.m_tpAmplAngDus = new CTrackedParam( nArraySize);
+    theApp.m_tpT1 = new CTrackedParam( nArraySize);
+    theApp.m_tpT2 = new CTrackedParam( nArraySize);
+    theApp.m_tpT3 = new CTrackedParam( nArraySize);
+    theApp.m_tpTsaMcs = new CTrackedParam( nArraySize);
+    theApp.m_tpTsaMs = new CTrackedParam( nArraySize);
+    theApp.m_tpTsaHz = new CTrackedParam( nArraySize);
+    theApp.m_tpDecCoeff = new CTrackedParam( nArraySize);
 
     theApp.m_nCheckSummFails = 0;
     theApp.m_nCounterFails = 0;
@@ -2284,111 +2589,135 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_shSignCoeff = 0;
     theApp.m_nHvAppliesThisRun = -1;
 
-		( ( CSlg2App *) AfxGetApp())->StartThreads();
+    ( ( CSlg2App *) AfxGetApp())->StartThreads();
 
-		if( m_ctlCOM.GetPortOpen())
-			m_ctlCOM.SetPortOpen( false);
-		m_ctlCOM.SetCommPort( 1 + m_nComPort);
-		switch( m_nComPortBaudrate) {
-			case 0: m_ctlCOM.SetSettings( _T("57600,N,8,1")); break;
-			case 1: m_ctlCOM.SetSettings( _T("115200,N,8,1")); break;
-			case 2: m_ctlCOM.SetSettings( _T("128000,N,8,1")); break;
-			case 3: m_ctlCOM.SetSettings( _T("256000,N,8,1")); break;
+    if( m_ctlCOM.GetPortOpen())
+      m_ctlCOM.SetPortOpen( false);
+
+    m_ctlCOM.SetCommPort( 1 + m_nComPort);
+    switch( m_nComPortBaudrate) {
+      case 0: m_ctlCOM.SetSettings( _T("57600,N,8,1")); break;
+      case 1: m_ctlCOM.SetSettings( _T("115200,N,8,1")); break;
+      case 2: m_ctlCOM.SetSettings( _T("128000,N,8,1")); break;
+      case 3: m_ctlCOM.SetSettings( _T("256000,N,8,1")); break;
       case 4: m_ctlCOM.SetSettings( _T("460800,N,8,1")); break;
       case 5: m_ctlCOM.SetSettings( _T("512000,N,8,1")); break;
       case 6: m_ctlCOM.SetSettings( _T("921600,N,8,1")); break;
-		}
-		m_ctlCOM.SetPortOpen( true);
+    }
+    m_ctlCOM.SetPortOpen( true);
 
-		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
-		
-		SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
-		SetTimer( MY_TIMER_1000,	  1000, NULL);
+    GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
+
+    SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
+    SetTimer( MY_TIMER_1000,	  1000, NULL);
 
     //опросник параметров
     m_nPollCounter = 0;
     SetTimer( MY_TIMER_POLLER,	  1000, NULL);
 
-		SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
-		SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
-		
-		SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
+    SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
+    SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
 
-		m_bBtnCwStart = true;
+    SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
 
-		m_strLblEmergency.Format( _T("0"));
-		app->m_nEmergencyCode = 0;
-		UpdateData( false);
-	}
-	else {
-		m_ctlCOM.SetPortOpen( false);
+    m_bBtnCwStart = true;
 
-		KillTimer( MY_TIMER_COM_FLUSH);
-		KillTimer( MY_TIMER_1000);
-		KillTimer( MY_TIMER_POLLER);
-				
-		m_bStopBigThreadFlag = true;
-		
-		CSlg2App *app = ((CSlg2App *) AfxGetApp());
+    m_strLblEmergency.Format( _T("0"));
+    app->m_nEmergencyCode = 0;
+    UpdateData( false);
+  }
+  else {
+    m_ctlCOM.SetPortOpen( false);
 
-		/*if( app->fh != NULL)
-			fclose( app->fh);
-		app->fh = NULL;*/
+    KillTimer( MY_TIMER_COM_FLUSH);
+    KillTimer( MY_TIMER_1000);
+    KillTimer( MY_TIMER_POLLER);
 
-		if( app->fhNew != NULL)
-			fclose( app->fhNew);
-		app->fhNew = NULL;
+    m_bStopBigThreadFlag = true;
 
-		gl_nCircleBufferGet = 0;
-		gl_nCircleBufferPut = 0;
+    CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
-		gl_dGlobalTime = 0.;
-		gl_avW100.Reset();
-		gl_avW1000.Reset();
-		gl_avW10000.Reset();
-		gl_avW100000.Reset();
-		gl_avI1.Reset();
-		gl_avI2.Reset();
-		gl_avVpc.Reset();
-		gl_avAmplAng.Reset();
-    gl_avAmplAngDus.Reset();
-		gl_avT1.Reset();
-		gl_avT2.Reset();
-		gl_avTsa.Reset();
-		gl_avTsa1000.Reset();
-		gl_avTsa10000.Reset();
-		gl_avTsa100000.Reset();
-		
+    /*
+    if( app->fh != NULL)
+      fclose( app->fh);
+    app->fh = NULL;
+    */
 
-		app->m_cbW100->Reset();
-		app->m_cbW1000->Reset();
-		app->m_cbW10000->Reset();
-		app->m_cbW100000->Reset();
-		app->m_cbI1->Reset();
-		app->m_cbI2->Reset();
-		app->m_cbVpc->Reset();
-		app->m_cbAmplAng->Reset();
-    app->m_cbAmplAngDus->Reset();
-		app->m_cbT1->Reset();
-		app->m_cbT2->Reset();
-    app->m_cbT3->Reset();
-		app->m_cbTsaMcs->Reset();
-    app->m_cbTsaMs->Reset();
-    app->m_cbTsaHz->Reset();
-	}
+    if( app->fhNew != NULL)
+      fclose( app->fhNew);
 
-	UpdateData( false);
+    app->fhNew = NULL;
+
+    gl_nCircleBufferGet = 0;
+    gl_nCircleBufferPut = 0;
+
+    gl_dGlobalTime = 0.;
+
+    gl_avgW.CommonReset();
+    gl_avgI1.CommonReset();
+    gl_avgI2.CommonReset();
+    gl_avgVpc.CommonReset();
+    gl_avgAmplAng.CommonReset();
+    gl_avgAmplAngDus.CommonReset();
+    gl_avgT1.CommonReset();
+    gl_avgT2.CommonReset();
+    gl_avgTsa.CommonReset();
+
+
+    theApp.m_tpW->ResetUnder();
+    theApp.m_tpI1->ResetUnder();
+    theApp.m_tpI2->ResetUnder();
+    theApp.m_tpVpc->ResetUnder();
+    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpAmplAngDus->ResetUnder();
+    theApp.m_tpT1->ResetUnder();
+    theApp.m_tpT2->ResetUnder();
+    theApp.m_tpT3->ResetUnder();
+    theApp.m_tpTsaMcs->ResetUnder();
+    theApp.m_tpTsaMs->ResetUnder();
+    theApp.m_tpTsaHz->ResetUnder();
+    theApp.m_tpDecCoeff->ResetUnder();
+  }
+
+  UpdateData( false);
 }
 
 void CMainView::OnDestroy() 
 {
-	UpdateData( true);
-	((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
-	((CSlg2App *) AfxGetApp())->m_nComPort = m_nComPort;
-	((CSlg2App *) AfxGetApp())->m_nComBaudrate = m_nComPortBaudrate;
+  UpdateData( true);
+  theApp.GetSettings()->SetScaleCoeff( m_dKimpSec);
+  theApp.GetSettings()->SetComPort( m_nComPort);
+  theApp.GetSettings()->SetComBaudrate( m_nComPortBaudrate);
 
-	CFormView::OnDestroy();
-	VERIFY( m_pFont.DeleteObject());
+  theApp.GetSettings()->SetParam4Graph1( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph2( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph3( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph4( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph5( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph6( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph7( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCurSel());
+  theApp.GetSettings()->SetParam4Graph8( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCurSel());
+
+  theApp.GetSettings()->SetGraph1Meaning( m_nRadGraph1);
+  theApp.GetSettings()->SetGraph2Meaning( m_nRadGraph2);
+  theApp.GetSettings()->SetGraph3Meaning( m_nRadGraph3);
+  theApp.GetSettings()->SetGraph4Meaning( m_nRadGraph4);
+  theApp.GetSettings()->SetGraph5Meaning( m_nRadGraph5);
+  theApp.GetSettings()->SetGraph6Meaning( m_nRadGraph6);
+  theApp.GetSettings()->SetGraph7Meaning( m_nRadGraph7);
+  theApp.GetSettings()->SetGraph8Meaning( m_nRadGraph8);
+
+  theApp.GetSettings()->SetGraph1_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph2_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph3_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph4_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph5_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph6_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph7_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->GetCurSel());
+  theApp.GetSettings()->SetGraph8_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->GetCurSel());
+
+  CFormView::OnDestroy();
+  VERIFY( m_pFont.DeleteObject());
 }
 
 void CMainView::OnParam1Btn() 
@@ -2559,13 +2888,13 @@ void CMainView::OnBtnRestoreParams()
 
 void CMainView::OnKillfocusEdtKImpSec() 
 {
-	UpdateData( true);
-	if( ((CSlg2App *) AfxGetApp())->m_nControlButtons) {
-		m_ctlNedtParam1.SetDiscreteInterval( m_dKimpSec);
-		m_ctlNedtParam1.SetIncDecValue( m_dKimpSec);
-		m_ctlNedtParam1.SetAccelInc( m_dKimpSec * 5.);
-		m_ctlNedtParam1.SetMaximum( m_dKimpSec * 255.);
-	}
+  UpdateData( true);
+  if( theApp.GetSettings()->GetControlButtons()) {
+    m_ctlNedtParam1.SetDiscreteInterval( m_dKimpSec);
+    m_ctlNedtParam1.SetIncDecValue( m_dKimpSec);
+    m_ctlNedtParam1.SetAccelInc( m_dKimpSec * 5.);
+    m_ctlNedtParam1.SetMaximum( m_dKimpSec * 255.);
+  }
 }
 
 void CMainView::OnDecCoeffCalc() 
@@ -2573,54 +2902,13 @@ void CMainView::OnDecCoeffCalc()
   if( gl_pDecCoeffCalcParams.m_bDecCoeffCalculation)
     return;
 
-	//stop screen refresh and other timers
-	//KillTimer( MY_TIMER_1000);
+  //stop screen refresh and other timers
+  //KillTimer( MY_TIMER_1000);
 
   gl_pDecCoeffCalcParams.Reset();
 
-	//switch our thread to dn_dU input
-	gl_pDecCoeffCalcParams.m_bDecCoeffCalculation = true;
-
-  /*
-	//reset data
-	CSlg2App *app = ((CSlg2App *) AfxGetApp());
-
-	gl_nCircleBufferGet = 0;
-	gl_nCircleBufferPut = 0;
-
-	gl_dGlobalTime = 0.;
-	gl_avW100.Reset();
-	gl_avW1000.Reset();
-	gl_avW10000.Reset();
-	gl_avW100000.Reset();
-	gl_avI1.Reset();
-	gl_avI2.Reset();
-	gl_avVpc.Reset();
-	gl_avAmplAng.Reset();
-  gl_avAmplAngDus.Reset();
-	gl_avT1.Reset();
-	gl_avT2.Reset();
-	gl_avTsa.Reset();
-	gl_avTsa1000.Reset();
-	gl_avTsa10000.Reset();
-	gl_avTsa100000.Reset();	
-
-	app->m_cbW100->Reset();
-	app->m_cbW1000->Reset();
-	app->m_cbW10000->Reset();
-	app->m_cbW100000->Reset();
-	app->m_cbI1->Reset();
-	app->m_cbI2->Reset();
-	app->m_cbVpc->Reset();
-	app->m_cbAmplAng->Reset();
-  app->m_cbAmplAngDus->Reset();
-	app->m_cbT1->Reset();
-	app->m_cbT2->Reset();
-  app->m_cbT3->Reset();
-	app->m_cbTsaMcs->Reset();
-  app->m_cbTsaMs->Reset();
-  app->m_cbTsaHz->Reset();
-  */
+  //switch our thread to dn_dU input
+  gl_pDecCoeffCalcParams.m_bDecCoeffCalculation = true;
 
 
   if( m_dlgDecCoeffCalc != NULL) {
@@ -2632,68 +2920,6 @@ void CMainView::OnDecCoeffCalc()
     m_dlgDecCoeffCalc->ShowWindow( SW_SHOW);
   }
 
-  /*
-  //show dlg
-	CDecCoeffCalc dlg;
-	if( dlg.DoModal() == IDOK) {
-		//double k = fabs( gl_dec_coeff_acc / ( double) gl_dec_coeff_acc_cntr);
-		double k = fabs( gl_dec_coeff_dN_acc / gl_dec_coeff_dU_acc);
-		m_ctlNedtParam8.SetValue( k);
-	}
-  */
-
-
-
-
-  /*
-	//switch our thread back to normal input
-	gl_bDecCoeffCalculation = false;
-
-	//switch dev back to normal output
-	SetTimer( MY_TIMER_SWITCH_AS, 100, NULL);
-
-
-	Sleep( 100);
-
-	//reset data
-	gl_nCircleBufferGet = 0;
-	gl_nCircleBufferPut = 0;
-
-	gl_dGlobalTime = 0.;
-	gl_avW100.Reset();
-	gl_avW1000.Reset();
-	gl_avW10000.Reset();
-	gl_avW100000.Reset();
-	gl_avI1.Reset();
-	gl_avI2.Reset();
-	gl_avVpc.Reset();
-	gl_avAmplAng.Reset();
-  gl_avAmplAngDus.Reset();
-	gl_avT1.Reset();
-	gl_avT2.Reset();
-	gl_avTsa.Reset();
-	gl_avTsa1000.Reset();
-	gl_avTsa10000.Reset();
-	gl_avTsa100000.Reset();	
-
-	theApp.m_cbW100->Reset();
-	theApp.m_cbW1000->Reset();
-	theApp.m_cbW10000->Reset();
-	theApp.m_cbW100000->Reset();
-	theApp.m_cbI1->Reset();
-	theApp.m_cbI2->Reset();
-	theApp.m_cbVpc->Reset();
-	theApp.m_cbAmplAng->Reset();
-  theApp.m_cbAmplAngDus->Reset();
-	theApp.m_cbT1->Reset();
-	theApp.m_cbT2->Reset();
-  theApp.m_cbT3->Reset();
-	theApp.m_cbTsaMcs->Reset();
-  theApp.m_cbTsaMs->Reset();
-  theApp.m_cbTsaHz->Reset();
-
-	//start screen refresh and other timers
-	SetTimer( MY_TIMER_1000, 1000, NULL);*/
 }
 
 void CMainView::OnOnCommComm() 
@@ -2704,8 +2930,8 @@ void CMainView::OnOnCommComm()
 		if( event == 1004) return;
 
 		UpdateData( TRUE);
-		((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
-		((CSlg2App *) AfxGetApp())->m_nComPort = m_nComPort;
+		theApp.GetSettings()->SetScaleCoeff( m_dKimpSec);
+		theApp.GetSettings()->SetComPort( m_nComPort);
 
 		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
 		//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
@@ -2730,37 +2956,30 @@ void CMainView::OnOnCommComm()
 		gl_nCircleBufferPut = 0;
 
 		gl_dGlobalTime = 0.;
-		gl_avW100.Reset();
-		gl_avW1000.Reset();
-		gl_avW10000.Reset();
-		gl_avW100000.Reset();
-		gl_avI1.Reset();
-		gl_avI2.Reset();
-		gl_avVpc.Reset();
-		gl_avAmplAng.Reset();
-    gl_avAmplAngDus.Reset();
-		gl_avT1.Reset();
-		gl_avT2.Reset();
-		gl_avTsa.Reset();
-		gl_avTsa1000.Reset();
-		gl_avTsa10000.Reset();
-		gl_avTsa100000.Reset();
-		
-		app->m_cbW100->Reset();
-		app->m_cbW1000->Reset();
-		app->m_cbW10000->Reset();
-		app->m_cbW100000->Reset();
-		app->m_cbI1->Reset();
-		app->m_cbI2->Reset();
-		app->m_cbVpc->Reset();
-		app->m_cbAmplAng->Reset();
-    app->m_cbAmplAngDus->Reset();
-		app->m_cbT1->Reset();
-		app->m_cbT2->Reset();
-    app->m_cbT3->Reset();
-		app->m_cbTsaMcs->Reset();
-    app->m_cbTsaMs->Reset();
-    app->m_cbTsaHz->Reset();
+
+		gl_avgW.CommonReset();
+    gl_avgI1.CommonReset();
+		gl_avgI2.CommonReset();
+		gl_avgVpc.CommonReset();
+		gl_avgAmplAng.CommonReset();
+    gl_avgAmplAngDus.CommonReset();
+		gl_avgT1.CommonReset();
+		gl_avgT2.CommonReset();
+		gl_avgTsa.CommonReset();
+
+    theApp.m_tpW->ResetUnder();
+    theApp.m_tpI1->ResetUnder();
+    theApp.m_tpI2->ResetUnder();
+    theApp.m_tpVpc->ResetUnder();
+    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpAmplAngDus->ResetUnder();
+		theApp.m_tpT1->ResetUnder();
+		theApp.m_tpT2->ResetUnder();
+    theApp.m_tpT3->ResetUnder();
+		theApp.m_tpTsaMcs->ResetUnder();
+    theApp.m_tpTsaMs->ResetUnder();
+    theApp.m_tpTsaHz->ResetUnder();
+    theApp.m_tpDecCoeff->ResetUnder();
 	
 		m_ctlBtnCwStart.SetValue( false);
 		m_bBtnCwStart = false;
@@ -2925,6 +3144,8 @@ void CMainView::OnBtnIntegrReset()
   //SendCommandToMc( 18, 0, 0);
 }
 
+
+/*
 void CMainView::OnRadT1Td1() 
 {
 	m_ctlSmallGraph6.SetCaption( _T("Термодатчик 1, [°C]"));
@@ -2993,9 +3214,36 @@ void CMainView::OnRadTsaHz()
     }
   }
 }
-
+*/
 void CMainView::OnBtnReqVersion() 
 {
+  /*for( int i=0; i<100; i++) {
+    gl_avgTsa.CommonAddPoint( i);
+    
+    if( (i%10) == 0)
+      gl_avgTsa.Get_100ms()->Reset();
+    
+    if( (i%20) == 0)
+      gl_avgTsa.Get_1s()->Reset();
+
+    if( (i%30) == 0)
+      gl_avgTsa.Get_10s()->Reset();
+
+    if( (i%50) == 0)
+      gl_avgTsa.Get_100s()->Reset();
+
+    CString strTmp;
+    strTmp.Format( "NPoints: 100ms=%d 1s=%d 10s=%d 100s=%d\n",
+          gl_avgTsa.Get_100ms()->GetCounter(), gl_avgTsa.Get_1s()->GetCounter(),
+          gl_avgTsa.Get_10s()->GetCounter(), gl_avgTsa.Get_100s()->GetCounter());
+    OutputDebugString( strTmp);
+
+    strTmp.Format( "Summ: 100ms=%f 1s=%f 10s=%f 100s=%f\n\n",
+          gl_avgTsa.Get_100ms()->GetSumm(), gl_avgTsa.Get_1s()->GetSumm(),
+          gl_avgTsa.Get_10s()->GetSumm(), gl_avgTsa.Get_100s()->GetSumm());
+    OutputDebugString( strTmp);
+  }*/
+
   QueueCommandToMc( MC_COMMAND_REQ, VERSION, 0, 0);
 }
 
@@ -3031,7 +3279,7 @@ void CMainView::OnBtnReqDecCoeff()
 
 void CMainView::OnBtnMcToOutAmplitude() 
 {
-  m_ctlNedtParam1.SetValue( theApp.m_btParam1 * theApp.m_dKimpSec);
+  m_ctlNedtParam1.SetValue( theApp.m_btParam1 * theApp.GetSettings()->GetScaleCoeff());
 }
 
 void CMainView::OnBtnMcToOutTactcode() 
@@ -3067,21 +3315,20 @@ void CMainView::OnBtnSwitchWDndu()
 void CMainView::OnBtnReset() 
 {
   m_nPointsSkipped = 0;
-  theApp.m_cbW100->Reset();
-	theApp.m_cbW1000->Reset();
-	theApp.m_cbW10000->Reset();
-	theApp.m_cbW100000->Reset();
-	theApp.m_cbI1->Reset();
-	theApp.m_cbI2->Reset();
-	theApp.m_cbVpc->Reset();
-	theApp.m_cbAmplAng->Reset();
-  theApp.m_cbAmplAngDus->Reset();
-	theApp.m_cbT1->Reset();
-	theApp.m_cbT2->Reset();
-  theApp.m_cbT3->Reset();
-  theApp.m_cbTsaMcs->Reset();
-  theApp.m_cbTsaMs->Reset();
-  theApp.m_cbTsaHz->Reset();
+
+  theApp.m_tpW->ResetUnder();
+  theApp.m_tpI1->ResetUnder();
+  theApp.m_tpI2->ResetUnder();
+  theApp.m_tpVpc->ResetUnder();
+  theApp.m_tpAmplAng->ResetUnder();
+  theApp.m_tpAmplAngDus->ResetUnder();
+	theApp.m_tpT1->ResetUnder();
+	theApp.m_tpT2->ResetUnder();
+  theApp.m_tpT3->ResetUnder();
+  theApp.m_tpTsaMcs->ResetUnder();
+  theApp.m_tpTsaMs->ResetUnder();
+  theApp.m_tpTsaHz->ResetUnder();
+  theApp.m_tpDecCoeff->ResetUnder();
 
   theApp.m_nCheckSummFails = 0;
   theApp.m_nMarkerFails = 0;
@@ -3091,39 +3338,130 @@ void CMainView::OnBtnReset()
 	gl_nCircleBufferPut = 0;
 
 	gl_dGlobalTime = 0.;
-	gl_avW100.Reset();
-	gl_avW1000.Reset();
-	gl_avW10000.Reset();
-	gl_avW100000.Reset();
-	gl_avI1.Reset();
-	gl_avI2.Reset();
-	gl_avVpc.Reset();
-	gl_avAmplAng.Reset();
-  gl_avAmplAngDus.Reset();
-	gl_avT1.Reset();
-	gl_avT2.Reset();
-	gl_avTsa.Reset();
-	gl_avTsa1000.Reset();
-	gl_avTsa10000.Reset();
-	gl_avTsa100000.Reset();
+	gl_avgW.CommonReset();
+  gl_avgI1.CommonReset();
+	gl_avgI2.CommonReset();
+	gl_avgVpc.CommonReset();
+	gl_avgAmplAng.CommonReset();
+  gl_avgAmplAngDus.CommonReset();
+	gl_avgT1.CommonReset();
+	gl_avgT2.CommonReset();
+	gl_avgTsa.CommonReset();
+	
 }
 
-void CMainView::OnRadAaImp() 
-{
-	m_ctlSmallGraph5.SetCaption( _T("Ампл. част. подст., ['']"));
-}
+//DEL void CMainView::OnRadAaImp() 
+//DEL {
+//DEL 	m_ctlSmallGraph5.SetCaption( _T("Ампл. част. подст., ['']"));
+//DEL }
 
-void CMainView::OnRadAaDus() 
-{
-	m_ctlSmallGraph5.SetCaption( _T("Ампл. с ДУСа, [В]"));
-}
+//DEL void CMainView::OnRadAaDus() 
+//DEL {
+//DEL 	m_ctlSmallGraph5.SetCaption( _T("Ампл. с ДУСа, [В]"));
+//DEL }
 
-void CMainView::OnBtnReqHvApplies() 
+void CMainView::OnBtnReqHvApplies()
 {
   QueueCommandToMc( MC_COMMAND_REQ, HV_APPLY_COUNT_TR , 0, 0);
 }
 
-void CMainView::OnBtnReqSn() 
+void CMainView::OnBtnReqSn()
 {
-	QueueCommandToMc( MC_COMMAND_REQ, DEVNUM, 0, 0);
+  theApp.m_bDeviceSerialNumber = false;
+  GetDlgItem( IDC_LBL_DEVICE_SERIAL_NUMBER)->SetWindowText( _T("-"));
+  if( m_ctlCOM.GetPortOpen())
+    QueueCommandToMc( MC_COMMAND_REQ, DEVNUM, 0, 0);
+}
+
+void CMainView::OnRadMeaning1()
+{
+  GetDlgItem( IDC_RAD_G1_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G1_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G2_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G2_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G3_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G3_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G4_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G4_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G5_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G5_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G6_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G6_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G7_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G7_T1)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G8_T1)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G8_T1)->SendMessage( WM_LBUTTONUP);
+}
+
+void CMainView::OnRadMeaning2()
+{
+  GetDlgItem( IDC_RAD_G1_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G1_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G2_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G2_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G3_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G3_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G4_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G4_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G5_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G5_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G6_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G6_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G7_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G7_T2)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G8_T2)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G8_T2)->SendMessage( WM_LBUTTONUP);
+}
+
+void CMainView::OnRadMeaning3() 
+{
+  GetDlgItem( IDC_RAD_G1_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G1_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G2_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G2_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G3_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G3_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G4_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G4_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G5_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G5_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G6_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G6_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G7_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G7_T3)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G8_T3)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G8_T3)->SendMessage( WM_LBUTTONUP);
+}
+
+void CMainView::OnRadMeaning4() 
+{
+  GetDlgItem( IDC_RAD_G1_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G1_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G2_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G2_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G3_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G3_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G4_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G4_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G5_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G5_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G6_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G6_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G7_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G7_T4)->SendMessage( WM_LBUTTONUP);
+  GetDlgItem( IDC_RAD_G8_T4)->SendMessage( WM_LBUTTONDOWN);
+  GetDlgItem( IDC_RAD_G8_T4)->SendMessage( WM_LBUTTONUP);
+}
+
+void CMainView::OnMouseUpGraph1(short Button, short Shift, long x, long y) 
+{
+  if( Button == MK_RBUTTON) {
+    /*CString strMsg;
+    strMsg.Format( _T("%d"), Button);
+    OutputDebugString( strMsg);
+    CNiPlot plot = m_ctlMainGraph.GetPlots().Item( _T("X-Axis"));
+    plot.SetLineColor();
+    CNiColor clr;
+    clr.SetBlue();*/
+  }
 }

@@ -14,17 +14,20 @@
 class CTrackedParam  
 {
 public:
-	
-	CTrackedParam( int n);
-	virtual ~CTrackedParam();
+
+  CTrackedParam( int n);
+  virtual ~CTrackedParam();
+  CSlgCircleBuffer *Get_Tacts() { return m_cbfrTacts;}
   CSlgCircleBuffer *Get_100ms() { return m_cbfr100ms;}
   CSlgCircleBuffer *Get_1s()    { return m_cbfr1s;}
   CSlgCircleBuffer *Get_10s()   { return m_cbfr10s;}
   CSlgCircleBuffer *Get_100s()  { return m_cbfr100s;}
+  CSlgCircleBuffer *Get_CB( int nMeaningTime);
   void RecalculateStatisticUnder();
   void ResetUnder();
   void FreeUnder( void);
 private:
+  CSlgCircleBuffer *m_cbfrTacts;
   CSlgCircleBuffer *m_cbfr100ms;
   CSlgCircleBuffer *m_cbfr1s;
   CSlgCircleBuffer *m_cbfr10s;

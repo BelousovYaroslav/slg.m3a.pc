@@ -39,7 +39,10 @@ double CSlgNewAverager::GetMean( void)
 	else
 		m_dMean = 0.;
 
+  //theApp.GetLogger()->LogDebug( "CSlgNewAverager::GetMean: m_dSumm = %f", m_dSumm);
 	m_dSumm = 0.; m_nCounter = 0;
+  //theApp.GetLogger()->LogDebug( "CSlgNewAverager::GetMean: m_dSumm = %f", m_dSumm);
+
 	return m_dMean;
 }
 
