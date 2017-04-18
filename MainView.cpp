@@ -42,8 +42,9 @@ extern CSlgGroupNewAverager gl_avgW;
 extern CSlgGroupNewAverager gl_avgI1;
 extern CSlgGroupNewAverager gl_avgI2;
 extern CSlgGroupNewAverager gl_avgVpc;
-extern CSlgGroupNewAverager gl_avgAmplAng;
-extern CSlgGroupNewAverager gl_avgAmplAngDus;
+extern CSlgGroupNewAverager gl_avgAmplAlt;
+extern CSlgGroupNewAverager gl_avgAmplDus;
+extern CSlgGroupNewAverager gl_avgAmplRULA;
 extern CSlgGroupNewAverager gl_avgT1;
 extern CSlgGroupNewAverager gl_avgT2;
 extern CSlgGroupNewAverager gl_avgTsa;
@@ -121,7 +122,7 @@ CMainView::CMainView()
 	m_nPointsSkipped = 0;	
 	m_bEmergencyCodeApperance = false;
   m_dlgDecCoeffCalc = NULL;
-
+  m_dlgGraphSetup = NULL;
   m_nPollParams[ 0] = SIGNCOEFF;
   m_nPollParams[ 1] = AMPLITUDE;
   m_nPollParams[ 2] = TACT_CODE;
@@ -136,6 +137,11 @@ CMainView::~CMainView()
   if( m_dlgDecCoeffCalc != NULL) {
     delete m_dlgDecCoeffCalc;
     m_dlgDecCoeffCalc = NULL;
+  }
+
+  if( m_dlgGraphSetup != NULL) {
+    delete m_dlgGraphSetup;
+    m_dlgGraphSetup = NULL;
   }
 }
 
@@ -1074,7 +1080,29 @@ void CMainView::RefreshGraphs()
       default: obj = &m_ctlSmallGraph1; nResId = IDC_CMB_GRAPH1_Y; nResIdX = IDC_CMB_GRAPH1_X; nMeaningTime = m_nRadGraph1; break;
     }
 
-    //определеим отображаемый параметр для обрабатываемого графика
+    if( obj != NULL) {
+      BOOL bMinY = theApp.GetSettings()->GetGraphSettings( i, 0);
+      double dblMinY = theApp.GetSettings()->GetGraphSettings( i, 1);
+      BOOL bMaxY = theApp.GetSettings()->GetGraphSettings( i, 2);
+      double dblMaxY = theApp.GetSettings()->GetGraphSettings( i, 3);
+      COLORREF clrLineColor = theApp.GetSettings()->GetGraphSettings( i, 4);
+
+      CNiAxis axis = obj->GetAxes().Item( "Y-Axis1");
+      if( bMinY || bMaxY) {
+        axis.SetAutoScale( false);
+        if( bMinY) axis.SetMinimum( dblMinY);
+        if( bMaxY) axis.SetMaximum( dblMaxY);
+      }
+      else {
+        axis.SetAutoScale( true);
+      }
+
+      CNiPlot plot = obj->GetPlots().Item( "Data");
+      CNiColor colLine = CNiColor( clrLineColor);
+      plot.SetLineColor( colLine);
+    }
+
+    //определим отображаемый параметр для обрабатываемого графика
     int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nResId))->GetCurSel();
 
     //определим какой кольцефой буфер нам использовать
@@ -1951,8 +1979,9 @@ void CMainView::OnTimer(UINT nIDEvent)
               gl_avgI1.CommonReset();
 							gl_avgI2.CommonReset();
 							gl_avgVpc.CommonReset();
-							gl_avgAmplAng.CommonReset();
-              gl_avgAmplAngDus.CommonReset();
+							gl_avgAmplAlt.CommonReset();
+              gl_avgAmplDus.CommonReset();
+              gl_avgAmplRULA.CommonReset();
 							gl_avgT1.CommonReset();
 							gl_avgT2.CommonReset();
 							gl_avgTsa.CommonReset();
@@ -2044,21 +2073,23 @@ void CMainView::OnTimer(UINT nIDEvent)
     m_strCheckSummFails.Format( _T("%d"), theApp.m_nCheckSummFails);
     m_strCounterFails.Format( _T("%d"), theApp.m_nCounterFails);
 
-		//обновление на экране версии прошивки аппарата
+		//доступность кнопки "Экспорт"
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( gl_avgW.Get_100ms()->GetCounter());
-		m_strSoftwareVersion = app->m_strSoftwareVer;
+
+		//обновление на экране версии прошивки аппарата
+    m_strSoftwareVersion = app->m_strSoftwareVer;
 		
 		//////////////////////////////////////////////////////////////////////
 		// Обновляем управленческие параметры
 		//////////////////////////////////////////////////////////////////////
-		m_strParam1Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam1 * m_dKimpSec);		//код амплитуды
-		m_strParam2Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_btParam2);											//код такта подставки
-		m_strParam3Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);		//коэффициент M
-		m_strParam4Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam4 / 100.);		//начальная мода
+		m_strParam1Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam1 * m_dKimpSec);		      //код амплитуды
+		m_strParam2Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_btParam2);											            //код такта подставки
+		m_strParam3Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam3 / 250.);		            //коэффициент M
+		m_strParam4Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_btParam4 / 100.);		            //начальная мода
 		//m_strParam5Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
 		//m_strParam6Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
 		//m_strParam7Val.Format( _T("%.2f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.0));
-		m_strParam8Val.Format( _T("%.5f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);
+		m_strParam8Val.Format( _T("%.5f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);   //коэффициент вычета
 		//m_strParam9Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
 		//m_strParam10Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 		
@@ -2223,8 +2254,9 @@ void CMainView::OnTimer(UINT nIDEvent)
         gl_avgI1.CommonReset();
 				gl_avgI2.CommonReset();
 				gl_avgVpc.CommonReset();
-				gl_avgAmplAng.CommonReset();
-        gl_avgAmplAngDus.CommonReset();
+				gl_avgAmplAlt.CommonReset();
+        gl_avgAmplDus.CommonReset();
+        gl_avgAmplRULA.CommonReset();
 				gl_avgT1.CommonReset();
 				gl_avgT2.CommonReset();
 				gl_avgTsa.CommonReset();
@@ -2380,8 +2412,9 @@ void CMainView::OnTimer(UINT nIDEvent)
     gl_avgI1.CommonReset();
     gl_avgI2.CommonReset();
     gl_avgVpc.CommonReset();
-    gl_avgAmplAng.CommonReset();
-    gl_avgAmplAngDus.CommonReset();
+    gl_avgAmplAlt.CommonReset();
+    gl_avgAmplDus.CommonReset();
+    gl_avgAmplRULA.CommonReset();
     gl_avgT1.CommonReset();
     gl_avgT2.CommonReset();
     gl_avgTsa.CommonReset();
@@ -2420,57 +2453,85 @@ BEGIN_EVENTSINK_MAP(CMainView, CFormView)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
+CString CMainView::UnitsForYAxis( int nYAxisCmbResourceID) {
+  CString strYaxis;
+  int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nYAxisCmbResourceID))->GetCurSel();
+  switch( nSelectedDisplayableParam) {
+    case 0:  strYaxis = _T("''/sec"); break;   //w, Угловая скорость, ["/sec]
+    case 1:  strYaxis = _T("mA");     break;   //I1, Разрядный ток 1, [mA]
+    case 2:  strYaxis = _T("mA");     break;   //I2, Разрядный ток 2, [mA]
+    case 3:  strYaxis = _T("V");      break;   //Vrpc, Напряжение на пьезокрр., [V]
+    case 4:  strYaxis = _T("\"");     break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
+    case 5:  strYaxis = _T("V");      break;   //Ampl_dus, Амплитуда колебаний (ДУС), [V]
+    case 6:  strYaxis = _T("code");   break;   // ************* RULA, Задатчик амплитуды, []
+    case 7:  strYaxis = _T("°C");     break;   //T1, Термодатчик 1, [°C]
+    case 8:  strYaxis = _T("°C");     break;   //T2, Термодатчик 2, [°C]
+    case 9:  strYaxis = _T("°C");     break;   //T3, Термодатчик 3, [°C]
+    case 10: strYaxis = _T("°C");     break;   //dT12, Разница T1 T2, [°C]
+    case 11: strYaxis = _T("°C");     break;   //dT13, Разница T1 T3, [°C]
+    case 12: strYaxis = _T("°C");     break;   //dT23, Разница T2 T3, [°C]
+    case 13: strYaxis = _T("msec");   break;   //dTsa, Время такта, [msec]
+    case 14: strYaxis = _T("mcsec");  break;   //dTsa, Время такта, [mcsec]
+    case 15: strYaxis = _T("Hz");     break;   //dTsa, Время такта, [Hz]
+    case 16: strYaxis = _T("\"/V");   break;   //dc, Коэффициент вычета, ["/В]
+  }
+  return strYaxis;
+}
+
 void CMainView::OnClickGraph1()
 {
   m_nMainGraph = 1;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''/sec"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH1_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph2() 
 {
   m_nMainGraph = 2;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH2_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph3() 
 {
   m_nMainGraph = 3;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("mA"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH3_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph4() 
 {
   m_nMainGraph = 4;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("V"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH4_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph5() 
 {
   m_nMainGraph = 5;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''"));
-  //switch( m_nRadAmplAng) {
-  //  case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("''")); break;
-  //  case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("В")); break;
-  //}
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH5_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph6() 
 {
   m_nMainGraph = 6;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH6_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph7() 
 {
   m_nMainGraph = 7;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("°C"));
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH7_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnClickGraph8()
@@ -2478,21 +2539,8 @@ void CMainView::OnClickGraph8()
   UpdateData( TRUE);
   m_nMainGraph = 8;
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
-
-  /*switch( m_nTsaRadSelection) {
-    case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
-    case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
-    case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц")); break;
-  }
-  */
-
-  /*/*if( m_nMainGraph == 8) {
-    switch( m_nTsaRadSelection) {
-      case 0: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мксек")); break;
-      case 1: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("мсек")); break;
-      case 2: m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( _T("Гц")); break;
-    }
-  }*/
+  CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH8_Y);
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
 }
 
 void CMainView::OnValueChangedCwStart(BOOL Value)
@@ -2613,7 +2661,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 
     //опросник параметров
     m_nPollCounter = 0;
-    SetTimer( MY_TIMER_POLLER,	  1000, NULL);
+    SetTimer( MY_TIMER_POLLER, 1000, NULL);
 
     SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
     SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
@@ -2657,8 +2705,9 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     gl_avgI1.CommonReset();
     gl_avgI2.CommonReset();
     gl_avgVpc.CommonReset();
-    gl_avgAmplAng.CommonReset();
-    gl_avgAmplAngDus.CommonReset();
+    gl_avgAmplAlt.CommonReset();
+    gl_avgAmplDus.CommonReset();
+    gl_avgAmplRULA.CommonReset();
     gl_avgT1.CommonReset();
     gl_avgT2.CommonReset();
     gl_avgTsa.CommonReset();
@@ -2961,8 +3010,9 @@ void CMainView::OnOnCommComm()
     gl_avgI1.CommonReset();
 		gl_avgI2.CommonReset();
 		gl_avgVpc.CommonReset();
-		gl_avgAmplAng.CommonReset();
-    gl_avgAmplAngDus.CommonReset();
+		gl_avgAmplAlt.CommonReset();
+    gl_avgAmplDus.CommonReset();
+    gl_avgAmplRULA.CommonReset();
 		gl_avgT1.CommonReset();
 		gl_avgT2.CommonReset();
 		gl_avgTsa.CommonReset();
@@ -3342,8 +3392,9 @@ void CMainView::OnBtnReset()
   gl_avgI1.CommonReset();
 	gl_avgI2.CommonReset();
 	gl_avgVpc.CommonReset();
-	gl_avgAmplAng.CommonReset();
-  gl_avgAmplAngDus.CommonReset();
+	gl_avgAmplAlt.CommonReset();
+  gl_avgAmplDus.CommonReset();
+  gl_avgAmplRULA.CommonReset();
 	gl_avgT1.CommonReset();
 	gl_avgT2.CommonReset();
 	gl_avgTsa.CommonReset();
@@ -3456,12 +3507,43 @@ void CMainView::OnRadMeaning4()
 void CMainView::OnMouseUpGraph1(short Button, short Shift, long x, long y) 
 {
   if( Button == MK_RBUTTON) {
-    /*CString strMsg;
-    strMsg.Format( _T("%d"), Button);
-    OutputDebugString( strMsg);
-    CNiPlot plot = m_ctlMainGraph.GetPlots().Item( _T("X-Axis"));
-    plot.SetLineColor();
-    CNiColor clr;
-    clr.SetBlue();*/
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 0);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+
+    /*
+    theApp.GetSettings()->
+    //CNiPlot *plot = m_ctlMainGraph.GetPlots().Item( 0);
+    //plot->SetPointStyle( CNiPlot::PointStyles
+
+    /*
+    PointNone                 = 0,      // None
+            PointEmptySquare          = 1,      // Empty square
+            PointSolidSquare          = 2,      // Solid square
+            PointAsterisk             = 3,      // Asterisk
+            PointDottedEmptySquare    = 4,      // Dotted empty square
+            PointDottedSolidSquare    = 5,      // Dotted solid square
+            PointSolidDiamond         = 6,      // Solid diamond
+            PointEmptySquareWithX     = 7,      // Empty square with X
+            PointEmptySquareWithCross = 8,      // Empty square with cross
+            PointEmptyCircle          = 9,      // Empty circle
+            PointSolidCircle          = 10,     // Solid circle
+            PointDottedEmptyCircle    = 11,     // Dotted empty circle
+            PointDottedSolidCircle    = 12,     // Dotted solid circle
+            PointX                    = 13,     // X
+            PointBoldX                = 14,     // Bold X
+            PointSmallX               = 15,     // Small X
+            PointCross                = 16,     // Cross
+            PointBoldCross            = 17,     // Bold cross
+            PointSmallCross           = 18,     // Small cross
+            PointSmallEmptySquare     = 19,     // Small empty square
+            PointSmallSolidSquare     = 20,     // Small solid square
+            PointSimpleDot            = 21,     // Simple dot
+            PointEmptyDiamond         = 22      // Empty diamond
+            */
   }
 }

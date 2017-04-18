@@ -63,6 +63,17 @@ void CSettings::LoadSettings()
   m_nGraph6AxisX = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_X"), 0);
   m_nGraph7AxisX = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_X"), 0);
   m_nGraph8AxisX = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_X"), 0);
+
+
+
+  m_bGraph1MinY   = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_BMINY"), 0);
+  m_dblGraph1MinY = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMINY"), 0) / 1000.;
+  m_bGraph1MaxY   = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_BMAXY"), 0);
+  m_dblGraph1MaxY = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMAXY"), 0) / 1000.;
+  m_clrGraph1LineColor = theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_LINECOLOR"), 0);
+  //BOOL m_bLine;                   //соединять линиями
+  //int m_nGraph1LineWidth;         //толщина линии
+
 }
 
 void CSettings::SaveSettings()
@@ -98,6 +109,182 @@ void CSettings::SaveSettings()
   theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH6_X"), m_nGraph6AxisX);
   theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH7_X"), m_nGraph7AxisX);
   theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH8_X"), m_nGraph8AxisX);
+
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_BMINY"), m_bGraph1MinY);
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMINY"), ( int) m_dblGraph1MinY * 1000);
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_BMAXY"), m_bGraph1MaxY);
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMAXY"), ( int) m_dblGraph1MaxY * 1000);
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_LINECOLOR"), m_clrGraph1LineColor);
+  //BOOL m_bLine;                   //соединять линиями
+  //int m_nGraph1LineWidth;         //толщина линии
+}
+
+int CSettings::GetBMinY( int nGraph) {
+  int nReturnValue = -1;
+  switch( nGraph) {
+    case 0: nReturnValue = m_bGraph1MinY; break;
+    /*case 1: nReturnValue = m_bGraph2MinY; break;
+    case 2: nReturnValue = m_bGraph3MinY; break;
+    case 3: nReturnValue = m_bGraph4MinY; break;
+    case 4: nReturnValue = m_bGraph5MinY; break;
+    case 5: nReturnValue = m_bGraph6MinY; break;
+    case 6: nReturnValue = m_bGraph7MinY; break;
+    case 6: nReturnValue = m_bGraph8MinY; break;*/
+  }
+  return nReturnValue;
+}
+
+void CSettings::SetBMinY( int nGraph, BOOL bValue) {
+  switch( nGraph) {
+    case 0: m_bGraph1MinY = bValue; break;
+    /*case 1: nReturnValue = m_bGraph2MinY; break;
+    case 2: nReturnValue = m_bGraph3MinY; break;
+    case 3: nReturnValue = m_bGraph4MinY; break;
+    case 4: nReturnValue = m_bGraph5MinY; break;
+    case 5: nReturnValue = m_bGraph6MinY; break;
+    case 6: nReturnValue = m_bGraph7MinY; break;
+    case 6: nReturnValue = m_bGraph8MinY; break;*/
+  }
+}
+
+double CSettings::GetDblMinY( int nGraph) {
+  double dblReturnValue = -1.;
+  switch( nGraph) {
+    case 0: dblReturnValue = m_dblGraph1MinY; break;
+    /*
+    case 1: dblReturnValue = m_dblGraph2MinY; break;
+    case 2: dblReturnValue = m_dblGraph3MinY; break;
+    case 3: dblReturnValue = m_dblGraph4MinY; break;
+    case 4: dblReturnValue = m_dblGraph5MinY; break;
+    case 5: dblReturnValue = m_dblGraph6MinY; break;
+    case 6: dblReturnValue = m_dblGraph7MinY; break;
+    case 6: dblReturnValue = m_dblGraph8MinY; break;
+    */
+  }
+  return dblReturnValue;
+}
+
+void CSettings::SetDblMinY( int nGraph, double dblValue) {
+  switch( nGraph) {
+    case 0: m_dblGraph1MinY = dblValue; break;
+    /*
+    case 1: dblReturnValue = m_dblGraph2MinY; break;
+    case 2: dblReturnValue = m_dblGraph3MinY; break;
+    case 3: dblReturnValue = m_dblGraph4MinY; break;
+    case 4: dblReturnValue = m_dblGraph5MinY; break;
+    case 5: dblReturnValue = m_dblGraph6MinY; break;
+    case 6: dblReturnValue = m_dblGraph7MinY; break;
+    case 6: dblReturnValue = m_dblGraph8MinY; break;
+    */
+  }  
+}
+
+int CSettings::GetBMaxY( int nGraph) {
+  int nReturnValue = -1;
+  switch( nGraph) {
+    case 0: nReturnValue = m_bGraph1MaxY; break;
+    /*case 1: nReturnValue = m_bGraph2MaxY; break;
+    case 2: nReturnValue = m_bGraph3MaxY; break;
+    case 3: nReturnValue = m_bGraph4MaxY; break;
+    case 4: nReturnValue = m_bGraph5MaxY; break;
+    case 5: nReturnValue = m_bGraph6MaxY; break;
+    case 6: nReturnValue = m_bGraph7MaxY; break;
+    case 6: nReturnValue = m_bGraph8MaxY; break;*/
+  }
+  return nReturnValue;
+}
+
+void CSettings::SetBMaxY( int nGraph, BOOL bValue) {
+  switch( nGraph) {
+    case 0: m_bGraph1MaxY = bValue; break;
+    /*case 1: nReturnValue = m_bGraph2MaxY; break;
+    case 2: nReturnValue = m_bGraph3MaxY; break;
+    case 3: nReturnValue = m_bGraph4MaxY; break;
+    case 4: nReturnValue = m_bGraph5MaxY; break;
+    case 5: nReturnValue = m_bGraph6MaxY; break;
+    case 6: nReturnValue = m_bGraph7MaxY; break;
+    case 6: nReturnValue = m_bGraph8MaxY; break;*/
+  }
+}
+
+double CSettings::GetDblMaxY( int nGraph) {
+  double dblReturnValue = -1.;
+  switch( nGraph) {
+    case 0: dblReturnValue = m_dblGraph1MaxY; break;
+    /*
+    case 1: dblReturnValue = m_dblGraph2MaxY; break;
+    case 2: dblReturnValue = m_dblGraph3MaxY; break;
+    case 3: dblReturnValue = m_dblGraph4MaxY; break;
+    case 4: dblReturnValue = m_dblGraph5MaxY; break;
+    case 5: dblReturnValue = m_dblGraph6MaxY; break;
+    case 6: dblReturnValue = m_dblGraph7MaxY; break;
+    case 6: dblReturnValue = m_dblGraph8MaxY; break;
+    */
+  }
+  return dblReturnValue;
+}
+
+void CSettings::SetDblMaxY( int nGraph, double dblValue) {
+  switch( nGraph) {
+    case 0: m_dblGraph1MaxY = dblValue; break;
+    /*
+    case 1: dblReturnValue = m_dblGraph2MinY; break;
+    case 2: dblReturnValue = m_dblGraph3MinY; break;
+    case 3: dblReturnValue = m_dblGraph4MinY; break;
+    case 4: dblReturnValue = m_dblGraph5MinY; break;
+    case 5: dblReturnValue = m_dblGraph6MinY; break;
+    case 6: dblReturnValue = m_dblGraph7MinY; break;
+    case 6: dblReturnValue = m_dblGraph8MinY; break;
+    */
+  }
+}
+
+int CSettings::GetGraphSettings( int nGraph, int nParameter) {
+  int nReturnValue = -1;
+  
+  switch( nParameter) {
+    case 0: nReturnValue = GetBMinY( nGraph); break;                      //BMINY
+    case 1: nReturnValue = ( int) ( GetDblMinY( nGraph) * 1000.); break;  //DBLMINY
+    case 2: nReturnValue = GetBMaxY( nGraph); break;                      //BMAXY
+    case 3: nReturnValue = ( int) ( GetDblMaxY( nGraph) * 1000.); break;  //DBLMAXY
+
+    case 4: //LINECOLOR
+      switch( nGraph) {
+        case 0: nReturnValue = m_clrGraph1LineColor; break;
+        /*case 1: nReturnValue = m_clrGraph2LineColor; break;
+        case 2: nReturnValue = m_clrGraph3LineColor; break;
+        case 3: nReturnValue = m_clrGraph4LineColor; break;
+        case 4: nReturnValue = m_clrGraph5LineColor; break;
+        case 5: nReturnValue = m_clrGraph6LineColor; break;
+        case 6: nReturnValue = m_clrGraph7LineColor; break;
+        case 6: nReturnValue = m_clrGraph8LineColor; break;*/
+      }
+    break;
+  }
+
+  return nReturnValue;
+}
+
+void CSettings::SetGraphSettings( int nGraph, int nParameter, int nValue) {
+  switch( nParameter) {
+    case 0: SetBMinY( nGraph, nValue); break;           //BMINY
+    case 1: SetDblMinY( nGraph, nValue / 1000.); break; //DBLMINY
+    case 2: SetBMaxY( nGraph, nValue); break;           //BMAXY
+    case 3: SetDblMaxY( nGraph, nValue / 1000.); break; //DBLMAXY
+
+    case 4: //LINECOLOR
+      switch( nGraph) {
+        case 0: m_clrGraph1LineColor = nValue; break;
+        /*case 1: nReturnValue = m_clrGraph2LineColor; break;
+        case 2: nReturnValue = m_clrGraph3LineColor; break;
+        case 3: nReturnValue = m_clrGraph4LineColor; break;
+        case 4: nReturnValue = m_clrGraph5LineColor; break;
+        case 5: nReturnValue = m_clrGraph6LineColor; break;
+        case 6: nReturnValue = m_clrGraph7LineColor; break;
+        case 6: nReturnValue = m_clrGraph8LineColor; break;*/
+      }
+    break;
+  }
 }
 
 BOOL CSettings::EditSettings()

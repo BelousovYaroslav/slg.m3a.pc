@@ -32,7 +32,7 @@ public:
   double GetScaleCoeff() { return m_dKimpSec;}
   void SetScaleCoeff( double dblNewVal) { m_dKimpSec = dblNewVal;}
 
-  //отображаемый параметр
+  //отображаемый параметр (значение по оси Y)
   int  GetParam4Graph1() { return m_nGraph1DisplayParam;}
   void SetParam4Graph1( int nNewVal) { m_nGraph1DisplayParam = nNewVal;}
 
@@ -82,7 +82,7 @@ public:
   int  GetGraph8Meaning() { return m_nGraph8Meaning;}
   void SetGraph8Meaning( int nNewVal) { m_nGraph8Meaning = nNewVal;}
 
-  //Оси Х
+  //Значение оси Х
   int  GetGraph1_AxX() { return m_nGraph1AxisX;}
   void SetGraph1_AxX( int nAxX) { m_nGraph1AxisX = nAxX;}
 
@@ -107,6 +107,39 @@ public:
   int  GetGraph8_AxX() { return m_nGraph8AxisX;}
   void SetGraph8_AxX( int nAxX) { m_nGraph8AxisX = nAxX;}
 
+  //Min-max графиков
+  BOOL GetGraph1_bMinY()            {  return m_bGraph1MinY; }
+  void SetGraph1_bMinY( BOOL bMinY) {  m_bGraph1MinY = bMinY; }
+  BOOL GetGraph1_bMaxY()            {  return m_bGraph1MaxY; }
+  void SetGraph1_bMaxY( BOOL bMaxY) {  m_bGraph1MaxY = bMaxY; } 
+  double GetGraph1_dblMinY()                {  return m_dblGraph1MinY; }
+  void   SetGraph1_dblMinY( double dblMinY) {  m_dblGraph1MinY = dblMinY; }
+  double GetGraph1_dblMaxY()                {  return m_dblGraph1MaxY; }
+  void   SetGraph1_dblMaxY( double dblMaxY) {  m_dblGraph1MaxY = dblMaxY; }
+
+  //настройки точек и линии графиков
+  COLORREF GetGraph1LineColor() { return m_clrGraph1LineColor;}
+  void SetGraph1LineColor( COLORREF clr) { m_clrGraph1LineColor = clr;}
+  
+  /*
+  BOOL m_bLine;                   //соединять линиями
+  int m_nGraph1LineWidth;         //толщина линии
+  */
+
+  int GetBMinY( int nGraph);
+  double GetDblMinY( int nGraph);
+  int GetBMaxY( int nGraph);
+  double GetDblMaxY( int nGraph);
+
+  int GetGraphSettings( int nGraph, int nParameter);
+
+  void SetBMinY( int nGraph, BOOL bValue);
+  void SetDblMinY( int nGraph, double dblValue);
+  void SetBMaxY( int nGraph, BOOL bValue);
+  void SetDblMaxY( int nGraph, double dblValue);
+
+  void SetGraphSettings( int nGraph, int nParameter, int nValue);
+  
 private:
   int m_nLogLevel;
   
@@ -118,6 +151,13 @@ private:
   int m_nGraph1DisplayParam;  //сохраняемый-вычитываемый из реестра параметр для отображения в графике 1
   int m_nGraph1AxisX;         //ось X (время, температуры)
   int m_nGraph1Meaning;       //осреднение графика 1
+  BOOL m_bGraph1MinY;             //включенная опция minY
+  double m_dblGraph1MinY;         //minY
+  BOOL m_bGraph1MaxY;             //включенная опция maxY
+  double m_dblGraph1MaxY;         //maxY
+  COLORREF m_clrGraph1LineColor;  //цвет линии
+  //BOOL m_bLine;                   //соединять линиями
+  //int m_nGraph1LineWidth;         //толщина линии
 
   int m_nGraph2DisplayParam;  //сохраняемый-вычитываемый из реестра параметр для отображения в графике 2
   int m_nGraph2AxisX;         //ось X (время, температуры)

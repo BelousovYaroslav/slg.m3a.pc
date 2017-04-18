@@ -240,21 +240,21 @@
 #define IDC_BTN_REQ_SN                  1200
 #define IDC_CMB_GRAPH1_X                1201
 #define IDC_CMB_GRAPH2_X                1202
-#define IDC_CHECK1                      1202
+#define IDC_CHK_Y_MAX                   1202
 #define IDC_CMB_GRAPH3_X                1203
-#define IDC_EDIT1                       1203
+#define IDC_EDT_Y_MAX                   1203
 #define IDC_CMB_GRAPH4_X                1204
-#define IDC_CHECK2                      1204
+#define IDC_CHK_Y_MIN                   1204
 #define IDC_CMB_GRAPH5_X                1205
-#define IDC_EDIT2                       1205
+#define IDC_EDT_Y_MIN                   1205
 #define IDC_CMB_GRAPH6_X                1206
-#define IDC_CHECK3                      1206
+#define IDC_CHK_X_MIN                   1206
 #define IDC_CMB_GRAPH7_X                1207
-#define IDC_EDIT3                       1207
+#define IDC_EDT_X_MIN                   1207
 #define IDC_CMB_GRAPH8_X                1208
-#define IDC_CHECK4                      1208
+#define IDC_CHK_X_MAX                   1208
 #define IDC_RAD_G6_T2                   1209
-#define IDC_EDIT4                       1209
+#define IDC_EDT_X_MAX                   1209
 #define IDC_RAD_G6_T3                   1210
 #define IDC_RAD_G6_T4                   1211
 #define IDC_RAD_G7_T1                   1212
@@ -281,6 +281,10 @@
 #define IDC_CMB_GRAPH6_Y                1233
 #define IDC_CMB_GRAPH7_Y                1234
 #define IDC_CMB_GRAPH8_Y                1235
+#define IDC_CHK_LINE                    1237
+#define IDC_CWSPN_LINE_WIDTH            1239
+#define IDC_COMMONDIALOG                1241
+#define IDC_LBL_LINE_COLOR              1242
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -288,9 +292,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1204
+#define _APS_NEXT_CONTROL_VALUE         1243
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

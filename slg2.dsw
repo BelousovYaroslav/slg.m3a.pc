@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "slg2"=".\slg2.dsp" - Package Owner=<4>
+Project: "slg2"=.\slg2.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -30,6 +30,7 @@ Package=<3>
     {17301DA3-C84D-11CF-AE6F-0020AF31CEF9}
     {2AFA9F10-0B6A-11D2-A250-00A024D8324D}
     {648A5600-2C6E-101B-82B6-000000000014}
+    {F9043C85-F6F2-101A-A3C9-08002B2F49FB}
 }}}
 
 ###############################################################################

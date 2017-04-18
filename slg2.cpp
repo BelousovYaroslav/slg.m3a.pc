@@ -61,8 +61,9 @@ CSlgGroupNewAverager gl_avgW;
 CSlgGroupNewAverager gl_avgI1;
 CSlgGroupNewAverager gl_avgI2;
 CSlgGroupNewAverager gl_avgVpc;
-CSlgGroupNewAverager gl_avgAmplAng;
-CSlgGroupNewAverager gl_avgAmplAngDus;
+CSlgGroupNewAverager gl_avgAmplAlt;
+CSlgGroupNewAverager gl_avgAmplDus;
+CSlgGroupNewAverager gl_avgAmplRULA;
 CSlgGroupNewAverager gl_avgT1;
 CSlgGroupNewAverager gl_avgT2;
 CSlgGroupNewAverager gl_avgT3;
@@ -384,18 +385,33 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 				case CNTRPC:
           gl_avgVpc.CommonAddPoint( dCur1);
-          gl_dblVpc_tact = ( ( dCur1 / 4096. * 3.) - 2.048) * 100.;
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            gl_dblVpc_tact = ( ( dCur1 / 4096. * 3.) - 2.048) * 100.;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            gl_dblVpc_tact = 101. * (( dCur1 / 4096. * 2.5) - 1.23);
+
+          
         break;
 
 
 				case AMPLANG_ALTERA:
-          gl_avgAmplAng.CommonAddPoint( dCur1);
-          gl_dblAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 4.;
+          gl_avgAmplAlt.CommonAddPoint( dCur1);
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            gl_dblAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 4.;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            gl_dblAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 2.;
+
         break;
         case AMPLANG_DUS:
-          gl_avgAmplAngDus.CommonAddPoint( dCur1);
+          gl_avgAmplDus.CommonAddPoint( dCur1);
         break;
-
+        case RULA:
+          gl_avgAmplRULA.CommonAddPoint( dCur1);
+        break;
 
 				case AMPLITUDE: theApp.m_btParam1 = nCur1;        break;        //Амплитуда колебаний виброподвеса
 				case TACT_CODE: theApp.m_btParam2 = nCur1;        break;        //Код такта подставки
@@ -605,28 +621,44 @@ DWORD WINAPI BigThread(LPVOID lparam)
           double dbl_pVpc;
           if( gl_avgVpc.Get_100ms()->GetCounter()) {
             double Vpc = gl_avgVpc.Get_100ms()->GetMean();					  //напряжение на пьезокорректорах
-            dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	      // V
+            
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+              dbl_pVpc = 101. * (( Vpc / 4096. * 2.5) - 1.23);
           }
 
           //амплитуда от альтеры (в импульсах)
           double dbl_pAA;
-          if( gl_avgAmplAng.Get_100ms()->GetCounter()) {
-            double AmplAng = gl_avgAmplAng.Get_100ms()->GetMean();	            //amplang
-            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+          if( gl_avgAmplAlt.Get_100ms()->GetCounter()) {
+            double AmplAng = gl_avgAmplAlt.Get_100ms()->GetMean();	            //amplang
+            
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+              dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+              dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff();	    //''
           }
 
           //амплитуда от ДУСа
           double dbl_pAADus;
-          if( gl_avgAmplAngDus.Get_100ms()->GetCounter()) {
-            double AmplAngDus = gl_avgAmplAngDus.Get_100ms()->GetMean();   //amplangDus
-            dbl_pAADus = AmplAngDus / 4096. * 3.;							      // V
+          if( gl_avgAmplDus.Get_100ms()->GetCounter()) {
+            double AmplAngDus = gl_avgAmplDus.Get_100ms()->GetMean();         //amplangDus
+            dbl_pAADus = AmplAngDus / 4096. * 3.;							                // V
+          }
+
+          //амплитуда RULA
+          double dbl_pRULA;
+          if( gl_avgAmplRULA.Get_100ms()->GetCounter()) {
+            dbl_pRULA = gl_avgAmplRULA.Get_100ms()->GetMean();                //amplangRULA
           }
 
           //температура 1
           double dbl_pT1;
           if( gl_avgT1.Get_100ms()->GetCounter()) {
-            double T1 = gl_avgT1.Get_100ms()->GetMean();             //термодатчик 1
-            dbl_pT1 = T1 / 65535. * 200. - 100.;				            //V!
+            double T1 = gl_avgT1.Get_100ms()->GetMean();                      //термодатчик 1
+            dbl_pT1 = T1 / 65535. * 200. - 100.;				                      //V!
             //gl_pT1 = T1;
           }
 
@@ -712,7 +744,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           gl_avgI1.CommonReset();
           gl_avgI2.CommonReset();
           gl_avgVpc.CommonReset();
-          gl_avgAmplAng.CommonReset();
+          gl_avgAmplAlt.CommonReset();
+          gl_avgAmplDus.CommonReset();
+          gl_avgAmplRULA.CommonReset();
           gl_avgT1.CommonReset();
           gl_avgT2.CommonReset();
           gl_avgTsa.CommonReset();
@@ -752,28 +786,44 @@ DWORD WINAPI BigThread(LPVOID lparam)
         double dbl_pVpc;
 				if( gl_avgVpc.Get_1s()->GetCounter()) {
 					double Vpc = gl_avgVpc.Get_1s()->GetMean();					      //напряжение на пьезокорректорах
-					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+					
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pVpc = 101. * (( Vpc / 4096. * 2.5) - 1.23);
 				}
 
         //амплитуда от альтеры (в импульсах)
         double dbl_pAA;
-				if( gl_avgAmplAng.Get_1s()->GetCounter()) {
-					double AmplAng = gl_avgAmplAng.Get_1s()->GetMean();	              //amplang
-					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+				if( gl_avgAmplAlt.Get_1s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAlt.Get_1s()->GetMean();	              //amplang
+					
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff();	    //''
 				}
 
         //амплитуда от ДУСа
         double dbl_pAADus;
-        if( gl_avgAmplAngDus.Get_1s()->GetCounter()) {
-					double AmplAngDus = gl_avgAmplAngDus.Get_1s()->GetMean();  //amplangDus
-					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+        if( gl_avgAmplDus.Get_1s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplDus.Get_1s()->GetMean();  //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							      // V
+				}
+
+        //амплитуда RULA
+        double dbl_pAARULA;
+        if( gl_avgAmplRULA.Get_1s()->GetCounter()) {
+					dbl_pAARULA = gl_avgAmplRULA.Get_1s()->GetMean();       //amplangRULA
 				}
 
         //температура 1
         double dbl_pT1;
         if( gl_avgT1.Get_1s()->GetCounter()) {
-					double T1 = gl_avgT1.Get_1s()->GetMean();                  //термодатчик 1
-					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
+					double T1 = gl_avgT1.Get_1s()->GetMean();               //термодатчик 1
+					dbl_pT1 = T1 / 65535. * 200. - 100.;				            //V!
           //gl_pT1 = T1;
 				}
 
@@ -848,29 +898,45 @@ DWORD WINAPI BigThread(LPVOID lparam)
         //напряжение на пьезокорректорах
         double dbl_pVpc;
 				if( gl_avgVpc.Get_10s()->GetCounter()) {
-					double Vpc = gl_avgVpc.Get_10s()->GetMean();					      //напряжение на пьезокорректорах
-					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+					double Vpc = gl_avgVpc.Get_10s()->GetMean();					            //напряжение на пьезокорректорах
+
+					if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pVpc = 101. * (( Vpc / 4096. * 2.5) - 1.23);
 				}
 
         //амплитуда от альтеры (в импульсах)
         double dbl_pAA;
-				if( gl_avgAmplAng.Get_10s()->GetCounter()) {
-					double AmplAng = gl_avgAmplAng.Get_10s()->GetMean();	              //amplang
-					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	  //''
+				if( gl_avgAmplAlt.Get_10s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAlt.Get_10s()->GetMean();	            //amplang
+					
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff();	    //''
 				}
 
         //амплитуда от ДУСа
         double dbl_pAADus;
-        if( gl_avgAmplAngDus.Get_10s()->GetCounter()) {
-					double AmplAngDus = gl_avgAmplAngDus.Get_10s()->GetMean();  //amplangDus
-					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+        if( gl_avgAmplDus.Get_10s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplDus.Get_10s()->GetMean();           //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							                // V
+				}
+
+        //амплитуда RULA
+        double dbl_pAARULA;
+        if( gl_avgAmplRULA.Get_10s()->GetCounter()) {
+					dbl_pAARULA = gl_avgAmplRULA.Get_10s()->GetMean();                //amplang RULA
 				}
 
         //температура 1
         double dbl_pT1;
         if( gl_avgT1.Get_10s()->GetCounter()) {
-					double T1 = gl_avgT1.Get_10s()->GetMean();                  //термодатчик 1
-					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
+					double T1 = gl_avgT1.Get_10s()->GetMean();                        //термодатчик 1
+					dbl_pT1 = T1 / 65535. * 200. - 100.;				                      //V!
           //gl_pT1 = T1;
 				}
 
@@ -878,8 +944,8 @@ DWORD WINAPI BigThread(LPVOID lparam)
         //температура 2
         double dbl_pT2;
         if( gl_avgT2.Get_10s()->GetCounter()) {
-					double T2 = gl_avgT2.Get_10s()->GetMean();	              //термодатчик 2
-					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
+					double T2 = gl_avgT2.Get_10s()->GetMean();	                      //термодатчик 2
+					dbl_pT2 = T2 / 65535. * 200. - 100.;				                      //V!
           //gl_pT2 = T2;
 				}
 
@@ -908,6 +974,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         theApp.m_tpVpc->        Get_10s()->AddPoint( dbl_pVpc,                gl_dGlobalTime, bInveracity10s);
         theApp.m_tpAmplAng->    Get_10s()->AddPoint( dbl_pAA,                 gl_dGlobalTime, bInveracity10s);
         theApp.m_tpAmplAngDus-> Get_10s()->AddPoint( dbl_pAADus,              gl_dGlobalTime, bInveracity10s);
+        //theApp.m_tpAmplAngRULA->Get_10s()->AddPoint( dbl_pAARULA,             gl_dGlobalTime, bInveracity10s);
         theApp.m_tpT1->         Get_10s()->AddPoint( dbl_pT1,                 gl_dGlobalTime, bInveracity10s);
         theApp.m_tpT2->         Get_10s()->AddPoint( dbl_pT2,                 gl_dGlobalTime, bInveracity10s);
         theApp.m_tpT3->         Get_10s()->AddPoint( dbl_pT3,                 gl_dGlobalTime, bInveracity10s);
@@ -947,21 +1014,37 @@ DWORD WINAPI BigThread(LPVOID lparam)
         double dbl_pVpc;
 				if( gl_avgVpc.Get_100s()->GetCounter()) {
 					double Vpc = gl_avgVpc.Get_100s()->GetMean();					      //напряжение на пьезокорректорах
-					dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;	        // V
+
+					if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pVpc = 101. * (( Vpc / 4096. * 2.5) - 1.23);
 				}
 
         //амплитуда от альтеры (в импульсах)
         double dbl_pAA;
-				if( gl_avgAmplAng.Get_100s()->GetCounter()) {
-					double AmplAng = gl_avgAmplAng.Get_100s()->GetMean();	          //amplang
-					dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+				if( gl_avgAmplAlt.Get_100s()->GetCounter()) {
+					double AmplAng = gl_avgAmplAlt.Get_100s()->GetMean();	            //amplang
+					
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff();	    //''
 				}
 
         //амплитуда от ДУСа
         double dbl_pAADus;
-        if( gl_avgAmplAngDus.Get_100s()->GetCounter()) {
-					double AmplAngDus = gl_avgAmplAngDus.Get_100s()->GetMean();  //amplangDus
-					dbl_pAADus = AmplAngDus / 4096. * 3.;							        // V
+        if( gl_avgAmplDus.Get_100s()->GetCounter()) {
+					double AmplAngDus = gl_avgAmplDus.Get_100s()->GetMean();          //amplangDus
+					dbl_pAADus = AmplAngDus / 4096. * 3.;							                // V
+				}
+
+        //амплитуда RULA
+        double dbl_pAARULA;
+        if( gl_avgAmplRULA.Get_100s()->GetCounter()) {
+					dbl_pAARULA = gl_avgAmplRULA.Get_100s()->GetMean();               //amplangRULA
 				}
 
         //температура 1
@@ -1006,6 +1089,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         theApp.m_tpVpc->        Get_100s()->AddPoint( dbl_pVpc,                 gl_dGlobalTime, bInveracity100s);
         theApp.m_tpAmplAng->    Get_100s()->AddPoint( dbl_pAA,                  gl_dGlobalTime, bInveracity100s);
         theApp.m_tpAmplAngDus-> Get_100s()->AddPoint( dbl_pAADus,               gl_dGlobalTime, bInveracity100s);
+        //theApp.m_tpAmplAngRULA->Get_100s()->AddPoint( dbl_pAARULA,              gl_dGlobalTime, bInveracity100s);
         theApp.m_tpT1->         Get_100s()->AddPoint( dbl_pT1,                  gl_dGlobalTime, bInveracity100s);
         theApp.m_tpT2->         Get_100s()->AddPoint( dbl_pT2,                  gl_dGlobalTime, bInveracity100s);
         theApp.m_tpT3->         Get_100s()->AddPoint( dbl_pT3,                  gl_dGlobalTime, bInveracity100s);

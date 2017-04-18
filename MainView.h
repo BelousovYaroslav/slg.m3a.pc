@@ -22,6 +22,8 @@
 #endif
 
 #include "DecCoeffCalc.h"
+#include "DlgGraphSetup.h"
+
 #include "McCommandItem.h"
 #include <queue>
 
@@ -208,7 +210,9 @@ private:
 	void RefreshGraphs( void);
   std::queue <CMcCommandItem *> m_queCommandQueue;
   void QueueCommandToMc( char btCmd, char btParam1, char btParam2, char btParam3);
+  CString UnitsForYAxis( int nYAxisCmbResourceID);
   CDecCoeffCalc *m_dlgDecCoeffCalc;
+  CDlgGraphSetup *m_dlgGraphSetup;
   int m_nPollParams[ POLL_PARAMS_LEN];
   int m_nPollCounter;
 };
