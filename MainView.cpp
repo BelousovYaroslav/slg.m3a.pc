@@ -1035,26 +1035,6 @@ void CMainView::MakeDeltaLine( CTrackedParam *tp1, CTrackedParam *tp2, CNiReal64
 
 void CMainView::RefreshGraphs()
 {
-  /*
-  BOOL bW[]       = { false, false, false, false, false};
-  BOOL bI1[]      = { false, false, false, false, false};
-  BOOL bI2[]      = { false, false, false, false, false};
-  BOOL bVpc[]     = { false, false, false, false, false};
-  BOOL bAA_A[]    = { false, false, false, false, false};
-  BOOL bAA_D[]    = { false, false, false, false, false};
-  BOOL bT1_D[]    = { false, false, false, false, false};
-  BOOL bT2_D[]    = { false, false, false, false, false};
-  BOOL bT3_D[]    = { false, false, false, false, false};
-  BOOL bdT12_D[]  = { false, false, false, false, false};
-  BOOL bdT13_D[]  = { false, false, false, false, false};
-  BOOL bdT23_D[]  = { false, false, false, false, false};
-
-  //Здесь будем хранить уже 
-  CNiReal64Matrix *lines[10][5];
-  memset( &bLineCalculated, 0, 5 * 10 * sizeof( CNiReal64Matrix*));
-  */
-
-
   theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p1");
 
   //цикл по всем 8 графикам
@@ -1080,6 +1060,7 @@ void CMainView::RefreshGraphs()
       default: obj = &m_ctlSmallGraph1; nResId = IDC_CMB_GRAPH1_Y; nResIdX = IDC_CMB_GRAPH1_X; nMeaningTime = m_nRadGraph1; break;
     }
 
+    /*
     if( obj != NULL) {
       BOOL bMinY = theApp.GetSettings()->GetGraphSettings( i, 0);
       double dblMinY = theApp.GetSettings()->GetGraphSettings( i, 1);
@@ -1101,6 +1082,7 @@ void CMainView::RefreshGraphs()
       CNiColor colLine = CNiColor( clrLineColor);
       plot.SetLineColor( colLine);
     }
+    */
 
     //определим отображаемый параметр для обрабатываемого графика
     int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nResId))->GetCurSel();
@@ -1112,9 +1094,9 @@ void CMainView::RefreshGraphs()
       case 1:  cbfrY = theApp.m_tpI1->Get_CB( nMeaningTime);         break;   //I1, Разрядный ток 1, [mA]
       case 2:  cbfrY = theApp.m_tpI2->Get_CB( nMeaningTime);         break;   //I2, Разрядный ток 2, [mA]
       case 3:  cbfrY = theApp.m_tpVpc->Get_CB( nMeaningTime);        break;   //Vrpc, Напряжение на пьезокрр., [V]
-      case 4:  cbfrY = theApp.m_tpAmplAng->Get_CB( nMeaningTime);    break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
+      case 4:  cbfrY = theApp.m_tpAmplAngAlt->Get_CB( nMeaningTime); break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
       case 5:  cbfrY = theApp.m_tpAmplAngDus->Get_CB( nMeaningTime); break;   //Ampl_dus, Амплитуда колебаний (ДУС), ["]
-      case 6:  cbfrY = theApp.m_tpAmplAng->Get_CB( nMeaningTime);    break;   // ************* RULA, Задатчик амплитуды, []
+      case 6:  cbfrY = theApp.m_tpAmplAngRULA->Get_CB( nMeaningTime);break;   //RULA, Задатчик амплитуды, []
       case 7:  cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //T1, Термодатчик 1, [°C]
       case 8:  cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //T2, Термодатчик 2, [°C]
       case 9:  cbfrY = theApp.m_tpT3->Get_CB( nMeaningTime);         break;   //T3, Термодатчик 3, [°C]
@@ -1672,8 +1654,9 @@ void CMainView::RefreshGraphs()
   theApp.m_tpI1->RecalculateStatisticUnder();
   theApp.m_tpI2->RecalculateStatisticUnder();
   theApp.m_tpVpc->RecalculateStatisticUnder();
-  theApp.m_tpAmplAng->RecalculateStatisticUnder();
+  theApp.m_tpAmplAngAlt->RecalculateStatisticUnder();
   theApp.m_tpAmplAngDus->RecalculateStatisticUnder();
+  theApp.m_tpAmplAngRULA->RecalculateStatisticUnder();
   theApp.m_tpT1->RecalculateStatisticUnder();
   theApp.m_tpT2->RecalculateStatisticUnder();
   theApp.m_tpT3->RecalculateStatisticUnder();
@@ -1706,9 +1689,9 @@ void CMainView::RefreshGraphs()
     case  1:  cbfr = theApp.m_tpI1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //I1
     case  2:  cbfr = theApp.m_tpI2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //I2
     case  3:  cbfr = theApp.m_tpVpc->Get_CB( nMeaningTimeRad);        bShowStatistic = TRUE; break;    //Vpc
-    case  4:  cbfr = theApp.m_tpAmplAng->Get_CB( nMeaningTimeRad);    bShowStatistic = TRUE; break;    //Ampl_alt
+    case  4:  cbfr = theApp.m_tpAmplAngAlt->Get_CB( nMeaningTimeRad); bShowStatistic = TRUE; break;    //Ampl_alt
     case  5:  cbfr = theApp.m_tpAmplAngDus->Get_CB( nMeaningTimeRad); bShowStatistic = TRUE; break;    //Ampl_alt
-    case  6:  cbfr = theApp.m_tpAmplAng->Get_CB( nMeaningTimeRad);    bShowStatistic = TRUE; break;    //Ampl_alt_rula
+    case  6:  cbfr = theApp.m_tpAmplAngRULA->Get_CB( nMeaningTimeRad);bShowStatistic = TRUE; break;    //Ampl_alt_rula
     case  7:  cbfr = theApp.m_tpT1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T1
     case  8:  cbfr = theApp.m_tpT2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T2
     case  9:  cbfr = theApp.m_tpT3->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T3
@@ -1763,32 +1746,32 @@ void CMainView::OnInitialUpdate()
   m_nComPort = theApp.GetSettings()->GetComPort();
   m_nComPortBaudrate = theApp.GetSettings()->GetComBaudrate();
 
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph1());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph2());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph3());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph4());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph5());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph6());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph7());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->SetCurSel( theApp.GetSettings()->GetParam4Graph8());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(0)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(1)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(2)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(3)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(4)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(5)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(6)->GetAxisY());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->SetCurSel( theApp.GetSettings()->GetGraphSettings(7)->GetAxisY());
 
-  m_nRadGraph1 = theApp.GetSettings()->GetGraph1Meaning();
-  m_nRadGraph2 = theApp.GetSettings()->GetGraph2Meaning();
-  m_nRadGraph3 = theApp.GetSettings()->GetGraph3Meaning();
-  m_nRadGraph4 = theApp.GetSettings()->GetGraph4Meaning();
-  m_nRadGraph5 = theApp.GetSettings()->GetGraph5Meaning();
-  m_nRadGraph6 = theApp.GetSettings()->GetGraph6Meaning();
-  m_nRadGraph7 = theApp.GetSettings()->GetGraph7Meaning();
-  m_nRadGraph8 = theApp.GetSettings()->GetGraph8Meaning();
+  m_nRadGraph1 = theApp.GetSettings()->GetGraphSettings(0)->GetMeaning();
+  m_nRadGraph2 = theApp.GetSettings()->GetGraphSettings(1)->GetMeaning();
+  m_nRadGraph3 = theApp.GetSettings()->GetGraphSettings(2)->GetMeaning();
+  m_nRadGraph4 = theApp.GetSettings()->GetGraphSettings(3)->GetMeaning();
+  m_nRadGraph5 = theApp.GetSettings()->GetGraphSettings(4)->GetMeaning();
+  m_nRadGraph6 = theApp.GetSettings()->GetGraphSettings(5)->GetMeaning();
+  m_nRadGraph7 = theApp.GetSettings()->GetGraphSettings(6)->GetMeaning();
+  m_nRadGraph8 = theApp.GetSettings()->GetGraphSettings(7)->GetMeaning();
 
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->SetCurSel( theApp.GetSettings()->GetGraph1_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->SetCurSel( theApp.GetSettings()->GetGraph2_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->SetCurSel( theApp.GetSettings()->GetGraph3_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->SetCurSel( theApp.GetSettings()->GetGraph4_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->SetCurSel( theApp.GetSettings()->GetGraph5_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->SetCurSel( theApp.GetSettings()->GetGraph6_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->SetCurSel( theApp.GetSettings()->GetGraph7_AxX());
-  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->SetCurSel( theApp.GetSettings()->GetGraph8_AxX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(0)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(1)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(2)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(3)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(4)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(5)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(6)->GetAxisX());
+  ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->SetCurSel( theApp.GetSettings()->GetGraphSettings(7)->GetAxisX());
 
   m_nMainGraph = 1;
 
@@ -1990,7 +1973,9 @@ void CMainView::OnTimer(UINT nIDEvent)
               theApp.m_tpI1->ResetUnder();
               theApp.m_tpI2->ResetUnder();
               theApp.m_tpVpc->ResetUnder();
-							theApp.m_tpAmplAng->ResetUnder();
+							theApp.m_tpAmplAngAlt->ResetUnder();
+              theApp.m_tpAmplAngDus->ResetUnder();
+              theApp.m_tpAmplAngRULA->ResetUnder();
 							theApp.m_tpT1->ResetUnder();
 							theApp.m_tpT2->ResetUnder();
               theApp.m_tpT3->ResetUnder();
@@ -2266,7 +2251,9 @@ void CMainView::OnTimer(UINT nIDEvent)
         theApp.m_tpI1->ResetUnder();
         theApp.m_tpI2->ResetUnder();
         theApp.m_tpVpc->ResetUnder();
-				theApp.m_tpAmplAng->ResetUnder();
+				theApp.m_tpAmplAngAlt->ResetUnder();
+        theApp.m_tpAmplAngDus->ResetUnder();
+        theApp.m_tpAmplAngRULA->ResetUnder();
 				theApp.m_tpT1->ResetUnder();
 				theApp.m_tpT2->ResetUnder();
         theApp.m_tpT3->ResetUnder();
@@ -2424,7 +2411,9 @@ void CMainView::OnTimer(UINT nIDEvent)
     theApp.m_tpI1->ResetUnder();
     theApp.m_tpI2->ResetUnder();
     theApp.m_tpVpc->ResetUnder();
-    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpAmplAngAlt->ResetUnder();
+    theApp.m_tpAmplAngDus->ResetUnder();
+    theApp.m_tpAmplAngRULA->ResetUnder();
     theApp.m_tpT1->ResetUnder();
     theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -2580,8 +2569,9 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpI1->FreeUnder();
     theApp.m_tpI2->FreeUnder();
     theApp.m_tpVpc->FreeUnder();
-    theApp.m_tpAmplAng->FreeUnder();
+    theApp.m_tpAmplAngAlt->FreeUnder();
     theApp.m_tpAmplAngDus->FreeUnder();
+    theApp.m_tpAmplAngRULA->FreeUnder();
     theApp.m_tpT1->FreeUnder();
     theApp.m_tpT2->FreeUnder();
     theApp.m_tpT3->FreeUnder();
@@ -2595,8 +2585,9 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     delete theApp.m_tpI1;         theApp.m_tpI1  = NULL;
     delete theApp.m_tpI2;         theApp.m_tpI2  = NULL;
     delete theApp.m_tpVpc;        theApp.m_tpVpc = NULL;
-    delete theApp.m_tpAmplAng;    theApp.m_tpAmplAng = NULL;
+    delete theApp.m_tpAmplAngAlt; theApp.m_tpAmplAngAlt = NULL;
     delete theApp.m_tpAmplAngDus; theApp.m_tpAmplAngDus = NULL;
+    delete theApp.m_tpAmplAngRULA;theApp.m_tpAmplAngRULA = NULL;
     delete theApp.m_tpT1;         theApp.m_tpT1 = NULL;
     delete theApp.m_tpT2;         theApp.m_tpT2 = NULL;
     delete theApp.m_tpT3;         theApp.m_tpT3 = NULL;
@@ -2619,8 +2610,9 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpI1 = new CTrackedParam( nArraySize);
     theApp.m_tpI2 = new CTrackedParam( nArraySize);
     theApp.m_tpVpc = new CTrackedParam( nArraySize);
-    theApp.m_tpAmplAng = new CTrackedParam( nArraySize);
+    theApp.m_tpAmplAngAlt = new CTrackedParam( nArraySize);
     theApp.m_tpAmplAngDus = new CTrackedParam( nArraySize);
+    theApp.m_tpAmplAngRULA = new CTrackedParam( nArraySize);
     theApp.m_tpT1 = new CTrackedParam( nArraySize);
     theApp.m_tpT2 = new CTrackedParam( nArraySize);
     theApp.m_tpT3 = new CTrackedParam( nArraySize);
@@ -2717,8 +2709,9 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpI1->ResetUnder();
     theApp.m_tpI2->ResetUnder();
     theApp.m_tpVpc->ResetUnder();
-    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpAmplAngAlt->ResetUnder();
     theApp.m_tpAmplAngDus->ResetUnder();
+    theApp.m_tpAmplAngRULA->ResetUnder();
     theApp.m_tpT1->ResetUnder();
     theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -2738,32 +2731,32 @@ void CMainView::OnDestroy()
   theApp.GetSettings()->SetComPort( m_nComPort);
   theApp.GetSettings()->SetComBaudrate( m_nComPortBaudrate);
 
-  theApp.GetSettings()->SetParam4Graph1( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph2( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph3( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph4( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph5( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph6( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph7( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCurSel());
-  theApp.GetSettings()->SetParam4Graph8( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(0)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(1)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(2)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(3)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(4)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(5)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(6)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(7)->SetAxisY( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCurSel());
 
-  theApp.GetSettings()->SetGraph1Meaning( m_nRadGraph1);
-  theApp.GetSettings()->SetGraph2Meaning( m_nRadGraph2);
-  theApp.GetSettings()->SetGraph3Meaning( m_nRadGraph3);
-  theApp.GetSettings()->SetGraph4Meaning( m_nRadGraph4);
-  theApp.GetSettings()->SetGraph5Meaning( m_nRadGraph5);
-  theApp.GetSettings()->SetGraph6Meaning( m_nRadGraph6);
-  theApp.GetSettings()->SetGraph7Meaning( m_nRadGraph7);
-  theApp.GetSettings()->SetGraph8Meaning( m_nRadGraph8);
+  theApp.GetSettings()->GetGraphSettings(0)->SetMeaning( m_nRadGraph1);
+  theApp.GetSettings()->GetGraphSettings(1)->SetMeaning( m_nRadGraph2);
+  theApp.GetSettings()->GetGraphSettings(2)->SetMeaning( m_nRadGraph3);
+  theApp.GetSettings()->GetGraphSettings(3)->SetMeaning( m_nRadGraph4);
+  theApp.GetSettings()->GetGraphSettings(4)->SetMeaning( m_nRadGraph5);
+  theApp.GetSettings()->GetGraphSettings(5)->SetMeaning( m_nRadGraph6);
+  theApp.GetSettings()->GetGraphSettings(6)->SetMeaning( m_nRadGraph7);
+  theApp.GetSettings()->GetGraphSettings(7)->SetMeaning( m_nRadGraph8);
 
-  theApp.GetSettings()->SetGraph1_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph2_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph3_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph4_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph5_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph6_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph7_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->GetCurSel());
-  theApp.GetSettings()->SetGraph8_AxX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(0)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(1)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(2)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(3)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(4)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(5)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(6)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_X))->GetCurSel());
+  theApp.GetSettings()->GetGraphSettings(7)->SetAxisX( ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_X))->GetCurSel());
 
   CFormView::OnDestroy();
   VERIFY( m_pFont.DeleteObject());
@@ -3021,8 +3014,9 @@ void CMainView::OnOnCommComm()
     theApp.m_tpI1->ResetUnder();
     theApp.m_tpI2->ResetUnder();
     theApp.m_tpVpc->ResetUnder();
-    theApp.m_tpAmplAng->ResetUnder();
+    theApp.m_tpAmplAngAlt->ResetUnder();
     theApp.m_tpAmplAngDus->ResetUnder();
+    theApp.m_tpAmplAngRULA->ResetUnder();
 		theApp.m_tpT1->ResetUnder();
 		theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -3370,8 +3364,9 @@ void CMainView::OnBtnReset()
   theApp.m_tpI1->ResetUnder();
   theApp.m_tpI2->ResetUnder();
   theApp.m_tpVpc->ResetUnder();
-  theApp.m_tpAmplAng->ResetUnder();
+  theApp.m_tpAmplAngAlt->ResetUnder();
   theApp.m_tpAmplAngDus->ResetUnder();
+  theApp.m_tpAmplAngRULA->ResetUnder();
 	theApp.m_tpT1->ResetUnder();
 	theApp.m_tpT2->ResetUnder();
   theApp.m_tpT3->ResetUnder();

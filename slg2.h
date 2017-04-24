@@ -70,8 +70,9 @@ public:
   CTrackedParam *m_tpI1;
   CTrackedParam *m_tpI2;
   CTrackedParam *m_tpVpc;
-  CTrackedParam *m_tpAmplAng;
+  CTrackedParam *m_tpAmplAngAlt;
   CTrackedParam *m_tpAmplAngDus;
+  CTrackedParam *m_tpAmplAngRULA;
   CTrackedParam *m_tpT1;
   CTrackedParam *m_tpT2;
   CTrackedParam *m_tpT3;

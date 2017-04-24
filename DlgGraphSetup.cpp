@@ -64,26 +64,26 @@ void CDlgGraphSetup::Init( int nGraph)
 {
   m_nGraph = nGraph;
 
-  ( ( CButton *) GetDlgItem( IDC_CHK_Y_MIN))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph, 0));
-  ( ( CButton *) GetDlgItem( IDC_CHK_Y_MAX))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph, 2));
+  ( ( CButton *) GetDlgItem( IDC_CHK_Y_MIN))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph)->Get_bMinY());
+  ( ( CButton *) GetDlgItem( IDC_CHK_Y_MAX))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph)->Get_bMaxY());
 }
 
 void CDlgGraphSetup::OnOK() 
 {
   BOOL bCheck = ( ( CButton *) GetDlgItem( IDC_CHK_Y_MIN))->GetCheck();
-  theApp.GetSettings()->SetGraphSettings( m_nGraph, 0, bCheck);
+  theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_bMinY( bCheck);
   if( bCheck) {
     CString str;
     ( ( CEdit *) GetDlgItem( IDC_EDT_Y_MIN))->GetWindowText( str);
-    theApp.GetSettings()->SetGraphSettings( m_nGraph, 1, atof( str));
+    theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_dblMinY( atof( str));
   }
 
   bCheck = ( ( CButton *) GetDlgItem( IDC_CHK_Y_MAX))->GetCheck();
-  theApp.GetSettings()->SetGraphSettings( m_nGraph, 2, bCheck);
+  theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_bMaxY( bCheck);
   if( bCheck) {
     CString str;
     ( ( CEdit *) GetDlgItem( IDC_EDT_Y_MAX))->GetWindowText( str);
-    theApp.GetSettings()->SetGraphSettings( m_nGraph, 3, atof( str));
+    theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_dblMaxY( atof( str));
   }
 
 	CDialog::OnOK();
