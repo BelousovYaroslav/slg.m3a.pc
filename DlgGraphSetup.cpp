@@ -55,17 +55,23 @@ void CDlgGraphSetup::OnLblLineColor()
   m_ctlColorLabel.Invalidate();
 }
 
-void CDlgGraphSetup::SetInitialColor(COLORREF clr)
-{
-  m_ctlColorLabel.SetBgColor( clr);
-}
-
 void CDlgGraphSetup::Init( int nGraph)
 {
+  CString str;
+
   m_nGraph = nGraph;
 
   ( ( CButton *) GetDlgItem( IDC_CHK_Y_MIN))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph)->Get_bMinY());
+
+  str.Format( _T("%.03f"), theApp.GetSettings()->GetGraphSettings( nGraph)->Get_dblMinY());
+  ( ( CWnd *) GetDlgItem( IDC_EDT_Y_MIN))->SetWindowText( str);
+
+
   ( ( CButton *) GetDlgItem( IDC_CHK_Y_MAX))->SetCheck( theApp.GetSettings()->GetGraphSettings( nGraph)->Get_bMaxY());
+  str.Format( _T("%.03f"), theApp.GetSettings()->GetGraphSettings( nGraph)->Get_dblMaxY());
+  ( ( CWnd *) GetDlgItem( IDC_EDT_Y_MAX))->SetWindowText( str);
+
+  m_ctlColorLabel.SetBgColor( theApp.GetSettings()->GetGraphSettings( nGraph)->GetLineColor());
 }
 
 void CDlgGraphSetup::OnOK() 
@@ -77,7 +83,7 @@ void CDlgGraphSetup::OnOK()
     ( ( CEdit *) GetDlgItem( IDC_EDT_Y_MIN))->GetWindowText( str);
     theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_dblMinY( atof( str));
   }
-
+  
   bCheck = ( ( CButton *) GetDlgItem( IDC_CHK_Y_MAX))->GetCheck();
   theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_bMaxY( bCheck);
   if( bCheck) {
@@ -85,6 +91,9 @@ void CDlgGraphSetup::OnOK()
     ( ( CEdit *) GetDlgItem( IDC_EDT_Y_MAX))->GetWindowText( str);
     theApp.GetSettings()->GetGraphSettings( m_nGraph)->Set_dblMaxY( atof( str));
   }
+
+  //theApp.m_ctlColorLabel.SetBgColor( theApp.GetSettings()->GetGraphSettings( nGraph)->GetLineColor());
+  theApp.GetSettings()->GetGraphSettings( m_nGraph)->SetLineColor( m_ctlColorLabel.GetBgColor());
 
 	CDialog::OnOK();
 }

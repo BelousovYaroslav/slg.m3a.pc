@@ -198,6 +198,13 @@ protected:
 	afx_msg void OnRadMeaning3();
 	afx_msg void OnRadMeaning4();
 	afx_msg void OnMouseUpGraph1(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph2(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph3(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph4(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph5(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph6(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph7(short Button, short Shift, long x, long y);
+	afx_msg void OnMouseUpGraph8(short Button, short Shift, long x, long y);
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -211,6 +218,7 @@ private:
   std::queue <CMcCommandItem *> m_queCommandQueue;
   void QueueCommandToMc( char btCmd, char btParam1, char btParam2, char btParam3);
   CString UnitsForYAxis( int nYAxisCmbResourceID);
+  CString UnitsForXAxis( int nXAxisCmbResourceID);
   CDecCoeffCalc *m_dlgDecCoeffCalc;
   CDlgGraphSetup *m_dlgGraphSetup;
   int m_nPollParams[ POLL_PARAMS_LEN];

@@ -88,14 +88,14 @@ void CSettings::LoadSettings()
   m_aSettGraph[7].Set_bMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_BMAXY"), 0));
 
   //MinY
-  m_aSettGraph[0].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[1].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[2].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[3].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH4_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[4].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH5_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[5].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[6].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_DBLMINY"), 0) / 1000.);
-  m_aSettGraph[7].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[0].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[1].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[2].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[3].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH4_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[4].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH5_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[5].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[6].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_DBLMINY"), 0) / 1000.);
+  m_aSettGraph[7].Set_dblMinY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_DBLMINY"), 0) / 1000.);
 
   //MaxY
   m_aSettGraph[0].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_DBLMAXY"), 0) / 1000.);

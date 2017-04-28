@@ -374,11 +374,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
         case I1:
           gl_avgI1.CommonAddPoint( dCur1);
-          dblI1_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dblI1_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dblI1_tact = ( 2.5 - dCur1 / 4096. * 2.5) / 2.5;
+
         break;
 				case I2:
           gl_avgI2.CommonAddPoint( dCur1);
-          dblI2_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+          
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dblI2_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dblI2_tact = ( 2.5 - dCur1 / 4096. * 2.5) / 2.5;
+
         break;
 
 
@@ -511,9 +524,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
       }*/
 
-      theApp.GetLogger()->LogDebug ("BigThread::Tact: 1. before+ gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
+      theApp.GetLogger()->LogTrace ("BigThread::Tact: 1. before+ gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
       gl_avgTsa.CommonAddPoint( dSaTime);
-      theApp.GetLogger()->LogDebug ("BigThread::Tact: 2. after+  gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
+      theApp.GetLogger()->LogTrace ("BigThread::Tact: 2. after+  gl_dGlobalTime=%f tSaSumm=%f", gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
 
 
       //1275 (ФАПЧ) * 32768Hz (осцилятор) / 16 (делитель) = 2611200 Hz        
@@ -609,15 +622,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
           double dbl_pi1;
           if( gl_avgI1.Get_100ms()->GetCounter()) {
             double i1 = gl_avgI1.Get_100ms()->GetMean();
-            dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;               // mA
+            
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
           }
 
           //разрядный ток i2
           double dbl_pi2;
           if( gl_avgI2.Get_100ms()->GetCounter()) {
             double i2 = gl_avgI2.Get_100ms()->GetMean();						
-            dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;							// mA
-            //gl_pi2 = i2;
+            
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;							  // mA
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
           }
 
           //напряжение на пьезокорректорах
@@ -722,7 +744,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           //////////////////////////////////////////////////////////////////////
           //распихивание точек по кольцевым буферам
           //////////////////////////////////////////////////////////////////////
-          theApp.GetLogger()->LogDebug ("BigThread::100ms: dbl_pw100=%f tmoment=%f tsasumm=%f", dbl_pw100, gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
+          theApp.GetLogger()->LogTrace ("BigThread::100ms: dbl_pw100=%f tmoment=%f tsasumm=%f", dbl_pw100, gl_dGlobalTime, gl_avgTsa.Get_100ms()->GetSumm());
 
           theApp.m_tpW->Get_100ms()->AddPoint(        dbl_pw100,  gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpI1->Get_100ms()->AddPoint(       dbl_pi1,    gl_dGlobalTime, bInveracity100ms);
@@ -776,14 +798,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
         double dbl_pi1;
         if( gl_avgI1.Get_1s()->GetCounter()) {
           double i1 = gl_avgI1.Get_1s()->GetMean();
-          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
         }
 
         //разрядный ток i2
         double dbl_pi2;
         if( gl_avgI2.Get_1s()->GetCounter()) {
           double i2 = gl_avgI2.Get_1s()->GetMean();
-          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
         }
 
         //напряжение на пьезокорректорах
@@ -890,14 +922,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
         double dbl_pi1;
         if( gl_avgI1.Get_10s()->GetCounter()) {
           double i1 = gl_avgI1.Get_10s()->GetMean();
-          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
         }
 
         //разрядный ток i2
         double dbl_pi2;
         if( gl_avgI2.Get_10s()->GetCounter()) {
           double i2 = gl_avgI2.Get_10s()->GetMean();
-          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
         }
 
         //напряжение на пьезокорректорах
@@ -1005,14 +1047,24 @@ DWORD WINAPI BigThread(LPVOID lparam)
         double dbl_pi1;
         if( gl_avgI1.Get_100s()->GetCounter()) {
           double i1 = gl_avgI1.Get_100s()->GetMean();
-          dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
         }
 
         //разрядный ток i2
         double dbl_pi2;
         if( gl_avgI2.Get_100s()->GetCounter()) {
           double i2 = gl_avgI2.Get_100s()->GetMean();
-          dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+          
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
+
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                 // mA
         }
 
         //напряжение на пьезокорректорах

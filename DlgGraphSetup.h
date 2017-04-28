@@ -19,7 +19,6 @@ class CDlgGraphSetup : public CDialog
 // Construction
 public:
 	void Init( int nGraph);
-	void SetInitialColor( COLORREF clr);
 	CDlgGraphSetup(CWnd* pParent = NULL);   // standard constructor
 
 // Dialog Data

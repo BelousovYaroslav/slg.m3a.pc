@@ -1060,15 +1060,14 @@ void CMainView::RefreshGraphs()
       default: obj = &m_ctlSmallGraph1; nResId = IDC_CMB_GRAPH1_Y; nResIdX = IDC_CMB_GRAPH1_X; nMeaningTime = m_nRadGraph1; break;
     }
 
-    /*
     if( obj != NULL) {
-      BOOL bMinY = theApp.GetSettings()->GetGraphSettings( i, 0);
-      double dblMinY = theApp.GetSettings()->GetGraphSettings( i, 1);
-      BOOL bMaxY = theApp.GetSettings()->GetGraphSettings( i, 2);
-      double dblMaxY = theApp.GetSettings()->GetGraphSettings( i, 3);
-      COLORREF clrLineColor = theApp.GetSettings()->GetGraphSettings( i, 4);
+      BOOL bMinY = theApp.GetSettings()->GetGraphSettings( i)->Get_bMinY();
+      double dblMinY = theApp.GetSettings()->GetGraphSettings( i)->Get_dblMinY();
+      BOOL bMaxY = theApp.GetSettings()->GetGraphSettings( i)->Get_bMaxY();
+      double dblMaxY = theApp.GetSettings()->GetGraphSettings( i)->Get_dblMaxY();
+      COLORREF clrLineColor = theApp.GetSettings()->GetGraphSettings( i)->GetLineColor();
 
-      CNiAxis axis = obj->GetAxes().Item( "Y-Axis1");
+      CNiAxis axis = obj->GetAxes().Item( "YAxis-1");
       if( bMinY || bMaxY) {
         axis.SetAutoScale( false);
         if( bMinY) axis.SetMinimum( dblMinY);
@@ -1081,8 +1080,25 @@ void CMainView::RefreshGraphs()
       CNiPlot plot = obj->GetPlots().Item( "Data");
       CNiColor colLine = CNiColor( clrLineColor);
       plot.SetLineColor( colLine);
+
+      //и большой график
+      if( obj2 != NULL) {
+        axis = obj2->GetAxes().Item( "YAxis-1");
+        if( bMinY || bMaxY) {
+          axis.SetAutoScale( false);
+          if( bMinY) axis.SetMinimum( dblMinY);
+          if( bMaxY) axis.SetMaximum( dblMaxY);
+        }
+        else {
+          axis.SetAutoScale( true);
+        }
+
+        plot = obj2->GetPlots().Item( "Data");
+        plot.SetLineColor( colLine);
+      }
     }
-    */
+
+    
 
     //определим отображаемый параметр для обрабатываемого графика
     int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nResId))->GetCurSel();
@@ -2439,6 +2455,13 @@ BEGIN_EVENTSINK_MAP(CMainView, CFormView)
   ON_EVENT(CMainView, IDC_CW_START, 1 /* ValueChanged */, OnValueChangedCwStart, VTS_BOOL)
   ON_EVENT(CMainView, IDC_COMM, 1 /* OnComm */, OnOnCommComm, VTS_NONE)
 	ON_EVENT(CMainView, IDC_GRAPH1, -607 /* MouseUp */, OnMouseUpGraph1, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH2, -607 /* MouseUp */, OnMouseUpGraph2, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH3, -607 /* MouseUp */, OnMouseUpGraph3, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH4, -607 /* MouseUp */, OnMouseUpGraph4, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH5, -607 /* MouseUp */, OnMouseUpGraph5, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH6, -607 /* MouseUp */, OnMouseUpGraph6, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH7, -607 /* MouseUp */, OnMouseUpGraph7, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
+	ON_EVENT(CMainView, IDC_GRAPH8, -607 /* MouseUp */, OnMouseUpGraph8, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
@@ -2467,69 +2490,98 @@ CString CMainView::UnitsForYAxis( int nYAxisCmbResourceID) {
   return strYaxis;
 }
 
+CString CMainView::UnitsForXAxis( int nXAxisCmbResourceID) {
+  CString strXaxis;
+  int nSelectedDisplayableParam = ( ( CComboBox *) GetDlgItem( nXAxisCmbResourceID))->GetCurSel();
+  switch( nSelectedDisplayableParam) {
+    case 0:  strXaxis = _T("sec");    break;   //T, время измерения
+    case 1:  strXaxis = _T("°C");     break;   //T1, Термодатчик 1, [°C]
+    case 2:  strXaxis = _T("°C");     break;   //T2, Термодатчик 2, [°C]
+    case 3:  strXaxis = _T("°C");     break;   //T3, Термодатчик 3, [°C]
+    
+  }
+  return strXaxis;
+}
+
 void CMainView::OnClickGraph1()
 {
   m_nMainGraph = 1;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH1_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH1_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph2() 
 {
   m_nMainGraph = 2;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH2_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH2_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph3() 
 {
   m_nMainGraph = 3;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH3_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH3_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph4() 
 {
   m_nMainGraph = 4;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH4_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH4_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph5() 
 {
   m_nMainGraph = 5;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH5_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH5_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph6() 
 {
   m_nMainGraph = 6;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 0, 127));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH6_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH6_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph7() 
 {
   m_nMainGraph = 7;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH7_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH7_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnClickGraph8()
 {
   UpdateData( TRUE);
   m_nMainGraph = 8;
-  m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
+  //m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 127, 0, 0));
   CString strYaxisUnits = UnitsForYAxis( IDC_CMB_GRAPH8_Y);
-  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits); 
+  m_ctlMainGraph.GetAxes().Item( "YAxis-1").SetCaption( strYaxisUnits);
+  CString strXaxisUnits = UnitsForXAxis( IDC_CMB_GRAPH8_X);
+  m_ctlMainGraph.GetAxes().Item( "XAxis").SetCaption( strXaxisUnits);
 }
 
 void CMainView::OnValueChangedCwStart(BOOL Value)
@@ -3540,5 +3592,96 @@ void CMainView::OnMouseUpGraph1(short Button, short Shift, long x, long y)
             PointSimpleDot            = 21,     // Simple dot
             PointEmptyDiamond         = 22      // Empty diamond
             */
+  }
+}
+
+void CMainView::OnMouseUpGraph2(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 1);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph3(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 2);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph4(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 3);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph5(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 4);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph6(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 5);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph7(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 6);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnMouseUpGraph8(short Button, short Shift, long x, long y) 
+{
+	if( Button == MK_RBUTTON) {
+    if( m_dlgGraphSetup == NULL) {
+      m_dlgGraphSetup = new CDlgGraphSetup( this);
+      m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+    }
+
+    m_dlgGraphSetup->Init( 7);
+    m_dlgGraphSetup->ShowWindow( SW_SHOW);
   }
 }
