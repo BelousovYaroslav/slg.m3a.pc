@@ -1729,19 +1729,19 @@ void CMainView::RefreshGraphs()
   if( bShowStatistic) {
     st = (( CStatic *) GetDlgItem( IDC_MINVAL_LABEL));
     st->ShowWindow( SW_SHOW);
-    strValue.Format( _T("%.6f"),  cbfr->GetMin()); st->SetWindowText( strValue);
+    strValue.Format( _T("%.4f"),  cbfr->GetMin()); st->SetWindowText( strValue);
 
     st = (( CStatic *) GetDlgItem( IDC_MEANVAL_LABEL));
     st->ShowWindow( SW_SHOW);
-    strValue.Format( _T("%.6f"),  cbfr->GetMean()); st->SetWindowText( strValue);
+    strValue.Format( _T("%.4f"),  cbfr->GetMean()); st->SetWindowText( strValue);
 
     st = (( CStatic *) GetDlgItem( IDC_MAXVAL_LABEL));
     st->ShowWindow( SW_SHOW);
-    strValue.Format( _T("%.6f"),  cbfr->GetMax()); st->SetWindowText( strValue);
+    strValue.Format( _T("%.4f"),  cbfr->GetMax()); st->SetWindowText( strValue);
 
     st = (( CStatic *) GetDlgItem( IDC_RMSVAL_LABEL));
     st->ShowWindow( SW_SHOW);
-    strValue.Format( _T("%.6f"),  cbfr->GetRMS()); st->SetWindowText( strValue);
+    strValue.Format( _T("%.4f"),  cbfr->GetRMS()); st->SetWindowText( strValue);
   }
   else {
     GetDlgItem( IDC_MINVAL_LABEL)->ShowWindow(  SW_HIDE);
