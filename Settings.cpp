@@ -48,6 +48,7 @@ void CSettings::LoadSettings()
   m_aSettGraph[7].SetAxisY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_PARAM"), 0));
 
   //осреднения
+  /*
   m_aSettGraph[0].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_MEANING"), 0));
   m_aSettGraph[1].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_MEANING"), 0));
   m_aSettGraph[2].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_MEANING"), 0));
@@ -56,6 +57,15 @@ void CSettings::LoadSettings()
   m_aSettGraph[5].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_MEANING"), 0));
   m_aSettGraph[6].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_MEANING"), 0));
   m_aSettGraph[7].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_MEANING"), 0));
+  */
+  m_aSettGraph[0].SetMeaning( 1);
+  m_aSettGraph[1].SetMeaning( 1);
+  m_aSettGraph[2].SetMeaning( 1);
+  m_aSettGraph[3].SetMeaning( 1);
+  m_aSettGraph[4].SetMeaning( 1);
+  m_aSettGraph[5].SetMeaning( 1);
+  m_aSettGraph[6].SetMeaning( 1);
+  m_aSettGraph[7].SetMeaning( 1);
 
   //параметр, отображаемый по оси X
   m_aSettGraph[0].SetAxisX( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_X"), 0));

@@ -108,7 +108,8 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 			m_ctlGraphDecCoeff.PlotXY( line_K, true);
 		}
 		else {
-			if( gl_pDecCoeffCalcParams.m_nGraph_cntr > 5) {
+			/*
+      if( gl_pDecCoeffCalcParams.m_nGraph_cntr > 5) {
 				CNiReal64Matrix line_dN( 2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
 				CNiReal64Matrix line_dU( 2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
 				CNiReal64Matrix line_K(  2, gl_pDecCoeffCalcParams.m_nGraph_cntr - 1, 1.0);
@@ -130,6 +131,7 @@ void CDecCoeffCalc::OnTimer(UINT nIDEvent)
 
 				//Beep( 100, 10);
 			}
+      */
 		}
 
 		//m_strDecCoeff.Format( _T("%.6f"), gl_dec_coeff_acc / gl_dec_coeff_acc_cntr);

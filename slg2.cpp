@@ -351,11 +351,11 @@ DWORD WINAPI BigThread(LPVOID lparam)
       */
 
       CString str;
-      double dblW_tact;
-      double dblTD1_tact, dblTD2_tact, dblTD3_tact;
-      double dblI1_tact, dblI2_tact;
-      double dblVpc_tact;
-      double dblAAA_tact, dblAAD_tact, dblAAR_tact;
+      double dblW_tact = 0.;
+      double dblTD1_tact = 0., dblTD2_tact = 0., dblTD3_tact = 0.;
+      double dblI1_tact = 0., dblI2_tact = 0.;
+      double dblVpc_tact = 0.;
+      double dblAAA_tact = 0., dblAAD_tact = 0., dblAAR_tact = 0.;
 
 			switch( byte5) {
 				case UTD1:
@@ -619,7 +619,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           gl_avgW.Get_100ms()->Reset();
 
           //разрядный ток i1
-          double dbl_pi1;
+          double dbl_pi1 = 0.;
           if( gl_avgI1.Get_100ms()->GetCounter()) {
             double i1 = gl_avgI1.Get_100ms()->GetMean();
             
@@ -631,7 +631,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           }
 
           //разрядный ток i2
-          double dbl_pi2;
+          double dbl_pi2 = 0.;
           if( gl_avgI2.Get_100ms()->GetCounter()) {
             double i2 = gl_avgI2.Get_100ms()->GetMean();						
             
@@ -643,7 +643,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           }
 
           //напряжение на пьезокорректорах
-          double dbl_pVpc;
+          double dbl_pVpc = 0.;
           if( gl_avgVpc.Get_100ms()->GetCounter()) {
             double Vpc = gl_avgVpc.Get_100ms()->GetMean();					  //напряжение на пьезокорректорах
             
@@ -655,7 +655,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           }
 
           //амплитуда от альтеры (в импульсах)
-          double dbl_pAAA;
+          double dbl_pAAA = 0.;
           if( gl_avgAmplAlt.Get_100ms()->GetCounter()) {
             double AmplAng = gl_avgAmplAlt.Get_100ms()->GetMean();	            //amplang
             
@@ -667,20 +667,20 @@ DWORD WINAPI BigThread(LPVOID lparam)
           }
 
           //амплитуда от ДУСа
-          double dbl_pAAD;
+          double dbl_pAAD = 0.;
           if( gl_avgAmplDus.Get_100ms()->GetCounter()) {
             double AmplAngDus = gl_avgAmplDus.Get_100ms()->GetMean();         //amplangDus
             dbl_pAAD = AmplAngDus / 4096. * 3.;							                // V
           }
 
           //амплитуда RULA
-          double dbl_pAAR;
+          double dbl_pAAR = 0.;
           if( gl_avgAmplRULA.Get_100ms()->GetCounter()) {
             dbl_pAAR = gl_avgAmplRULA.Get_100ms()->GetMean();                //amplangRULA
           }
 
           //температура 1
-          double dbl_pT1;
+          double dbl_pT1 = 0.;
           if( gl_avgT1.Get_100ms()->GetCounter()) {
             double T1 = gl_avgT1.Get_100ms()->GetMean();                      //термодатчик 1
             dbl_pT1 = T1 / 65535. * 200. - 100.;				                      //V!
@@ -689,7 +689,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 
           //температура 2
-          double dbl_pT2;
+          double dbl_pT2 = 0.;
           if( gl_avgT2.Get_100ms()->GetCounter()) {
             double T2 = gl_avgT2.Get_100ms()->GetMean();	            //термодатчик 2
             dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
@@ -708,7 +708,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
           
           //температура 3
-          double dbl_pT3;
+          double dbl_pT3 = 0.;
           if( gl_avgT3.Get_100ms()->GetCounter()) {
             double T3 = gl_avgT3.Get_100ms()->GetMean();             //термодатчик 3
             dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
@@ -795,7 +795,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         gl_avgW.Get_1s()->Reset();
 
         //разрядный ток i1
-        double dbl_pi1;
+        double dbl_pi1 = 0.;
         if( gl_avgI1.Get_1s()->GetCounter()) {
           double i1 = gl_avgI1.Get_1s()->GetMean();
           
@@ -807,7 +807,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //разрядный ток i2
-        double dbl_pi2;
+        double dbl_pi2 = 0.;
         if( gl_avgI2.Get_1s()->GetCounter()) {
           double i2 = gl_avgI2.Get_1s()->GetMean();
           
@@ -819,7 +819,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //напряжение на пьезокорректорах
-        double dbl_pVpc;
+        double dbl_pVpc = 0.;
 				if( gl_avgVpc.Get_1s()->GetCounter()) {
 					double Vpc = gl_avgVpc.Get_1s()->GetMean();					      //напряжение на пьезокорректорах
 					
@@ -831,7 +831,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от альтеры (в импульсах)
-        double dbl_pAAA;
+        double dbl_pAAA = 0.;
 				if( gl_avgAmplAlt.Get_1s()->GetCounter()) {
 					double AmplAng = gl_avgAmplAlt.Get_1s()->GetMean();	              //amplang
 					
@@ -843,20 +843,20 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от ДУСа
-        double dbl_pAAD;
+        double dbl_pAAD = 0.;
         if( gl_avgAmplDus.Get_1s()->GetCounter()) {
 					double AmplAngDus = gl_avgAmplDus.Get_1s()->GetMean();  //amplangDus
 					dbl_pAAD = AmplAngDus / 4096. * 3.;							      // V
 				}
 
         //амплитуда RULA
-        double dbl_pAAR;
+        double dbl_pAAR = 0.;
         if( gl_avgAmplRULA.Get_1s()->GetCounter()) {
 					dbl_pAAR = gl_avgAmplRULA.Get_1s()->GetMean();       //amplangRULA
 				}
 
         //температура 1
-        double dbl_pT1;
+        double dbl_pT1 = 0.;
         if( gl_avgT1.Get_1s()->GetCounter()) {
 					double T1 = gl_avgT1.Get_1s()->GetMean();               //термодатчик 1
 					dbl_pT1 = T1 / 65535. * 200. - 100.;				            //V!
@@ -865,7 +865,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 
         //температура 2
-        double dbl_pT2;
+        double dbl_pT2 = 0.;
         if( gl_avgT2.Get_1s()->GetCounter()) {
 					double T2 = gl_avgT2.Get_1s()->GetMean();	              //термодатчик 2
 					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
@@ -874,7 +874,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
           
         //температура 3
-        double dbl_pT3;
+        double dbl_pT3 = 0.;
         if( gl_avgT3.Get_1s()->GetCounter()) {
           double T3 = gl_avgT3.Get_1s()->GetMean();                //термодатчик 3
           dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
@@ -919,7 +919,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         gl_avgW.Get_10s()->Reset();
 
         //разрядный ток i1
-        double dbl_pi1;
+        double dbl_pi1 = 0.;
         if( gl_avgI1.Get_10s()->GetCounter()) {
           double i1 = gl_avgI1.Get_10s()->GetMean();
           
@@ -931,7 +931,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //разрядный ток i2
-        double dbl_pi2;
+        double dbl_pi2 = 0.;
         if( gl_avgI2.Get_10s()->GetCounter()) {
           double i2 = gl_avgI2.Get_10s()->GetMean();
           
@@ -943,7 +943,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //напряжение на пьезокорректорах
-        double dbl_pVpc;
+        double dbl_pVpc = 0.;
 				if( gl_avgVpc.Get_10s()->GetCounter()) {
 					double Vpc = gl_avgVpc.Get_10s()->GetMean();					            //напряжение на пьезокорректорах
 
@@ -955,7 +955,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от альтеры (в импульсах)
-        double dbl_pAAA;
+        double dbl_pAAA = 0.;
 				if( gl_avgAmplAlt.Get_10s()->GetCounter()) {
 					double AmplAng = gl_avgAmplAlt.Get_10s()->GetMean();	            //amplang
 					
@@ -967,20 +967,20 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от ДУСа
-        double dbl_pAAD;
+        double dbl_pAAD = 0.;
         if( gl_avgAmplDus.Get_10s()->GetCounter()) {
 					double AmplAngDus = gl_avgAmplDus.Get_10s()->GetMean();           //amplangDus
 					dbl_pAAD = AmplAngDus / 4096. * 3.;							                // V
 				}
 
         //амплитуда RULA
-        double dbl_pAAR;
+        double dbl_pAAR = 0.;
         if( gl_avgAmplRULA.Get_10s()->GetCounter()) {
 					dbl_pAAR = gl_avgAmplRULA.Get_10s()->GetMean();                //amplang RULA
 				}
 
         //температура 1
-        double dbl_pT1;
+        double dbl_pT1 = 0.;
         if( gl_avgT1.Get_10s()->GetCounter()) {
 					double T1 = gl_avgT1.Get_10s()->GetMean();                        //термодатчик 1
 					dbl_pT1 = T1 / 65535. * 200. - 100.;				                      //V!
@@ -989,7 +989,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 
         //температура 2
-        double dbl_pT2;
+        double dbl_pT2 = 0.;
         if( gl_avgT2.Get_10s()->GetCounter()) {
 					double T2 = gl_avgT2.Get_10s()->GetMean();	                      //термодатчик 2
 					dbl_pT2 = T2 / 65535. * 200. - 100.;				                      //V!
@@ -998,7 +998,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
           
         //температура 3
-        double dbl_pT3;
+        double dbl_pT3 = 0.;
         if( gl_avgT3.Get_10s()->GetCounter()) {
           double T3 = gl_avgT3.Get_10s()->GetMean();                //термодатчик 3
           dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
@@ -1044,7 +1044,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         gl_avgW.Get_100s()->Reset();
 
         //разрядный ток i1
-        double dbl_pi1;
+        double dbl_pi1 = 0.;
         if( gl_avgI1.Get_100s()->GetCounter()) {
           double i1 = gl_avgI1.Get_100s()->GetMean();
           
@@ -1056,7 +1056,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //разрядный ток i2
-        double dbl_pi2;
+        double dbl_pi2 = 0.;
         if( gl_avgI2.Get_100s()->GetCounter()) {
           double i2 = gl_avgI2.Get_100s()->GetMean();
           
@@ -1068,7 +1068,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         }
 
         //напряжение на пьезокорректорах
-        double dbl_pVpc;
+        double dbl_pVpc = 0.;
 				if( gl_avgVpc.Get_100s()->GetCounter()) {
 					double Vpc = gl_avgVpc.Get_100s()->GetMean();					      //напряжение на пьезокорректорах
 
@@ -1080,7 +1080,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от альтеры (в импульсах)
-        double dbl_pAA;
+        double dbl_pAA = 0.;
 				if( gl_avgAmplAlt.Get_100s()->GetCounter()) {
 					double AmplAng = gl_avgAmplAlt.Get_100s()->GetMean();	            //amplang
 					
@@ -1092,20 +1092,20 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				}
 
         //амплитуда от ДУСа
-        double dbl_pAADus;
+        double dbl_pAADus = 0.;
         if( gl_avgAmplDus.Get_100s()->GetCounter()) {
 					double AmplAngDus = gl_avgAmplDus.Get_100s()->GetMean();          //amplangDus
 					dbl_pAADus = AmplAngDus / 4096. * 3.;							                // V
 				}
 
         //амплитуда RULA
-        double dbl_pAARULA;
+        double dbl_pAARULA = 0.;
         if( gl_avgAmplRULA.Get_100s()->GetCounter()) {
 					dbl_pAARULA = gl_avgAmplRULA.Get_100s()->GetMean();               //amplangRULA
 				}
 
         //температура 1
-        double dbl_pT1;
+        double dbl_pT1 = 0.;
         if( gl_avgT1.Get_100s()->GetCounter()) {
 					double T1 = gl_avgT1.Get_100s()->GetMean();                  //термодатчик 1
 					dbl_pT1 = T1 / 65535. * 200. - 100.;				              //V!
@@ -1114,7 +1114,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
 
         //температура 2
-        double dbl_pT2;
+        double dbl_pT2 = 0.;
         if( gl_avgT2.Get_100s()->GetCounter()) {
 					double T2 = gl_avgT2.Get_100s()->GetMean();	              //термодатчик 2
 					dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
@@ -1123,7 +1123,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
           
         //температура 3
-        double dbl_pT3;
+        double dbl_pT3 = 0.;
         if( gl_avgT3.Get_100s()->GetCounter()) {
           double T3 = gl_avgT3.Get_100s()->GetMean();                //термодатчик 3
           dbl_pT3 = T3 / 65535. * 200. - 100.;				            //V!
