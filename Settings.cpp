@@ -118,14 +118,14 @@ void CSettings::LoadSettings()
   m_aSettGraph[7].Set_dblMaxY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_DBLMAXY"), 0) / 1000.);
 
   //LineColor
-  m_aSettGraph[0].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_LINECOLOR"), 0));
-  m_aSettGraph[1].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_LINECOLOR"), 0));
-  m_aSettGraph[2].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_LINECOLOR"), 0));
-  m_aSettGraph[3].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH4_LINECOLOR"), 0));
-  m_aSettGraph[4].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH5_LINECOLOR"), 0));
-  m_aSettGraph[5].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_LINECOLOR"), 0));
-  m_aSettGraph[6].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_LINECOLOR"), 0));
-  m_aSettGraph[7].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_LINECOLOR"), 0));
+  m_aSettGraph[0].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_LINECOLOR"), 30720));
+  m_aSettGraph[1].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_LINECOLOR"), 120));
+  m_aSettGraph[2].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_LINECOLOR"), 7864320));
+  m_aSettGraph[3].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH4_LINECOLOR"), 30720));
+  m_aSettGraph[4].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH5_LINECOLOR"), 120));
+  m_aSettGraph[5].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_LINECOLOR"), 7864320));
+  m_aSettGraph[6].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_LINECOLOR"), 30720));
+  m_aSettGraph[7].SetLineColor( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_LINECOLOR"), 120));
 
   //BOOL m_bLine;                   //соединять линиями
   //int m_nGraph1LineWidth;         //толщина линии
