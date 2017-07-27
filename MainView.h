@@ -2,7 +2,6 @@
 #include "NiGraph.h"
 #include "NiButton.h"
 #include "NiNumEdit.h"
-//#include "mscomm.h"
 //}}AFX_INCLUDES
 #if !defined(AFX_MAINVIEW_H__4133504C_1A2D_4A65_89A5_A033461F952F__INCLUDED_)
 #define AFX_MAINVIEW_H__4133504C_1A2D_4A65_89A5_A033461F952F__INCLUDED_
@@ -96,7 +95,6 @@ public:
 	CNiNumEdit	m_ctlNedtParam8;
 	int		m_nTMeaningInd;
 	double	m_dKimpSec;
-	CMSComm	m_ctlCOM;
 	CNiButton	m_ctlBtnCwStart;
 	CString	m_strSoftwareVersion;
 	CNiNumEdit	m_ctlNedtMeasTime;
@@ -171,7 +169,6 @@ protected:
 	afx_msg void OnBtnRestoreParams();
 	afx_msg void OnKillfocusEdtKImpSec();
 	afx_msg void OnDecCoeffCalc();
-	afx_msg void OnOnCommComm();
 	afx_msg void OnBtnThermoCalibSet();
 	afx_msg void OnBtnThermoCalibClear();
 	afx_msg void OnBtnLaserOff();

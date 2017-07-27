@@ -12,6 +12,11 @@
 #include "AnalogueParamsConstList.h"
 #include "DecCoeffCalcParams.h"
 
+//флаг остановки потока получения данных из ком-порта: true - поток остановлен, false - поток работает
+extern BOOL gl_bStopSmallThreadFlag;
+extern CString gl_strComPort;
+
+extern HANDLE gl_hComPort;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -21,7 +26,6 @@ static char THIS_FILE[] = __FILE__;
 
 #define MY_TIMER_1000			1101
 
-#define MY_TIMER_COM_FLUSH		1001
 #define MY_MAXIMIZE_VIEW_TIMER 1002
 #define MY_SEND_BUTTONS_BLOCK_TIMER 1003
 #define MY_TIMER_LOAD_FLASH_PARAMS 1004
@@ -31,9 +35,9 @@ static char THIS_FILE[] = __FILE__;
 #define TIMER_SEND_CMDS_TO_MC 1112
 #define MY_TIMER_POLLER 1113
 
-extern BOOL m_bStopBigThreadFlag;
-extern int gl_nCircleBufferGet;
-extern int gl_nCircleBufferPut;
+extern BOOL gl_bStopBigThreadFlag;
+extern int  gl_nCircleBufferGet;
+extern int  gl_nCircleBufferPut;
 
 extern bool PutByteInCircleBuffer(BYTE bt);
 
@@ -206,7 +210,6 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PARAM8_NEDT, m_ctlNedtParam8);
 	DDX_Radio(pDX, IDC_RAD_MEANING1, m_nTMeaningInd);
 	DDX_Text(pDX, IDC_EDT_K_IMP_SEC, m_dKimpSec);
-	DDX_Control(pDX, IDC_COMM, m_ctlCOM);
 	DDX_Control(pDX, IDC_CW_START, m_ctlBtnCwStart);
 	DDX_Text(pDX, IDC_SFTW_VER, m_strSoftwareVersion);
 	DDX_Control(pDX, IDC_NEDT_MEAS_TIME, m_ctlNedtMeasTime);
@@ -1751,7 +1754,7 @@ void CMainView::RefreshGraphs()
   }
 
   //лампочка "СОМ-порт открыт"
-  m_ctlComButton.SetValue( m_ctlCOM.GetPortOpen());
+  m_ctlComButton.SetValue( !gl_bStopSmallThreadFlag);
 
   UpdateData( FALSE);
 }
@@ -1798,15 +1801,6 @@ void CMainView::OnInitialUpdate()
   lf.lfHeight = 20;                                 // Request a 12-pixel-height font.
   lstrcpy(lf.lfFaceName, _T("Times New Roman"));    // Request a face name "Arial".
   VERIFY(m_pFont.CreateFontIndirect(&lf));          // Create the font.
-
-  m_ctlCOM.SetInBufferSize( 2048);
-  m_ctlCOM.SetCommPort( 1);
-  m_ctlCOM.SetSettings( _T("115200,N,8,1"));
-  m_ctlCOM.SetInputLen( 200);
-  m_ctlCOM.SetInputMode( 1);
-  m_ctlCOM.SetInBufferCount( 0);
-  m_ctlCOM.SetOutBufferCount( 0);
-  m_ctlCOM.SetOutBufferSize( 3);
 
   GetDlgItem( IDC_MIN_LABEL)->SetFont( &m_pFont);
   GetDlgItem( IDC_MINVAL_LABEL)->SetFont( &m_pFont);
@@ -1911,148 +1905,6 @@ void CMainView::OnTimer(UINT nIDEvent)
 	CString strError;
 	UpdateData( TRUE);
 	CSlg2App *app = ((CSlg2App *) AfxGetApp());
-
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//событие обработки COM-порта
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_COM_FLUSH) {
-		if( m_nPointsSkipped > 10) {
-			if( m_ctlCOM.GetPortOpen()) {
-				
-				unsigned short nBytes = m_ctlCOM.GetInBufferCount();
-				if( nBytes > 10) {
-					VARIANT var = m_ctlCOM.GetInput();
-					
-					
-					char *buff;//[2048];
-					int count = var.parray->rgsabound[0].cElements;
-					buff = new char[count];
-					/*
-					if( count<0 || count > 2048) {
-						CString strError;
-						strError.Format( _T("COUNT: %d"), count);
-						AfxMessageBox( strError);
-						Beep( 1000, 1000);
-					}
-					*/
-					memcpy( buff, var.parray->pvData, count);
-
-					for( int qq=0; qq<count; qq++) {
-						//fprintf( ((CSlg2App*) AfxGetApp())->fhb, "%x", buff[qq]);
-						if( !PutByteInCircleBuffer( buff[qq])) {
-							m_ctlCOM.SetPortOpen( false);
-							for( int err=0; err < ERROR_2; err++) {
-								Beep( 100, 100);
-								Sleep( 200);
-							}
-							app->m_nEmergencyCode = 1002;
-							m_strLblEmergency.Format( _T("1002"));
-							UpdateData( false);
-
-							GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-							//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
-              GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( false);
-							
-							GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
-							GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
-							m_ctlComButton.SetValue( false);
-
-							m_ctlCOM.SetPortOpen( false);
-
-							KillTimer( MY_TIMER_COM_FLUSH);
-							KillTimer( MY_TIMER_1000);
-		
-				
-							m_bStopBigThreadFlag = true;
-		
-							
-
-							gl_nCircleBufferGet = 0;
-							gl_nCircleBufferPut = 0;
-
-							gl_dGlobalTime = 0.;
-
-							gl_avgW.CommonReset();
-              gl_avgI1.CommonReset();
-							gl_avgI2.CommonReset();
-							gl_avgVpc.CommonReset();
-							gl_avgAmplAlt.CommonReset();
-              gl_avgAmplDus.CommonReset();
-              gl_avgAmplRULA.CommonReset();
-							gl_avgT1.CommonReset();
-							gl_avgT2.CommonReset();
-							gl_avgTsa.CommonReset();
-
-              theApp.m_tpW->ResetUnder();
-              theApp.m_tpI1->ResetUnder();
-              theApp.m_tpI2->ResetUnder();
-              theApp.m_tpVpc->ResetUnder();
-							theApp.m_tpAmplAngAlt->ResetUnder();
-              theApp.m_tpAmplAngDus->ResetUnder();
-              theApp.m_tpAmplAngRULA->ResetUnder();
-							theApp.m_tpT1->ResetUnder();
-							theApp.m_tpT2->ResetUnder();
-              theApp.m_tpT3->ResetUnder();
-							theApp.m_tpTsaMcs->ResetUnder();
-              theApp.m_tpTsaMs->ResetUnder();
-              theApp.m_tpTsaHz->ResetUnder();
-              theApp.m_tpDecCoeff->ResetUnder();
-						}
-					}
-
-					delete buff;
-				}
-			}
-			else {
-				for( int err=0; err < ERROR_5; err++) {
-					Beep( 100, 100);
-					Sleep( 200);
-				}
-				app->m_nEmergencyCode = 1005;
-				m_strLblEmergency.Format( _T("1005"));
-				UpdateData( false);
-			}
-		}
-		else {
-			//пропуск первых 10 ЧТЕНИЙ!!!! не попаданий по таймеру, а ЧТЕНИЙ!
-			short nBytes = m_ctlCOM.GetInBufferCount();
-			if( nBytes > 10) {
-
-				KillTimer( MY_TIMER_INPUT_DATA);
-			
-				SYSTEMTIME sysTime;  // Win32 time information
-				GetLocalTime(&sysTime);
-				CString strStatFileName;
-
-        /*
-				strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.txt"),
-													sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);*/
-				/*if( app->fh == NULL)
-					app->fh = fopen( strStatFileName, "w");*/
-				/*else
-					AfxMessageBox( _T("Попытка открыть файл при открытом дескрипторе."));*/
-
-        if( theApp.m_bDeviceSerialNumber)
-				  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.dev%03d.raw"),
-					  								sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-						  							sysTime.wHour, sysTime.wMinute, sysTime.wSecond, theApp.m_nDeviceSerialNumber);
-        else
-          strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
-					  								sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-						  							sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-
-				if( app->fhNew == NULL)
-					app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
-
-				m_nPointsSkipped++;
-				m_ctlCOM.SetInputLen( 0);
-			}
-		}
-	}
-	
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//событие 1000 мсек
@@ -2190,8 +2042,8 @@ void CMainView::OnTimer(UINT nIDEvent)
       GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( FALSE);
     }
     else {
-      GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( m_ctlCOM.GetPortOpen() && theApp.m_bSyncAsync && theApp.m_bWdNdU);
-      GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( m_ctlCOM.GetPortOpen() && theApp.m_bSyncAsync);
+      GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( !gl_bStopSmallThreadFlag && theApp.m_bSyncAsync && theApp.m_bWdNdU);
+      GetDlgItem( IDC_BTN_SWITCH_W_DNDU)->EnableWindow( !gl_bStopSmallThreadFlag && theApp.m_bSyncAsync);
     }
 
 		//////////////////////////////////////////////////////////////////////
@@ -2227,12 +2079,10 @@ void CMainView::OnTimer(UINT nIDEvent)
 		if( dMeasTime > 0.5) {
 			if( gl_dGlobalTime >= dMeasTime) {
 				KillTimer( MY_TIMER_INPUT_DATA);
-				KillTimer( MY_TIMER_COM_FLUSH);
 				KillTimer( MY_TIMER_1000);
-				m_bStopBigThreadFlag = true;
 
-				if( m_ctlCOM.GetPortOpen())
-					m_ctlCOM.SetPortOpen( false);
+				gl_bStopBigThreadFlag = true;
+				gl_bStopSmallThreadFlag = true;
 	
 				GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
 				//GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
@@ -2287,19 +2137,16 @@ void CMainView::OnTimer(UINT nIDEvent)
 	}
 
   if( nIDEvent == MY_TIMER_POLLER) {
-    if( m_ctlCOM.GetPortOpen()) {
-        if( m_queCommandQueue.size() < 5) {          
-          CMcCommandItem *item = new CMcCommandItem(
+    
+      if( m_queCommandQueue.size() < 5) {          
+        CMcCommandItem *item = new CMcCommandItem(
               MC_COMMAND_REQ,
               m_nPollParams[ m_nPollCounter],
               0, 0);
-          m_queCommandQueue.push( item);
-          m_nPollCounter = ( ++m_nPollCounter) % POLL_PARAMS_LEN;
-        }
+        m_queCommandQueue.push( item);
+        m_nPollCounter = ( ++m_nPollCounter) % POLL_PARAMS_LEN;
       }
-      else {
-        KillTimer( MY_TIMER_POLLER);
-      }
+    
   }
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -2373,11 +2220,10 @@ void CMainView::OnTimer(UINT nIDEvent)
   //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
   if( nIDEvent == MY_TIMER_INPUT_DATA) {
     KillTimer( MY_TIMER_INPUT_DATA);
-    KillTimer( MY_TIMER_COM_FLUSH);
     KillTimer( MY_TIMER_1000);
 
-    if( m_ctlCOM.GetPortOpen())
-      m_ctlCOM.SetPortOpen( false);
+    gl_bStopBigThreadFlag = true;
+    gl_bStopSmallThreadFlag = true;
 
     for( int err=0; err < ERROR_6; err++) {
       Beep( 100, 100);
@@ -2400,11 +2246,6 @@ void CMainView::OnTimer(UINT nIDEvent)
     GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
     m_ctlComButton.SetValue( false);
     m_ctlBtnCwStart.SetValue( false);
-
-    if( m_ctlCOM.GetPortOpen())
-      m_ctlCOM.SetPortOpen( false);
-
-    m_bStopBigThreadFlag = true;
 
     gl_nCircleBufferGet = 0;
     gl_nCircleBufferPut = 0;
@@ -2453,7 +2294,6 @@ BEGIN_EVENTSINK_MAP(CMainView, CFormView)
   ON_EVENT(CMainView, IDC_GRAPH7, -600 /* Click */, OnClickGraph7, VTS_NONE)
   ON_EVENT(CMainView, IDC_GRAPH8, -600 /* Click */, OnClickGraph8, VTS_NONE)
   ON_EVENT(CMainView, IDC_CW_START, 1 /* ValueChanged */, OnValueChangedCwStart, VTS_BOOL)
-  ON_EVENT(CMainView, IDC_COMM, 1 /* OnComm */, OnOnCommComm, VTS_NONE)
 	ON_EVENT(CMainView, IDC_GRAPH1, -607 /* MouseUp */, OnMouseUpGraph1, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
 	ON_EVENT(CMainView, IDC_GRAPH2, -607 /* MouseUp */, OnMouseUpGraph2, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
 	ON_EVENT(CMainView, IDC_GRAPH3, -607 /* MouseUp */, OnMouseUpGraph3, VTS_I2 VTS_I2 VTS_I4 VTS_I4)
@@ -2586,6 +2426,8 @@ void CMainView::OnClickGraph8()
 
 void CMainView::OnValueChangedCwStart(BOOL Value)
 {
+  theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: in with %d", Value);
+
   m_nPointsSkipped = 0;
   UpdateData( TRUE);
   theApp.GetSettings()->SetScaleCoeff( m_dKimpSec);
@@ -2681,11 +2523,39 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_shSignCoeff = 0;
     theApp.m_nHvAppliesThisRun = -1;
 
-    ( ( CSlg2App *) AfxGetApp())->StartThreads();
+    switch( m_nComPort) {
+      case 0: gl_strComPort = "COM1"; break;
+      case 1: gl_strComPort = "COM2"; break;
+      case 2: gl_strComPort = "COM3"; break;
+      case 3: gl_strComPort = "COM4"; break;
+      case 4: gl_strComPort = "COM5"; break;
+      case 5: gl_strComPort = "COM6"; break;
+      case 6: gl_strComPort = "COM7"; break;
+      case 7: gl_strComPort = "COM8"; break;
+    }
 
+    SYSTEMTIME sysTime;  // Win32 time information
+    GetLocalTime( &sysTime);
+    CString strStatFileName;
+    if( theApp.m_bDeviceSerialNumber)
+		  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.dev%03d.raw"),
+					  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+						  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond, theApp.m_nDeviceSerialNumber);
+    else
+      strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
+					  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+						  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+
+		if( app->fhNew == NULL)
+			app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
+
+    theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: Ready to start threads with port=%s", gl_strComPort);
+
+    theApp.StartThreads();
+
+    /*
     if( m_ctlCOM.GetPortOpen())
       m_ctlCOM.SetPortOpen( false);
-
     m_ctlCOM.SetCommPort( 1 + m_nComPort);
     switch( m_nComPortBaudrate) {
       case 0: m_ctlCOM.SetSettings( _T("57600,N,8,1")); break;
@@ -2697,10 +2567,10 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
       case 6: m_ctlCOM.SetSettings( _T("921600,N,8,1")); break;
     }
     m_ctlCOM.SetPortOpen( true);
+    */
 
     GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
 
-    SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
     SetTimer( MY_TIMER_1000,	  1000, NULL);
 
     //опросник параметров
@@ -2710,7 +2580,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
     SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
 
-    SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
+    //SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
 
     m_bBtnCwStart = true;
 
@@ -2719,13 +2589,13 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     UpdateData( false);
   }
   else {
-    m_ctlCOM.SetPortOpen( false);
+    //m_ctlCOM.SetPortOpen( false);
 
-    KillTimer( MY_TIMER_COM_FLUSH);
     KillTimer( MY_TIMER_1000);
     KillTimer( MY_TIMER_POLLER);
 
-    m_bStopBigThreadFlag = true;
+    gl_bStopSmallThreadFlag = true;
+    gl_bStopBigThreadFlag = true;
 
     CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
@@ -3016,6 +2886,7 @@ void CMainView::OnDecCoeffCalc()
 
 }
 
+/*
 void CMainView::OnOnCommComm() 
 {
 	short event = m_ctlCOM.GetCommEvent();
@@ -3040,9 +2911,8 @@ void CMainView::OnOnCommComm()
 		m_ctlCOM.SetPortOpen( false);
 		
 		KillTimer( MY_TIMER_1000);
-		KillTimer( MY_TIMER_COM_FLUSH);
 				
-		m_bStopBigThreadFlag = true;
+		gl_bStopBigThreadFlag = true;
 		
 		CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
@@ -3138,15 +3008,24 @@ void CMainView::OnOnCommComm()
 		}		
 	}
 }
+*/
 
 void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3, BYTE b4)
 {
+  
+
 	char str[4];
 	str[0] = b1;
 	str[1] = b2;
 	str[2] = b3;
   str[3] = b4;
 
+  DWORD effective;
+  if( gl_hComPort != NULL) {
+    WriteFile( gl_hComPort, str, 4, &effective, NULL);
+  }
+
+  /*
 	SAFEARRAY *psa;
   SAFEARRAYBOUND rgsabound[1];
   rgsabound[0].lLbound = 0;
@@ -3167,7 +3046,7 @@ void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3, BYTE b4)
 	}
 
 	SafeArrayDestroy( psa);
-
+  */
 }
 
 void CMainView::OnBtnThermoCalibSet() 
@@ -3467,7 +3346,7 @@ void CMainView::OnBtnReqSn()
 {
   theApp.m_bDeviceSerialNumber = false;
   GetDlgItem( IDC_LBL_DEVICE_SERIAL_NUMBER)->SetWindowText( _T("-"));
-  if( m_ctlCOM.GetPortOpen())
+  if( !gl_bStopSmallThreadFlag)
     QueueCommandToMc( MC_COMMAND_REQ, DEVNUM, 0, 0);
 }
 
@@ -3553,14 +3432,26 @@ void CMainView::OnRadMeaning4()
 
 void CMainView::OnMouseUpGraph1(short Button, short Shift, long x, long y) 
 {
+  theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: in");
   if( Button == MK_RBUTTON) {
+
+    theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: m_dlgGraphSetup = 0x%X", m_dlgGraphSetup);
+
     if( m_dlgGraphSetup == NULL) {
+
       m_dlgGraphSetup = new CDlgGraphSetup( this);
       m_dlgGraphSetup->Create( IDD_GRAPH_SETUP, this);
+
+      theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: newly created m_dlgGraphSetup = 0x%X", m_dlgGraphSetup);
     }
 
-    m_dlgGraphSetup->Init( 0);
+    
+
+    theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: calling m_dlgGraphSetup.showWindow");
     m_dlgGraphSetup->ShowWindow( SW_SHOW);
+
+    theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: calling m_dlgGraphSetup.init");
+    m_dlgGraphSetup->Init( 0);
 
     /*
     theApp.GetSettings()->
@@ -3593,6 +3484,7 @@ void CMainView::OnMouseUpGraph1(short Button, short Shift, long x, long y)
             PointEmptyDiamond         = 22      // Empty diamond
             */
   }
+  theApp.GetLogger()->LogTrace( "CMainView::OnMouseUpGraph1: out");
 }
 
 void CMainView::OnMouseUpGraph2(short Button, short Shift, long x, long y) 

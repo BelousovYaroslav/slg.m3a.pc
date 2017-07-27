@@ -66,9 +66,58 @@ CSlgGroupNewAverager gl_avgTsa;
 CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 /////////////////////////////////////////////////////////////////////////////
+// онрнй яз╗лю дюммшу
+
+BOOL gl_bStopSmallThreadFlag;
+CString gl_strComPort;
+long gl_lSmallThreadErrorCode;
+HANDLE gl_hComPort;
+
+DWORD WINAPI SmallThread(LPVOID lparam) {
+  gl_lSmallThreadErrorCode = 0;
+  gl_bStopSmallThreadFlag = false;
+
+  theApp.GetLogger()->LogTrace ("SmallThread::in with port=%s", gl_strComPort);
+  gl_hComPort = CreateFile( gl_strComPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+  theApp.GetLogger()->LogTrace ("SmallThread::handle=%x", gl_hComPort);
+  if( gl_hComPort == INVALID_HANDLE_VALUE) {
+    gl_bStopSmallThreadFlag = true;
+    gl_lSmallThreadErrorCode = GetLastError();
+    return 1;
+  }
+
+  unsigned char dst[4096] = {0};
+  unsigned long size = sizeof(dst);
+  unsigned long lReadSize;
+  /*
+  if( port!= INVALID_HANDLE_VALUE) 
+	  if( ReadFile(port,dst,size, &size,0))
+		  printf("\nRead %d bytes",size);*/
+  while( !gl_bStopSmallThreadFlag) {
+    ReadFile( gl_hComPort, dst, size, &lReadSize, NULL);
+    if( lReadSize > 0) {
+      for( long i=0; i<lReadSize; i++) {
+			  if( !PutByteInCircleBuffer( dst[i])) {
+          gl_bStopSmallThreadFlag = true;
+          gl_lSmallThreadErrorCode = 25;
+          CloseHandle( gl_hComPort); gl_hComPort = NULL;
+          theApp.GetLogger()->LogTrace ("SmallThread::out 1");
+          return 1;
+        }
+      }
+    }
+    Sleep( 1);
+  }
+  theApp.GetLogger()->LogTrace ("SmallThread::out 0");
+  CloseHandle( gl_hComPort); gl_hComPort = NULL;
+  return 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
 // онрнй пюяопедекемхъ дюммшу
 
-BOOL m_bStopBigThreadFlag;
+BOOL gl_bStopBigThreadFlag;
 
 DWORD WINAPI BigThread(LPVOID lparam)
 {
@@ -78,7 +127,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 	
 	BOOL bFirst100msecPointSkipped = false;
 
-	m_bStopBigThreadFlag = false;
+	gl_bStopBigThreadFlag = false;
 
   BOOL bInveracityTact = FALSE;
   BOOL bInveracity100ms = FALSE;
@@ -88,7 +137,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
   int btPrevPackCounter = 500;
 
-	while( !m_bStopBigThreadFlag) {
+	while( !gl_bStopBigThreadFlag) {
 		int distance = ( CYCLE_BUFFER_LEN + gl_nCircleBufferPut - gl_nCircleBufferGet) % CYCLE_BUFFER_LEN;
 
 		if( distance > 50) {			
@@ -1356,7 +1405,7 @@ BOOL CSlg2App::InitInstance()
 
 	//m_strSoftwareVer = _T("v0.0.0.0");
 	m_strSoftwareVer = _T("unknown");
-
+  gl_hComPort = NULL;
   return TRUE;
 }
 
@@ -1422,7 +1471,8 @@ void CSlg2App::OnAppAbout()
 
 int CSlg2App::ExitInstance() 
 {
-  m_bStopBigThreadFlag = true;
+  gl_bStopSmallThreadFlag = true;
+  gl_bStopBigThreadFlag = true;
 
   m_pSettings.SaveSettings();
   /*
@@ -1489,9 +1539,14 @@ void CSlg2App::StartThreads()
 	gl_nCircleBufferGet = 0;
 	gl_nCircleBufferPut = 0;
 
-	m_bStopBigThreadFlag = false;
+  gl_bStopSmallThreadFlag = false;
+	gl_bStopBigThreadFlag = false;
 
-	//гюосяй онрнйю дкъ напюанрйх дюммшу
+	//гюосяй онрнйю яз╗лю дюммшу
+	DWORD id1;
+	HANDLE hthread1 = ::CreateThread( 0, 0, &SmallThread, 0, 0, &id1);
+
+  //гюосяй онрнйю дкъ напюанрйх дюммшу
 	DWORD id2;
 	HANDLE hthread2 = ::CreateThread( 0, 0, &BigThread, 0, 0, &id2);
 }

@@ -244,7 +244,7 @@
 #define IDC_CMB_GRAPH3_X                1203
 #define IDC_EDT_Y_MAX                   1203
 #define IDC_CMB_GRAPH4_X                1204
-#define IDC_CHK_Y_MIN                   1204
+#define IDC_EDT_R                       1204
 #define IDC_CMB_GRAPH5_X                1205
 #define IDC_EDT_Y_MIN                   1205
 #define IDC_CMB_GRAPH6_X                1206
@@ -256,7 +256,9 @@
 #define IDC_RAD_G6_T2                   1209
 #define IDC_EDT_X_MAX                   1209
 #define IDC_RAD_G6_T3                   1210
+#define IDC_EDT_G                       1210
 #define IDC_RAD_G6_T4                   1211
+#define IDC_EDT_B                       1211
 #define IDC_RAD_G7_T1                   1212
 #define IDC_RAD_G7_T2                   1213
 #define IDC_RAD_G7_T3                   1214
@@ -285,6 +287,7 @@
 #define IDC_CWSPN_LINE_WIDTH            1239
 #define IDC_COMMONDIALOG                1241
 #define IDC_LBL_LINE_COLOR              1242
+#define IDC_CHK_Y_MIN                   1243
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -294,7 +297,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1243
+#define _APS_NEXT_CONTROL_VALUE         1244
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
