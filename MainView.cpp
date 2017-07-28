@@ -121,19 +121,22 @@ CMainView::CMainView()
   m_nRadGraph3 = 0;
   m_nRadGraph2 = 0;
 	m_nRadGraph1 = 0;
+	m_strPackNumber = _T("");
 	//}}AFX_DATA_INIT
 	m_nCounterSkippedPoints = 0;
 	m_nPointsSkipped = 0;	
 	m_bEmergencyCodeApperance = false;
   m_dlgDecCoeffCalc = NULL;
   m_dlgGraphSetup = NULL;
-  m_nPollParams[ 0] = SIGNCOEFF;
-  m_nPollParams[ 1] = AMPLITUDE;
-  m_nPollParams[ 2] = TACT_CODE;
-  m_nPollParams[ 3] = M_COEFF;
-  m_nPollParams[ 4] = STARTMODE;
-  m_nPollParams[ 5] = DECCOEFF;  
-  m_nPollParams[ 6] = VERSION;
+  m_nPollParams[ 0] = VERSION;
+  m_nPollParams[ 1] = DEVNUM;
+  m_nPollParams[ 2] = SIGNCOEFF;
+  m_nPollParams[ 3] = AMPLITUDE;
+  m_nPollParams[ 4] = TACT_CODE;
+  m_nPollParams[ 5] = M_COEFF;
+  m_nPollParams[ 6] = STARTMODE;
+  m_nPollParams[ 7] = DECCOEFF;  
+  
 }
 
 CMainView::~CMainView()
@@ -228,6 +231,7 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RAD_G3_T0, m_nRadGraph3);
 	DDX_Radio(pDX, IDC_RAD_G2_T0, m_nRadGraph2);
 	DDX_Radio(pDX, IDC_RAD_G1_T0, m_nRadGraph1);
+	DDX_Text(pDX, IDC_LBL_PACK_NUM, m_strPackNumber);
 	//}}AFX_DATA_MAP
 }
 
@@ -1925,6 +1929,7 @@ void CMainView::OnTimer(UINT nIDEvent)
     m_strMarkerFails.Format( _T("%d"), theApp.m_nMarkerFails);
     m_strCheckSummFails.Format( _T("%d"), theApp.m_nCheckSummFails);
     m_strCounterFails.Format( _T("%d"), theApp.m_nCounterFails);
+    m_strPackNumber.Format( _T("%d"), theApp.m_nPackNumber);
 
 		//доступность кнопки "Ёкспорт"
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( gl_avgW.Get_100ms()->GetCounter());
@@ -2518,6 +2523,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_nCheckSummFails = 0;
     theApp.m_nCounterFails = 0;
     theApp.m_nMarkerFails = 0;
+    theApp.m_nPackNumber = 0;
 
     theApp.m_shFlashDecCoeff = 0;
     theApp.m_shSignCoeff = 0;
@@ -2537,17 +2543,18 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     SYSTEMTIME sysTime;  // Win32 time information
     GetLocalTime( &sysTime);
     CString strStatFileName;
-    if( theApp.m_bDeviceSerialNumber)
-		  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.dev%03d.raw"),
+    if( theApp.m_bDeviceSerialNumber) {
+		  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.dev%03d.raw"),
 					  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
 						  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond, theApp.m_nDeviceSerialNumber);
-    else
-      strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
-					  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-						  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+    //else
+    //  strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
+		//			  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+	  //			  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
 
-		if( app->fhNew == NULL)
-			app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
+		  if( app->fhNew == NULL)
+			  app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
+    }
 
     theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: Ready to start threads with port=%s", gl_strComPort);
 
@@ -3192,34 +3199,14 @@ void CMainView::OnRadTsaHz()
 */
 void CMainView::OnBtnReqVersion() 
 {
-  /*for( int i=0; i<100; i++) {
-    gl_avgTsa.CommonAddPoint( i);
-    
-    if( (i%10) == 0)
-      gl_avgTsa.Get_100ms()->Reset();
-    
-    if( (i%20) == 0)
-      gl_avgTsa.Get_1s()->Reset();
-
-    if( (i%30) == 0)
-      gl_avgTsa.Get_10s()->Reset();
-
-    if( (i%50) == 0)
-      gl_avgTsa.Get_100s()->Reset();
-
-    CString strTmp;
-    strTmp.Format( "NPoints: 100ms=%d 1s=%d 10s=%d 100s=%d\n",
-          gl_avgTsa.Get_100ms()->GetCounter(), gl_avgTsa.Get_1s()->GetCounter(),
-          gl_avgTsa.Get_10s()->GetCounter(), gl_avgTsa.Get_100s()->GetCounter());
-    OutputDebugString( strTmp);
-
-    strTmp.Format( "Summ: 100ms=%f 1s=%f 10s=%f 100s=%f\n\n",
-          gl_avgTsa.Get_100ms()->GetSumm(), gl_avgTsa.Get_1s()->GetSumm(),
-          gl_avgTsa.Get_10s()->GetSumm(), gl_avgTsa.Get_100s()->GetSumm());
-    OutputDebugString( strTmp);
-  }*/
-
-  QueueCommandToMc( MC_COMMAND_REQ, VERSION, 0, 0);
+  if( gl_bStopSmallThreadFlag == TRUE) {
+    theApp.m_bFirmwareDefined = false;
+    m_strSoftwareVersion = _T("");
+    UpdateData( FALSE);
+  }
+  else {
+    QueueCommandToMc( MC_COMMAND_REQ, VERSION, 0, 0);
+  }
 }
 
 void CMainView::QueueCommandToMc(char btCmd, char btParam1, char btParam2, char btParam3)
@@ -3309,6 +3296,7 @@ void CMainView::OnBtnReset()
   theApp.m_nCheckSummFails = 0;
   theApp.m_nMarkerFails = 0;
   theApp.m_nCounterFails = 0;
+  theApp.m_nPackNumber = 0;
 
   gl_nCircleBufferGet = 0;
 	gl_nCircleBufferPut = 0;
@@ -3346,7 +3334,8 @@ void CMainView::OnBtnReqSn()
 {
   theApp.m_bDeviceSerialNumber = false;
   GetDlgItem( IDC_LBL_DEVICE_SERIAL_NUMBER)->SetWindowText( _T("-"));
-  if( !gl_bStopSmallThreadFlag)
+
+  if( gl_bStopSmallThreadFlag == FALSE)   
     QueueCommandToMc( MC_COMMAND_REQ, DEVNUM, 0, 0);
 }
 
@@ -3577,3 +3566,4 @@ void CMainView::OnMouseUpGraph8(short Button, short Shift, long x, long y)
     m_dlgGraphSetup->ShowWindow( SW_SHOW);
   }
 }
+

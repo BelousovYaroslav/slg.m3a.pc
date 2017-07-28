@@ -26,7 +26,7 @@
 #include "McCommandItem.h"
 #include <queue>
 
-#define POLL_PARAMS_LEN 7
+#define POLL_PARAMS_LEN 8
 
 class CMainView : public CFormView
 {
@@ -113,6 +113,7 @@ public:
 	int		m_nRadGraph3;
 	int		m_nRadGraph2;
 	int		m_nRadGraph1;
+	CString	m_strPackNumber;
 	//}}AFX_DATA
 
 // Attributes

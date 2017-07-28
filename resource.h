@@ -283,6 +283,7 @@
 #define IDC_CMB_GRAPH6_Y                1233
 #define IDC_CMB_GRAPH7_Y                1234
 #define IDC_CMB_GRAPH8_Y                1235
+#define IDC_LBL_PACK_NUM                1236
 #define IDC_CHK_LINE                    1237
 #define IDC_CWSPN_LINE_WIDTH            1239
 #define IDC_COMMONDIALOG                1241

@@ -55,6 +55,7 @@ public:
   */
 
   int m_nEmergencyCode;
+  bool m_bFirmwareDefined;
   CString m_strSoftwareVer;
   bool m_bDeviceSerialNumber;
   int m_nDeviceSerialNumber;
@@ -84,6 +85,7 @@ public:
   int m_nMarkerFails;
   int m_nCounterFails;
   int m_nCheckSummFails;
+  int m_nPackNumber;
 
   char m_bLockBit;
   char m_bSyncAsync;
