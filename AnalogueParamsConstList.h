@@ -78,7 +78,9 @@
 
 #define PH_SH_CALIB_T       57  //0x39  "9"  Калибровка фазового сдвига. Точка N. Температура
 #define PH_SH_CALIB_PH_SH   58  //0x3A  ":"  Калибровка фазового сдвига. Точка N. Соотв. фазовый сдвиг
+#define PH_SH_CURRENT_VAL   59  //0x3B  ";"  Текущее значение фазового сдвига
 
+#define SLG_ADDITIONAL_PARAM_LIST_ELEMENT   60  //0x3C  "<"  элемент списка доп. параметров
 
 /*
 
