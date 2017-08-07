@@ -123,7 +123,6 @@ public:
 public:
   void MakeDeltaLine( CTrackedParam *tp1, CTrackedParam *tp2, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
   void MakeLine( CTrackedParam *tp, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
-	void SendCommandToMc( BYTE b1, BYTE b2, BYTE b3, BYTE b4);
 	void SetSendButtonsState( bool bState);
 
 // Overrides

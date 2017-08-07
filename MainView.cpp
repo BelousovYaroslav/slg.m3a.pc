@@ -15,8 +15,11 @@
 //флаг остановки потока получения данных из ком-порта: true - поток остановлен, false - поток работает
 extern BOOL gl_bStopSmallThreadFlag;
 extern CString gl_strComPort;
-
+extern int gl_nComPortBaudrate;
 extern HANDLE gl_hComPort;
+
+extern BYTE gl_btWriteBuffer[];
+extern BOOL gl_bWriteBufferReady;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -28,7 +31,6 @@ static char THIS_FILE[] = __FILE__;
 
 #define MY_MAXIMIZE_VIEW_TIMER 1002
 #define MY_SEND_BUTTONS_BLOCK_TIMER 1003
-#define MY_TIMER_LOAD_FLASH_PARAMS 1004
 #define MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS 1005
 #define MY_TIMER_SWITCH_AS 1110
 #define MY_TIMER_INPUT_DATA 1111
@@ -1760,7 +1762,9 @@ void CMainView::RefreshGraphs()
   //лампочка "СОМ-порт открыт"
   m_ctlComButton.SetValue( !gl_bStopSmallThreadFlag);
 
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p4");
   UpdateData( FALSE);
+  theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: out");
 }
 
 void CMainView::OnInitialUpdate() 
@@ -1910,11 +1914,13 @@ void CMainView::OnTimer(UINT nIDEvent)
 	UpdateData( TRUE);
 	CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
+  theApp.GetLogger()->LogTrace( "CMainView::OnTimer(): in");
+
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//событие 1000 мсек
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_1000) {
-
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer(MY_TIMER_1000)");
     //обновление серийного номера
     if( theApp.m_bDeviceSerialNumber) {
       CString strDevSerialNumber;
@@ -2142,21 +2148,22 @@ void CMainView::OnTimer(UINT nIDEvent)
 	}
 
   if( nIDEvent == MY_TIMER_POLLER) {
-    
-      if( m_queCommandQueue.size() < 5) {          
-        CMcCommandItem *item = new CMcCommandItem(
-              MC_COMMAND_REQ,
-              m_nPollParams[ m_nPollCounter],
-              0, 0);
-        m_queCommandQueue.push( item);
-        m_nPollCounter = ( ++m_nPollCounter) % POLL_PARAMS_LEN;
-      }
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_TIMER_POLLER)");
+    if( m_queCommandQueue.size() < 5) {          
+      CMcCommandItem *item = new CMcCommandItem(
+            MC_COMMAND_REQ,
+            m_nPollParams[ m_nPollCounter],
+            0, 0);
+      m_queCommandQueue.push( item);
+      m_nPollCounter = ( ++m_nPollCounter) % POLL_PARAMS_LEN;
+    }
     
   }
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_MAXIMIZE_VIEW_TIMER) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_MAXIMIZE_VIEW_TIMER)");
 		(( CSlg2App *) AfxGetApp())->GetMainWnd()->ShowWindow( SW_MAXIMIZE);
 		KillTimer( MY_MAXIMIZE_VIEW_TIMER);
 	}
@@ -2164,21 +2171,15 @@ void CMainView::OnTimer(UINT nIDEvent)
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_SEND_BUTTONS_BLOCK_TIMER) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_SEND_BUTTONS_BLOCK_TIMER)");
 		SetSendButtonsState( TRUE);
 		KillTimer( MY_SEND_BUTTONS_BLOCK_TIMER);
-	}
-	
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_LOAD_FLASH_PARAMS) {
-		//QueueCommandToMc( MC_COMMAND_ACT_RELOAD_FLASH_PARAMS, 4, 0, 0);
-    //SendCommandToMc
-		KillTimer( MY_TIMER_LOAD_FLASH_PARAMS);
 	}
 
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_SWITCH_AS) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_TIMER_SWITCH_AS)");
     //QueueCommandToMc( MC_COMMAND_ACT_RELOAD_FLASH_PARAMS, 4, 0, 0);
 		//SendCommandToMc( 10, 0, 0);
 		KillTimer( MY_TIMER_SWITCH_AS);
@@ -2187,11 +2188,20 @@ void CMainView::OnTimer(UINT nIDEvent)
   //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
   if( nIDEvent == TIMER_SEND_CMDS_TO_MC) {
-    if( m_queCommandQueue.size() > 0) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( TIMER_SEND_CMDS_TO_MC)");
+    if( m_queCommandQueue.size() > 0 && gl_bWriteBufferReady == false) {
       //SetControlsState( FALSE, FALSE);
       CMcCommandItem *item = ( CMcCommandItem *) m_queCommandQueue.front();
       m_queCommandQueue.pop();
-      SendCommandToMc( item->m_nCommand, item->m_nParam1, item->m_nParam2, item->m_nParam3);
+
+      gl_btWriteBuffer[0] = item->m_nCommand;
+      gl_btWriteBuffer[1] = item->m_nParam1;
+      gl_btWriteBuffer[2] = item->m_nParam2;
+      gl_btWriteBuffer[3] = item->m_nParam3;
+  
+      gl_bWriteBufferReady = true;
+
+      //SendCommandToMc( item->m_nCommand, item->m_nParam1, item->m_nParam2, item->m_nParam3);
       delete item;
     }
     else {
@@ -2202,6 +2212,7 @@ void CMainView::OnTimer(UINT nIDEvent)
   //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
   //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
   if( nIDEvent == MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS)");
     if( theApp.GetSettings()->GetControlButtons()) {
       if( theApp.m_shSignCoeff) {
         m_ctlNedtParam1.SetValue( ( double) theApp.m_btParam1 * m_dKimpSec);
@@ -2224,6 +2235,7 @@ void CMainView::OnTimer(UINT nIDEvent)
   //таймер таймаута потока входящих данных
   //**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
   if( nIDEvent == MY_TIMER_INPUT_DATA) {
+    theApp.GetLogger()->LogTrace( "CMainView::OnTimer( MY_TIMER_INPUT_DATA)");
     KillTimer( MY_TIMER_INPUT_DATA);
     KillTimer( MY_TIMER_1000);
 
@@ -2286,6 +2298,7 @@ void CMainView::OnTimer(UINT nIDEvent)
   }
 
   CFormView::OnTimer(nIDEvent);
+  theApp.GetLogger()->LogTrace( "CMainView::OnTimer(): out");
 }
 
 BEGIN_EVENTSINK_MAP(CMainView, CFormView)
@@ -2538,7 +2551,20 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
       case 5: gl_strComPort = "COM6"; break;
       case 6: gl_strComPort = "COM7"; break;
       case 7: gl_strComPort = "COM8"; break;
+      case 8: gl_strComPort = "COM9"; break;
     }
+
+    
+    switch( m_nComPortBaudrate) {
+      case 0: gl_nComPortBaudrate = 57600;    break;
+      case 1: gl_nComPortBaudrate = 115200;   break;
+      case 2: gl_nComPortBaudrate = 128000;   break;
+      case 3: gl_nComPortBaudrate = 256000;   break;
+      case 4: gl_nComPortBaudrate = 460800;   break;
+      case 5: gl_nComPortBaudrate = 512000;   break;
+      case 6: gl_nComPortBaudrate = 921600;   break;
+    }
+
 
     SYSTEMTIME sysTime;  // Win32 time information
     GetLocalTime( &sysTime);
@@ -2556,7 +2582,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 			  app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
     }
 
-    theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: Ready to start threads with port=%s", gl_strComPort);
+    theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: Ready to start threads with port=%s baudrate=%d", gl_strComPort, gl_nComPortBaudrate);
 
     theApp.StartThreads();
 
@@ -2584,7 +2610,6 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     m_nPollCounter = 0;
     SetTimer( MY_TIMER_POLLER, 1000, NULL);
 
-    SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
     SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
 
     //SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
@@ -2651,6 +2676,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
   }
 
   UpdateData( false);
+  theApp.GetLogger()->LogTrace ("CMainView::OnValueChangedCwStart: out");
 }
 
 void CMainView::OnDestroy() 
@@ -2701,7 +2727,6 @@ void CMainView::OnParam1Btn()
 	QueueCommandToMc( MC_COMMAND_SET, AMPLITUDE, byte, 0);
 	
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);	
 }
 
@@ -2712,7 +2737,6 @@ void CMainView::OnParam2Btn()
   QueueCommandToMc( MC_COMMAND_SET, TACT_CODE, ( char) m_ctlNedtParam2.GetValue(), 0);
 
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
@@ -2731,7 +2755,6 @@ void CMainView::OnParam3Btn()
   //SendCommandToMc( 2, byte, 0);
 
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
@@ -2750,42 +2773,8 @@ void CMainView::OnParam4Btn()
 	//SendCommandToMc( 3, byte, 0);
 
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
-
-//DEL void CMainView::OnParam5Btn() 
-//DEL {
-//DEL 	UpdateData( true);
-//DEL 	short val = ( short) ( m_ctlNedtParam5.GetValue() * 65535. / 0.75);
-//DEL 	SendCommandToMc( 4, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-//DEL 	
-//DEL 	SetSendButtonsState( FALSE);
-//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-//DEL }
-
-//DEL void CMainView::OnParam6Btn() 
-//DEL {
-//DEL 	UpdateData( true);
-//DEL 	short val = ( short) ( m_ctlNedtParam6.GetValue() * 65535. / 0.75);
-//DEL 	SendCommandToMc( 5, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-//DEL 	
-//DEL 	SetSendButtonsState( FALSE);
-//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-//DEL }
-
-//DEL void CMainView::OnParam7Btn() 
-//DEL {
-//DEL 	UpdateData( true);
-//DEL 	short val = ( short) ( m_ctlNedtParam7.GetValue() / 6. * 65535.);
-//DEL 	SendCommandToMc( 6, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-//DEL 	
-//DEL 	SetSendButtonsState( FALSE);
-//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-//DEL }
 
 void CMainView::OnParam8Btn() 
 {
@@ -2799,20 +2788,8 @@ void CMainView::OnParam8Btn()
   //SendCommandToMc( 7, ( char) ( val & 0xFF), ( char) ( ( val & 0xFF00) >> 8));
 	
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
-
-//DEL void CMainView::OnParam9Btn() 
-//DEL {
-//DEL 	UpdateData( true);
-//DEL 	short val = ( short) m_ctlNedtParam9.GetValue();
-//DEL 	val++;
-//DEL 	SendCommandToMc( 8, (char) ( val & 0xFF), (char) ( ( val & 0xFF00) >> 8));
-//DEL 	SetSendButtonsState( FALSE);
-//DEL 	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
-//DEL 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
-//DEL }
 
 void CMainView::OnBtnSaveParams() 
 {
@@ -2853,7 +2830,6 @@ void CMainView::OnBtnRestoreParams()
 	//SendCommandToMc( 51, 0, 0);
 
 	SetSendButtonsState( FALSE);
-	SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 500, NULL);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
 }
 
@@ -3017,44 +2993,73 @@ void CMainView::OnOnCommComm()
 }
 */
 
-void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3, BYTE b4)
-{
-  
-
-	char str[4];
-	str[0] = b1;
-	str[1] = b2;
-	str[2] = b3;
-  str[3] = b4;
-
-  DWORD effective;
-  if( gl_hComPort != NULL) {
-    WriteFile( gl_hComPort, str, 4, &effective, NULL);
-  }
-
-  /*
-	SAFEARRAY *psa;
-  SAFEARRAYBOUND rgsabound[1];
-  rgsabound[0].lLbound = 0;
-  rgsabound[0].cElements = 4;
-  psa = SafeArrayCreate(VT_UI1, 1, rgsabound);
-	memcpy( psa->pvData, str, 4);
-	
-	VARIANT var;
-	var.vt = VT_ARRAY | VT_UI1;
-	var.parray = psa;
-
-	if( m_ctlCOM.GetPortOpen()) {
-		m_ctlCOM.SetOutput( var);
-		int s = m_ctlCOM.GetOutBufferCount();
-	}
-	else {
-		Beep( 5000, 100);
-	}
-
-	SafeArrayDestroy( psa);
-  */
-}
+//DEL void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3, BYTE b4)
+//DEL {
+//DEL   gl_btWriteBuffer[0] = b1;
+//DEL   gl_btWriteBuffer[1] = b2;
+//DEL   gl_btWriteBuffer[2] = b3;
+//DEL   gl_btWriteBuffer[3] = b4;
+//DEL   gl_btWriteBuffer[4] = 0;
+//DEL   gl_btWriteBuffer[5] = 0;
+//DEL 
+//DEL   gl_bWriteBufferReady = true;
+//DEL 
+//DEL   /*
+//DEL   theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: in");
+//DEL 
+//DEL 	char str[4];
+//DEL 	str[0] = b1;
+//DEL 	str[1] = b2;
+//DEL 	str[2] = b3;
+//DEL   str[3] = b4;
+//DEL 
+//DEL   DWORD effective;
+//DEL   if( gl_bComPortReady) {
+//DEL     COMSTAT comStat;
+//DEL     DWORD flags;
+//DEL     
+//DEL     theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: before ClearComm()");
+//DEL     BOOL bClearOk = ClearCommError( gl_hComPort, &flags, &comStat);
+//DEL 
+//DEL     theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result: %s", bClearOk? "TRUE":"FALSE");
+//DEL 
+//DEL     if( flags & CE_BREAK)     theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result flags: CE_BREAK");
+//DEL     if( flags & CE_FRAME)     theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result flags: CE_FRAME");
+//DEL     if( flags & CE_OVERRUN)   theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result flags: CE_OVERRUN");
+//DEL     if( flags & CE_RXOVER)    theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result flags: CE_RXOVER");
+//DEL     if( flags & CE_RXPARITY)  theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: ClearComm() result flags: CE_RXPARITY");
+//DEL 
+//DEL 
+//DEL     
+//DEL     WriteFile( gl_hComPort, str, 4, &effective, NULL);
+//DEL   }
+//DEL   */
+//DEL 
+//DEL   /*
+//DEL 	SAFEARRAY *psa;
+//DEL   SAFEARRAYBOUND rgsabound[1];
+//DEL   rgsabound[0].lLbound = 0;
+//DEL   rgsabound[0].cElements = 4;
+//DEL   psa = SafeArrayCreate(VT_UI1, 1, rgsabound);
+//DEL 	memcpy( psa->pvData, str, 4);
+//DEL 	
+//DEL 	VARIANT var;
+//DEL 	var.vt = VT_ARRAY | VT_UI1;
+//DEL 	var.parray = psa;
+//DEL 
+//DEL 	if( m_ctlCOM.GetPortOpen()) {
+//DEL 		m_ctlCOM.SetOutput( var);
+//DEL 		int s = m_ctlCOM.GetOutBufferCount();
+//DEL 	}
+//DEL 	else {
+//DEL 		Beep( 5000, 100);
+//DEL 	}
+//DEL 
+//DEL 	SafeArrayDestroy( psa);
+//DEL   */
+//DEL 
+//DEL   theApp.GetLogger()->LogTrace( "CMainView::SendCommandToMc: out");
+//DEL }
 
 void CMainView::OnBtnThermoCalibSet() 
 {

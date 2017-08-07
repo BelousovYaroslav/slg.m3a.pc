@@ -70,14 +70,17 @@ CDecCoeffCalcParams gl_pDecCoeffCalcParams;
 
 BOOL gl_bStopSmallThreadFlag;
 CString gl_strComPort;
+int gl_nComPortBaudrate;
 long gl_lSmallThreadErrorCode;
 HANDLE gl_hComPort;
+BYTE gl_btWriteBuffer[4] = { 0 };
+BOOL gl_bWriteBufferReady;
 
 DWORD WINAPI SmallThread(LPVOID lparam) {
   gl_lSmallThreadErrorCode = 0;
   gl_bStopSmallThreadFlag = false;
-
-  theApp.GetLogger()->LogTrace ("SmallThread::in with port=%s", gl_strComPort);
+  gl_bWriteBufferReady = false;
+  theApp.GetLogger()->LogTrace ("SmallThread::in with port=%s baudrate=%d", gl_strComPort, gl_nComPortBaudrate);
   gl_hComPort = CreateFile( gl_strComPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
   theApp.GetLogger()->LogTrace ("SmallThread::handle=%x", gl_hComPort);
   if( gl_hComPort == INVALID_HANDLE_VALUE) {
@@ -86,29 +89,75 @@ DWORD WINAPI SmallThread(LPVOID lparam) {
     return 1;
   }
 
+  //setup port
+  DCB dcbConfig = {0};
+  dcbConfig.DCBlength = sizeof( dcbConfig);
+  if( ( GetCommState( gl_hComPort, &dcbConfig) == 0)) {
+    theApp.GetLogger()->LogError( "Get configuration port has a problem.");
+    return 2;
+  }
+
+  theApp.GetLogger()->LogInfo( "Default Settings: Baud Rate=%d  Parity=%d  Byte Size=%d  Stop Bits=%d fAbortOnError=%d",
+    dcbConfig.BaudRate, dcbConfig.Parity, dcbConfig.ByteSize, dcbConfig.StopBits, dcbConfig.fAbortOnError);
+
+  dcbConfig.BaudRate = gl_nComPortBaudrate;
+  dcbConfig.StopBits = ONESTOPBIT;    /* description for this field from Winabse.h:   0,1,2 = 1, 1.5, 2                */
+  dcbConfig.Parity = 0;               /* description for this field from Winabse.h:   0-4   = None,Odd,Even,Mark,Space */
+  dcbConfig.ByteSize = DATABITS_8;
+  dcbConfig.fDtrControl = 0;
+  dcbConfig.fRtsControl = 0;
+  dcbConfig.fAbortOnError = FALSE;
+  
+  if( !SetCommState( gl_hComPort, &dcbConfig)) {
+    theApp.GetLogger()->LogError( "Failed to Set Comm State Reason: %d\n", GetLastError());
+    return 3;
+  }
+
+  theApp.GetLogger()->LogInfo( "Current Settings: Baud Rate=%d  Parity=%d  Byte Size=%d  Stop Bits=%d fAbortOnError=%d",
+    dcbConfig.BaudRate, dcbConfig.Parity, dcbConfig.ByteSize, dcbConfig.StopBits, dcbConfig.fAbortOnError);
+
+
   unsigned char dst[4096] = {0};
-  unsigned long size = sizeof(dst);
+  unsigned long size = sizeof( dst);
   unsigned long lReadSize;
-  /*
-  if( port!= INVALID_HANDLE_VALUE) 
-	  if( ReadFile(port,dst,size, &size,0))
-		  printf("\nRead %d bytes",size);*/
+  
   while( !gl_bStopSmallThreadFlag) {
+    theApp.GetLogger()->LogTrace( "SmallThread:: before ReadFile");
+
     ReadFile( gl_hComPort, dst, size, &lReadSize, NULL);
+    theApp.GetLogger()->LogTrace( "SmallThread:: afterReadFile. %d bytes read", lReadSize);
+
     if( lReadSize > 0) {
+      
+      
+      CString strLongPack = _T( ""), strAdd;
+      
       for( long i=0; i<lReadSize; i++) {
+        strAdd.Format( "%02X ", dst[i]);
+        strLongPack += strAdd;
+
 			  if( !PutByteInCircleBuffer( dst[i])) {
           gl_bStopSmallThreadFlag = true;
           gl_lSmallThreadErrorCode = 25;
           CloseHandle( gl_hComPort); gl_hComPort = NULL;
           theApp.GetLogger()->LogTrace ("SmallThread::out 1");
-          return 1;
+          return 4;
         }
       }
+
+      theApp.GetLogger()->LogTrace( "SmallThread:: data: %s", strLongPack);
     }
     Sleep( 1);
+
+    if( gl_bWriteBufferReady) {
+      theApp.GetLogger()->LogTrace( "SmallThread:: writing data!");
+      unsigned long lEffective = 0;
+      WriteFile( gl_hComPort, &gl_btWriteBuffer[0], 4, &lEffective, NULL);
+      theApp.GetLogger()->LogTrace( "SmallThread:: %ld bytes has been written!", lEffective);
+      gl_bWriteBufferReady = false;
+    }
   }
-  theApp.GetLogger()->LogTrace ("SmallThread::out 0");
+  theApp.GetLogger()->LogTrace( "SmallThread::out 0");
   CloseHandle( gl_hComPort); gl_hComPort = NULL;
   return 0;
 }
