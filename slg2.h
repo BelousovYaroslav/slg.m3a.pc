@@ -16,6 +16,7 @@
 //#include "Serial.h"
 
 #include "SlgCircleBuffer.h"
+#include "Logger.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CSlg2App:
@@ -25,9 +26,13 @@
 class CSlg2App : public CWinApp
 {
 public:
+  int GetLogLevel() { return m_nLogLevel; }
+  CLogger * GetLogger() { return &m_pLogger;}
+public:
 	CString strDirName;
 	int m_nComPort;
 	int m_nComBaudrate;
+  int m_nLogLevel;
 	int m_nControlButtons;
 	double m_dKimpSec;
 	CSlg2App();
@@ -45,9 +50,11 @@ public:
 
 	unsigned short m_shFlashT1, m_shFlashTD1_1, m_shFlashTD2_1, m_shFlashTD3_1;
 	unsigned short m_shFlashT2, m_shFlashTD1_2, m_shFlashTD2_2, m_shFlashTD3_2;
-	/*BOOL m_bThermoCalibrated;
+	/*
+  BOOL m_bThermoCalibrated;
 	double m_dThermoCalibK_1TD, m_dThermoCalibB_1TD;
-	double m_dThermoCalibK_2TD, m_dThermoCalibB_2TD;*/
+	double m_dThermoCalibK_2TD, m_dThermoCalibB_2TD;
+  */
 	
 	int m_nEmergencyCode;
 	CString m_strSoftwareVer;
@@ -92,6 +99,7 @@ public:
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 private:
+  CLogger m_pLogger;
 };
 
 extern CSlg2App theApp;

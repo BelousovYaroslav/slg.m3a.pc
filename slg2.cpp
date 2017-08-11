@@ -9,8 +9,6 @@
 #include "slg2View.h"
 #include "MainView.h"
 
-#include "WizardSelRunTypeStep.h"
-#include "WizardSelComPortStep.h"
 #include "SlgNewAverager.h"
 #include "Serial.h"
 
@@ -87,10 +85,113 @@ double gl_dec_coeff_low_filter = 200.;
 
 BOOL gl_dec_coeff_overround = false;
 
+
+/////////////////////////////////////////////////////////////////////////////
+// ПОТОК СЪЁМА ДАННЫХ
+
+BOOL gl_bStopSmallThreadFlag;
+CString gl_strComPort;
+int gl_nComPortBaudrate;
+long gl_lSmallThreadErrorCode;
+HANDLE gl_hComPort;
+BYTE gl_btWriteBuffer[4] = { 0 };
+BOOL gl_bWriteBufferReady;
+
+DWORD WINAPI SmallThread(LPVOID lparam) {
+  gl_lSmallThreadErrorCode = 0;
+  gl_bStopSmallThreadFlag = false;
+  gl_bWriteBufferReady = false;
+  theApp.GetLogger()->LogTrace ("SmallThread::in with port=%s baudrate=%d", gl_strComPort, gl_nComPortBaudrate);
+  gl_hComPort = CreateFile( gl_strComPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+  theApp.GetLogger()->LogTrace ("SmallThread::handle=%x", gl_hComPort);
+  if( gl_hComPort == INVALID_HANDLE_VALUE) {
+    gl_bStopSmallThreadFlag = true;
+    gl_lSmallThreadErrorCode = GetLastError();
+    theApp.GetLogger()->LogError( "SmallThread:: out 1");
+    return 1;
+  }
+
+  //setup port
+  DCB dcbConfig = {0};
+  dcbConfig.DCBlength = sizeof( dcbConfig);
+  if( ( GetCommState( gl_hComPort, &dcbConfig) == 0)) {
+    gl_bStopSmallThreadFlag = true;
+    theApp.GetLogger()->LogError( "SmallThread:: Get configuration port has a problem.");
+    theApp.GetLogger()->LogError( "SmallThread:: out 2");
+    return 2;
+  }
+
+  theApp.GetLogger()->LogInfo( "SmallThread:: Default Settings: Baud Rate=%d  Parity=%d  Byte Size=%d  Stop Bits=%d fAbortOnError=%d",
+    dcbConfig.BaudRate, dcbConfig.Parity, dcbConfig.ByteSize, dcbConfig.StopBits, dcbConfig.fAbortOnError);
+
+  dcbConfig.BaudRate = gl_nComPortBaudrate;
+  dcbConfig.StopBits = ONESTOPBIT;    /* description for this field from Winabse.h:   0,1,2 = 1, 1.5, 2                */
+  dcbConfig.Parity = 0;               /* description for this field from Winabse.h:   0-4   = None,Odd,Even,Mark,Space */
+  dcbConfig.ByteSize = DATABITS_8;
+  dcbConfig.fDtrControl = 0;
+  dcbConfig.fRtsControl = 0;
+  dcbConfig.fAbortOnError = FALSE;
+  
+  if( !SetCommState( gl_hComPort, &dcbConfig)) {
+    gl_bStopSmallThreadFlag = true;
+    theApp.GetLogger()->LogError( "SmallThread:: Failed to Set Comm State Reason: %d\n", GetLastError());
+    theApp.GetLogger()->LogError( "SmallThread:: out 3");
+    return 3;
+  }
+
+  theApp.GetLogger()->LogInfo( "SmallThread:: Current Settings: Baud Rate=%d  Parity=%d  Byte Size=%d  Stop Bits=%d fAbortOnError=%d",
+    dcbConfig.BaudRate, dcbConfig.Parity, dcbConfig.ByteSize, dcbConfig.StopBits, dcbConfig.fAbortOnError);
+
+
+  unsigned char dst[4096] = {0};
+  unsigned long size = sizeof( dst);
+  unsigned long lReadSize;
+  
+  while( !gl_bStopSmallThreadFlag) {
+    theApp.GetLogger()->LogTrace( "SmallThread:: before ReadFile");
+
+    ReadFile( gl_hComPort, dst, size, &lReadSize, NULL);
+    //theApp.GetLogger()->LogTrace( "SmallThread:: afterReadFile. %d bytes read", lReadSize);
+
+    if( lReadSize > 0) {
+      
+      
+      CString strLongPack = _T( ""), strAdd;
+      
+      for( long i=0; i<lReadSize; i++) {
+        strAdd.Format( "%02X ", dst[i]);
+        strLongPack += strAdd;
+
+			  if( !PutByteInCircleBuffer( dst[i])) {
+          gl_bStopSmallThreadFlag = true;
+          gl_lSmallThreadErrorCode = 25;
+          CloseHandle( gl_hComPort); gl_hComPort = NULL;
+          theApp.GetLogger()->LogTrace ("SmallThread::out 4");
+          return 4;
+        }
+      }
+
+      //theApp.GetLogger()->LogTrace( "SmallThread:: data: %s", strLongPack);
+    }
+    Sleep( 1);
+
+    if( gl_bWriteBufferReady) {
+      theApp.GetLogger()->LogTrace( "SmallThread:: writing data!");
+      unsigned long lEffective = 0;
+      WriteFile( gl_hComPort, &gl_btWriteBuffer[0], 3, &lEffective, NULL);
+      theApp.GetLogger()->LogTrace( "SmallThread:: %ld bytes has been written!", lEffective);
+      gl_bWriteBufferReady = false;
+    }
+  }
+  theApp.GetLogger()->LogTrace( "SmallThread::out 0");
+  CloseHandle( gl_hComPort); gl_hComPort = NULL;
+  return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // ПОТОК РАСПРЕДЕЛЕНИЯ ДАННЫХ
 
-BOOL m_bStopBigThreadFlag;
+BOOL gl_bStopBigThreadFlag;
 
 DWORD WINAPI BigThread(LPVOID lparam)
 {
@@ -100,11 +201,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
 	
 	BOOL bFirst100msecPointSkipped = false;
 
-	m_bStopBigThreadFlag = false;
+	gl_bStopBigThreadFlag = false;
 
 	gl_pTsa = gl_pw100 = gl_pi1 = gl_pi2 = gl_pVpc = gl_pAA = gl_pT1 = gl_pT2 = gl_pT3 = gl_pTSamean = 0.;
 
-	while( !m_bStopBigThreadFlag) {
+  theApp.GetLogger()->LogTrace( "::BigThread: in");
+	while( !gl_bStopBigThreadFlag) {
+    //theApp.GetLogger()->LogTrace( "::BigThread: alive!");
+
 		int distance = ( CYCLE_BUFFER_LEN + gl_nCircleBufferPut - gl_nCircleBufferGet) % CYCLE_BUFFER_LEN;
 
 		if( distance > 50) {			
@@ -239,11 +343,13 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
         theApp.m_nCheckSummFails++;
 
-        /*
+        
         CString strMsg;
         strMsg.Format( _T("\nBytes:\n%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\nCS(mc): %02x\nCS(pc): %02x"),
                 byte1, byte2, byte3, byte4, byte5, byte6,
                 byte7, byte8, byte9, byte10, byte11, byte12, btCheckSumm);
+        theApp.GetLogger()->LogError( strMsg);
+        /*
         AfxMessageBox( _T("Несовпадение контрольной суммы! FAIL!") + strMsg);
         */
         
@@ -672,6 +778,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 			Sleep( 1);
 	} //while жизни потока
 
+  theApp.GetLogger()->LogTrace( "::BigThread: out 1");
 	return 1;
 }
 
@@ -737,7 +844,8 @@ BOOL CSlg2App::InitInstance()
 	m_nComPort = GetProfileInt( _T("SETTINGS"), _T("COM_PORT"), 0);
 	m_nComBaudrate = GetProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), 0);
 	m_nControlButtons = GetProfileInt( _T("SETTINGS"), _T("CONTROL_BUTTONS"), 0);
-	
+	m_nLogLevel = GetProfileInt( _T("SETTINGS"), _T("LOG_LEVEL"), 0);
+
 	m_dKimpSec = kimpsec / 1000.;
 
 	SYSTEMTIME sysTime;
@@ -755,6 +863,9 @@ BOOL CSlg2App::InitInstance()
 		strDirName += _T("\\");
 
 	LoadStdProfileSettings();  // Load standard INI file options (including MRU)
+
+  m_pLogger.Init();
+  GetLogger()->LogInfo( "CSlg2App::InitInstance(): in");
 
 	//ОЧИСТКА КОЛЬЦЕВОГО БУФФЕРА ПРИЕМА ДАННЫХ
 	for( int i=0; i<CYCLE_BUFFER_LEN; i++) {
@@ -909,13 +1020,16 @@ void CSlg2App::OnAppAbout()
 
 int CSlg2App::ExitInstance() 
 {
-	m_bStopBigThreadFlag = true;
-	
+  theApp.GetLogger()->LogTrace("CSlg2App::ExitInstance(): in");
+
+	gl_bStopSmallThreadFlag = true;
+  gl_bStopBigThreadFlag = true;
+
 	int kimpsec = m_dKimpSec * 1000;
 	WriteProfileInt( _T("SETTINGS"), _T("K_IMP_SEC"), kimpsec);
 	WriteProfileInt( _T("SETTINGS"), _T("COM_PORT"), m_nComPort);
 	WriteProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), m_nComBaudrate);
-	
+	WriteProfileInt( _T("SETTINGS"), _T("LOG_LEVEL"), m_nLogLevel);
 
 	if( fh != NULL)
 		fclose( fh);
@@ -923,6 +1037,8 @@ int CSlg2App::ExitInstance()
 		fclose( fhb);
 	if( fhNew != NULL)
 		fclose( fhNew);
+
+  theApp.GetLogger()->LogTrace("CSlg2App::ExitInstance(): poi133637");
 
 	//кольцевые буфера
 	m_cbW100->free();
@@ -938,6 +1054,8 @@ int CSlg2App::ExitInstance()
   m_cbT3->free();
 	m_cbTsa->free();
 
+  theApp.GetLogger()->LogTrace("CSlg2App::ExitInstance(): poi133630");
+
 	delete m_cbW100;
 	delete m_cbW1000;
 	delete m_cbW10000;
@@ -951,6 +1069,8 @@ int CSlg2App::ExitInstance()
   delete m_cbT3;
 	delete m_cbTsa;
 
+  theApp.GetLogger()->LogTrace("CSlg2App::ExitInstance(): out");
+
 	return CWinApp::ExitInstance();
 }
 
@@ -959,9 +1079,14 @@ void CSlg2App::StartThreads()
 	gl_nCircleBufferGet = 0;
 	gl_nCircleBufferPut = 0;
 
-	m_bStopBigThreadFlag = false;
+  gl_bStopSmallThreadFlag = false;
+	gl_bStopBigThreadFlag = false;
 
-	//ЗАПУСК ПОТОКА ДЛЯ ОБРАБОТКИ ДАННЫХ
+	//ЗАПУСК ПОТОКА СЪЁМА ДАННЫХ
+	DWORD id1;
+	HANDLE hthread1 = ::CreateThread( 0, 0, &SmallThread, 0, 0, &id1);
+
+  //ЗАПУСК ПОТОКА ДЛЯ ОБРАБОТКИ ДАННЫХ
 	DWORD id2;
 	HANDLE hthread2 = ::CreateThread( 0, 0, &BigThread, 0, 0, &id2);
 }

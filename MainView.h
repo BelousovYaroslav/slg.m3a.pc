@@ -106,7 +106,6 @@ public:
 	CNiNumEdit	m_ctlNedtParam9;
 	int		m_nTMeaningInd;
 	double	m_dKimpSec;
-	CMSComm	m_ctlCOM;
 	CNiButton	m_ctlBtnCwStart;
 	CString	m_strSoftwareVersion;
 	CNiNumEdit	m_ctlNedtMeasTime;
@@ -178,7 +177,6 @@ protected:
 	afx_msg void OnBtnRestoreParams();
 	afx_msg void OnKillfocusEdtKImpSec();
 	afx_msg void OnDecCoeffCalc();
-	afx_msg void OnOnCommComm();
 	afx_msg void OnBtnThermoCalibSet();
 	afx_msg void OnBtnThermoCalibClear();
 	afx_msg void OnParam10Btn();

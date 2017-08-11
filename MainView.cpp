@@ -8,6 +8,13 @@
 #include "SlgNewAverager.h"
 #include "DecCoeffCalc.h"
 
+//флаг остановки потока получения данных из ком-порта: true - поток остановлен, false - поток работает
+extern BOOL gl_bStopSmallThreadFlag;
+extern CString gl_strComPort;
+extern int gl_nComPortBaudrate;
+extern BYTE gl_btWriteBuffer[];
+extern BOOL gl_bWriteBufferReady;
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -17,7 +24,6 @@ static char THIS_FILE[] = __FILE__;
 #define MY_TIMER_100			1100
 #define MY_TIMER_1000			1101
 
-#define MY_TIMER_COM_FLUSH		1001
 #define MY_MAXIMIZE_VIEW_TIMER 1002
 #define MY_SEND_BUTTONS_BLOCK_TIMER 1003
 #define MY_TIMER_LOAD_FLASH_PARAMS 1004
@@ -26,7 +32,7 @@ static char THIS_FILE[] = __FILE__;
 #define MY_TIMER_SWITCH_AS 1110
 #define MY_TIMER_INPUT_DATA 1111
 
-extern BOOL m_bStopBigThreadFlag;
+extern BOOL gl_bStopBigThreadFlag;
 extern int gl_nCircleBufferGet;
 extern int gl_nCircleBufferPut;
 
@@ -237,7 +243,6 @@ void CMainView::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PARAM9_NEDT, m_ctlNedtParam9);
 	DDX_Radio(pDX, IDC_RAD_MEANING1, m_nTMeaningInd);
 	DDX_Text(pDX, IDC_EDT_K_IMP_SEC, m_dKimpSec);
-	DDX_Control(pDX, IDC_COMM, m_ctlCOM);
 	DDX_Control(pDX, IDC_CW_START, m_ctlBtnCwStart);
 	DDX_Text(pDX, IDC_SFTW_VER, m_strSoftwareVersion);
 	DDX_Control(pDX, IDC_NEDT_MEAS_TIME, m_ctlNedtMeasTime);
@@ -1269,7 +1274,7 @@ void CMainView::RefreshGraphs()
 	m_strSmGr8_max.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetMax());
 	m_strSmGr8_rms.Format( _T("%.4f"), (( CSlg2App *) AfxGetApp())->m_cbTsa->GetRMS());
 
-	m_ctlComButton.SetValue( m_ctlCOM.GetPortOpen());
+	m_ctlComButton.SetValue( !gl_bStopSmallThreadFlag);
 	UpdateData( FALSE);
 }
 
@@ -1287,6 +1292,7 @@ void CMainView::OnInitialUpdate()
 	lstrcpy(lf.lfFaceName, _T("Times New Roman"));   // Request a face name "Arial".
 	VERIFY(m_pFont.CreateFontIndirect(&lf));							// Create the font.
 
+  /*
 	m_ctlCOM.SetInBufferSize( 2048);
 	m_ctlCOM.SetCommPort( 1);
 	m_ctlCOM.SetSettings( _T("115200,N,8,1"));
@@ -1295,7 +1301,8 @@ void CMainView::OnInitialUpdate()
 	m_ctlCOM.SetInBufferCount( 0);
 	m_ctlCOM.SetOutBufferCount( 0);
 	m_ctlCOM.SetOutBufferSize( 3);
-	
+	*/
+
 	GetDlgItem( IDC_MIN_LABEL)->SetFont( &m_pFont);
 	GetDlgItem( IDC_MINVAL_LABEL)->SetFont( &m_pFont);
 	GetDlgItem( IDC_MEAN_LABEL)->SetFont( &m_pFont);
@@ -1387,141 +1394,6 @@ void CMainView::OnTimer(UINT nIDEvent)
 	UpdateData( TRUE);
 	CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	//событие обработки COM-порта
-	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
-	if( nIDEvent == MY_TIMER_COM_FLUSH) {
-		if( m_nPointsSkipped > 10) {
-			if( m_ctlCOM.GetPortOpen()) {
-				
-				short nBytes = m_ctlCOM.GetInBufferCount();
-				if( nBytes > 10) {
-					VARIANT var = m_ctlCOM.GetInput();
-					
-					
-					char *buff;//[2048];
-					int count = var.parray->rgsabound[0].cElements;
-					buff = new char[count];
-					/*
-					if( count<0 || count > 2048) {
-						CString strError;
-						strError.Format( _T("COUNT: %d"), count);
-						AfxMessageBox( strError);
-						Beep( 1000, 1000);
-					}
-					*/
-					memcpy( buff, var.parray->pvData, count);
-
-					for( int qq=0; qq<count; qq++) {
-						//fprintf( ((CSlg2App*) AfxGetApp())->fhb, "%x", buff[qq]);
-						if( !PutByteInCircleBuffer( buff[qq])) {
-							m_ctlCOM.SetPortOpen( false);
-							for( int err=0; err < ERROR_2; err++) {
-								Beep( 100, 100);
-								Sleep( 200);
-							}
-							app->m_nEmergencyCode = 1002;
-							m_strLblEmergency.Format( _T("1002"));
-							UpdateData( false);
-
-							GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
-							GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
-							
-							GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
-							GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
-							m_ctlComButton.SetValue( false);
-
-							m_ctlCOM.SetPortOpen( false);
-
-							KillTimer( MY_TIMER_COM_FLUSH);
-							KillTimer( MY_TIMER_100);
-							KillTimer( MY_TIMER_1000);
-		
-				
-							m_bStopBigThreadFlag = true;
-		
-							
-
-							gl_nCircleBufferGet = 0;
-							gl_nCircleBufferPut = 0;
-
-							gl_dGlobalTime = 0.;
-							gl_avW100.Reset();
-							gl_avW1000.Reset();
-							gl_avW10000.Reset();
-							gl_avW100000.Reset();
-							gl_avI1.Reset();
-							gl_avI2.Reset();
-							gl_avVpc.Reset();
-							gl_avAmplAng.Reset();
-							gl_avT1.Reset();
-							gl_avT2.Reset();
-							gl_avTsa.Reset();
-							gl_avTsa1000.Reset();
-							gl_avTsa10000.Reset();
-							gl_avTsa100000.Reset();
-		
-
-							app->m_cbW100->Reset();
-							app->m_cbW1000->Reset();
-							app->m_cbW10000->Reset();
-							app->m_cbW100000->Reset();
-							app->m_cbI1->Reset();
-							app->m_cbI2->Reset();
-							app->m_cbVpc->Reset();
-							app->m_cbAmplAng->Reset();
-							app->m_cbT1->Reset();
-							app->m_cbT2->Reset();
-              app->m_cbT3->Reset();
-							app->m_cbTsa->Reset();
-						}
-					}
-
-					delete buff;
-				}
-			}
-			else {
-				for( int err=0; err < ERROR_5; err++) {
-					Beep( 100, 100);
-					Sleep( 200);
-				}
-				app->m_nEmergencyCode = 1005;
-				m_strLblEmergency.Format( _T("1005"));
-				UpdateData( false);
-			}
-		}
-		else {
-			//пропуск первых 10 ЧТЕНИЙ!!!! не попаданий по таймеру, а ЧТЕНИЙ!
-			short nBytes = m_ctlCOM.GetInBufferCount();
-			if( nBytes > 10) {
-
-				KillTimer( MY_TIMER_INPUT_DATA);
-			
-				SYSTEMTIME sysTime;  // Win32 time information
-				GetLocalTime(&sysTime);
-				CString strStatFileName;
-				strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.txt"),
-													sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-				/*if( app->fh == NULL)
-					app->fh = fopen( strStatFileName, "w");*/
-				/*else
-					AfxMessageBox( _T("Попытка открыть файл при открытом дескрипторе."));*/
-
-				strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d_bin.txt"),
-													sysTime.wYear, sysTime.wMonth, sysTime.wDay,
-													sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-				if( app->fhNew == NULL)
-					app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
-
-				m_nPointsSkipped++;
-				m_ctlCOM.SetInputLen( 0);
-			}
-		}
-	}
-	
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	//событие 100 мсек
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
@@ -1617,14 +1489,17 @@ void CMainView::OnTimer(UINT nIDEvent)
 		if( dMeasTime > 0.5) {
 			if( gl_dGlobalTime >= dMeasTime) {
 				KillTimer( MY_TIMER_INPUT_DATA);
-				KillTimer( MY_TIMER_COM_FLUSH);
 				KillTimer( MY_TIMER_100);
 				KillTimer( MY_TIMER_1000);
-				m_bStopBigThreadFlag = true;
+				
+        gl_bStopBigThreadFlag = true;
+				gl_bStopSmallThreadFlag = true;
 
-				if( m_ctlCOM.GetPortOpen())
+				/*
+        if( m_ctlCOM.GetPortOpen())
 					m_ctlCOM.SetPortOpen( false);
-	
+	      */
+
 				GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
 				GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
 				GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
@@ -1737,18 +1612,21 @@ void CMainView::OnTimer(UINT nIDEvent)
 	//**** **** **** **** **** **** **** **** **** **** **** **** **** **** ****
 	if( nIDEvent == MY_TIMER_INPUT_DATA) {
 		KillTimer( MY_TIMER_INPUT_DATA);
-		KillTimer( MY_TIMER_COM_FLUSH);
+		//KillTimer( MY_TIMER_COM_FLUSH);
 		KillTimer( MY_TIMER_100);
 		KillTimer( MY_TIMER_1000);
 
-		if( m_ctlCOM.GetPortOpen())
+		/*
+    if( m_ctlCOM.GetPortOpen())
 			m_ctlCOM.SetPortOpen( false);
+    
 
 		for( int err=0; err < ERROR_6; err++) {
 			Beep( 100, 100);
 			Sleep( 200);
 		}
-
+    */
+  
 		app->m_nEmergencyCode = 1006;
 		m_strLblEmergency.Format( _T("1006"));
 		UpdateData( false);
@@ -1765,10 +1643,13 @@ void CMainView::OnTimer(UINT nIDEvent)
 		m_ctlComButton.SetValue( false);
 		m_ctlBtnCwStart.SetValue( false);
 
-		if( m_ctlCOM.GetPortOpen())
+		/*
+    if( m_ctlCOM.GetPortOpen())
 			m_ctlCOM.SetPortOpen( false);
-				
-		m_bStopBigThreadFlag = true;
+		*/
+    
+    gl_bStopSmallThreadFlag = true;
+		gl_bStopBigThreadFlag = true;    
 		
 		gl_nCircleBufferGet = 0;
 		gl_nCircleBufferPut = 0;
@@ -1817,7 +1698,6 @@ BEGIN_EVENTSINK_MAP(CMainView, CFormView)
 	ON_EVENT(CMainView, IDC_GRAPH7, -600 /* Click */, OnClickGraph7, VTS_NONE)
 	ON_EVENT(CMainView, IDC_GRAPH8, -600 /* Click */, OnClickGraph8, VTS_NONE)
 	ON_EVENT(CMainView, IDC_CW_START, 1 /* ValueChanged */, OnValueChangedCwStart, VTS_BOOL)
-	ON_EVENT(CMainView, IDC_COMM, 1 /* OnComm */, OnOnCommComm, VTS_NONE)
 	//}}AFX_EVENTSINK_MAP
 END_EVENTSINK_MAP()
 
@@ -1880,6 +1760,8 @@ void CMainView::OnClickGraph8()
 
 void CMainView::OnValueChangedCwStart(BOOL Value) 
 {
+  theApp.GetLogger()->LogTrace( "CMainView::OnValueChangedCwStart: in with %d", Value);
+
 	m_nPointsSkipped = 0;
 	UpdateData( TRUE);
 	((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
@@ -1897,11 +1779,14 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 	m_ctlComButton.SetValue( Value);
 
 	
+  theApp.GetLogger()->LogTrace( "CMainView::OnValueChangedCwStart: poi132617");
 
 	if( Value) {
 		CSlg2App *app = (CSlg2App *) AfxGetApp();
 		
-		if( app->m_cbW100 != NULL) { delete app->m_cbW100; app->m_cbW100 = NULL; }
+		
+
+    if( app->m_cbW100 != NULL) { delete app->m_cbW100; app->m_cbW100 = NULL; }
 		if( app->m_cbW1000 != NULL) {	delete app->m_cbW1000; app->m_cbW1000 = NULL; }
 		if( app->m_cbW10000 != NULL) { delete app->m_cbW10000; app->m_cbW10000 = NULL; }
 		if( app->m_cbW100000 != NULL) { delete app->m_cbW100000; app->m_cbW100000 = NULL; }
@@ -1939,9 +1824,46 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_nCheckSummFails = 0;
     theApp.m_nMarkerFails = 0;
 
+
+    switch( m_nComPort) {
+      case 0: gl_strComPort = "COM1"; break;
+      case 1: gl_strComPort = "COM2"; break;
+      case 2: gl_strComPort = "COM3"; break;
+      case 3: gl_strComPort = "COM4"; break;
+      case 4: gl_strComPort = "COM5"; break;
+      case 5: gl_strComPort = "COM6"; break;
+      case 6: gl_strComPort = "COM7"; break;
+      case 7: gl_strComPort = "COM8"; break;
+      case 8: gl_strComPort = "COM9"; break;
+    }
+
+    
+    switch( m_nComPortBaudrate) {
+      case 0: gl_nComPortBaudrate = 57600;    break;
+      case 1: gl_nComPortBaudrate = 115200;   break;
+      case 2: gl_nComPortBaudrate = 128000;   break;
+      case 3: gl_nComPortBaudrate = 256000;   break;
+      case 4: gl_nComPortBaudrate = 460800;   break;
+      case 5: gl_nComPortBaudrate = 512000;   break;
+      case 6: gl_nComPortBaudrate = 921600;   break;
+    }
+    
+
+    SYSTEMTIME sysTime;  // Win32 time information
+    GetLocalTime( &sysTime);
+    CString strStatFileName;
+    strStatFileName.Format( _T("data-%d-%02d-%02d-%02d-%02d-%02d.raw"),
+					  					  sysTime.wYear, sysTime.wMonth, sysTime.wDay,
+	    			  				  sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+
+    if( app->fhNew == NULL)
+		  app->fhNew = fopen( app->strDirName + strStatFileName, "wb");
+
+
 		((CSlg2App *) AfxGetApp())->StartThreads();
 
-		if( m_ctlCOM.GetPortOpen())
+    /*
+    if( m_ctlCOM.GetPortOpen())
 			m_ctlCOM.SetPortOpen( false);
 		m_ctlCOM.SetCommPort( 1 + m_nComPort);
 		switch( m_nComPortBaudrate) {
@@ -1953,17 +1875,18 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
       case 5: m_ctlCOM.SetSettings( _T("512000,N,8,1")); break;
 		}
 		m_ctlCOM.SetPortOpen( true);
+    */
 
 		GetDlgItem( IDC_BTN_EXPORT)->EnableWindow( false);
 		
-		SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
+		//SetTimer( MY_TIMER_COM_FLUSH, 10, NULL);
 		SetTimer( MY_TIMER_100,		 100, NULL);
 		SetTimer( MY_TIMER_1000,	 1000, NULL);
 
 		SetTimer( MY_TIMER_LOAD_FLASH_PARAMS, 1000, NULL);
 		SetTimer( MY_TIMER_LOADED_FLASH_PARAMS_TO_WNDS, 2000, NULL);
 		
-		SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
+		//SetTimer( MY_TIMER_INPUT_DATA, 10000, NULL);
 
 		m_bBtnCwStart = true;
 
@@ -1972,15 +1895,16 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		UpdateData( false);
 	}
 	else {
-		m_ctlCOM.SetPortOpen( false);
+		//m_ctlCOM.SetPortOpen( false);
 
-		KillTimer( MY_TIMER_COM_FLUSH);
+		//KillTimer( MY_TIMER_COM_FLUSH);
 		KillTimer( MY_TIMER_100);
 		KillTimer( MY_TIMER_1000);
-		
+		KillTimer( MY_TIMER_INPUT_DATA);
 				
-		m_bStopBigThreadFlag = true;
-		
+		gl_bStopBigThreadFlag = true;
+		gl_bStopSmallThreadFlag = true;
+
 		CSlg2App *app = ((CSlg2App *) AfxGetApp());
 
 		/*if( app->fh != NULL)
@@ -2025,7 +1949,10 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
 		app->m_cbTsa->Reset();
 	}
 
+  theApp.GetLogger()->LogTrace( "CMainView::OnValueChangedCwStart: poi132634");
+
 	UpdateData( false);
+  theApp.GetLogger()->LogTrace( "CMainView::OnValueChangedCwStart: out");
 }
 
 void CMainView::OnDestroy() 
@@ -2327,132 +2254,143 @@ void CMainView::OnDecCoeffCalc()
 	SetTimer( MY_TIMER_1000, 1000, NULL);
 }
 
-void CMainView::OnOnCommComm() 
-{
-	short event = m_ctlCOM.GetCommEvent();
-	
-	if( event > 1000) {
-		if( event == 1004) return;
-
-		UpdateData( TRUE);
-		((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
-		((CSlg2App *) AfxGetApp())->m_nComPort = m_nComPort;
-
-		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
-		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
-		
-		GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
-		GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
-		m_ctlComButton.SetValue( false);
-
-		m_ctlCOM.SetPortOpen( false);
-		
-		KillTimer( MY_TIMER_100);
-		KillTimer( MY_TIMER_1000);
-		KillTimer( MY_TIMER_COM_FLUSH);
-				
-		m_bStopBigThreadFlag = true;
-		
-		CSlg2App *app = ((CSlg2App *) AfxGetApp());
-
-		gl_nCircleBufferGet = 0;
-		gl_nCircleBufferPut = 0;
-
-		gl_dGlobalTime = 0.;
-		gl_avW100.Reset();
-		gl_avW1000.Reset();
-		gl_avW10000.Reset();
-		gl_avW100000.Reset();
-		gl_avI1.Reset();
-		gl_avI2.Reset();
-		gl_avVpc.Reset();
-		gl_avAmplAng.Reset();
-		gl_avT1.Reset();
-		gl_avT2.Reset();
-		gl_avTsa.Reset();
-		gl_avTsa1000.Reset();
-		gl_avTsa10000.Reset();
-		gl_avTsa100000.Reset();
-		
-		app->m_cbW100->Reset();
-		app->m_cbW1000->Reset();
-		app->m_cbW10000->Reset();
-		app->m_cbW100000->Reset();
-		app->m_cbI1->Reset();
-		app->m_cbI2->Reset();
-		app->m_cbVpc->Reset();
-		app->m_cbAmplAng->Reset();
-		app->m_cbT1->Reset();
-		app->m_cbT2->Reset();
-    app->m_cbT3->Reset();
-		app->m_cbTsa->Reset();
-	
-		m_ctlBtnCwStart.SetValue( false);
-		m_bBtnCwStart = false;
-		UpdateData( false);
-		
-		for( int err=0; err<ERROR_4; err++) {
-			Beep( 100, 100);
-			Sleep( 200);
-		}
-		m_strLblEmergency.Format( _T("1004"));
-		app->m_nEmergencyCode = 1004;
-		UpdateData( false);
-		
-		switch( event) {
-			//1001 - Получен сигнал Break.
-			case 1001:
-				AfxMessageBox( _T("Получен сигнал Break."));
-			break;
-
-	    //1002 - Тайм-аут по сигналу CTS. При попытке передать символ сигнал Clear To Send был сброшен в течение CTSTimeout миллисекунд.
-			case 1002:
-				AfxMessageBox( _T("Тайм-аут по сигналу CTS. При попытке передать символ сигнал Clear To Send был сброшен в течение CTSTimeout миллисекунд."));
-			break;
-
-	    //1003 - Тайм-аут по сигналу DSR. При попытке передать символ сигнал Data Set Ready была сброшен в течение DSRTimeout миллисекунд.
-			case 1003:
-				AfxMessageBox( _T("Тайм-аут по сигналу DSR. При попытке передать символ сигнал Data Set Ready была сброшен в течение DSRTimeout миллисекунд."));
-			break;
-
-			
-	    //1004 - Ошибка кадра (Framing Error). Аппаратные средства зафиксировали ошибку в последовательности кадров.
-			case 1004:
-				AfxMessageBox( _T("Ошибка кадра (Framing Error). Аппаратные средства зафиксировали ошибку в последовательности кадров."));
-			break;
-			
-	    //1006 - Переполнение порта (Port Overrun). Символ еще не был считан из аппаратуры, как уже прибыл и был утерян следующий символ. Если у вас возникла эта ошибка при работе под Windows 3.0, уменьшите значение свойства Interval. Подробнее см. описание свойства Interval ниже в данной главе.
-		  case 1006:
-				AfxMessageBox( _T("Переполнение порта (Port Overrun). Символ еще не был считан из аппаратуры, как уже прибыл и был утерян следующий символ. Если у вас возникла эта ошибка при работе под Windows 3.0, уменьшите значение свойства Interval. Подробнее см. описание свойства Interval ниже в данной главе."));
-			break;
-
-			//1007 - Тайм-аут по сигналу CD. При попытке передать символ сигнал Carrier Detect был сброшен в течение CDTimeout миллисекунд. Сигнал Carrier Detect имеет еще одно название Receive Line Signal Detect (RLSD).
-			case 1007:
-				AfxMessageBox( _T("Тайм-аут по сигналу CD. При попытке передать символ сигнал Carrier Detect был сброшен в течение CDTimeout миллисекунд. Сигнал Carrier Detect имеет еще одно название Receive Line Signal Detect (RLSD)."));
-			break;
-
-			//1008 - Переполнение буфера приема (Receive Buffer Overflow). В буфере приема не осталось свободного места.
-			case 1008:
-				AfxMessageBox( _T("Переполнение буфера приема (Receive Buffer Overflow). В буфере приема не осталось свободного места."));
-			break;
-
-	    //1009 - Ошибка четности (Parity Error). Аппаратные средства зафиксировали ошибку четности.
-			case 1009:
-				AfxMessageBox( _T("Ошибка четности (Parity Error). Аппаратные средства зафиксировали ошибку четности."));
-			break;
-
-			//1010 - Переполнение буфера передачи (Transmit Buffer Full). Буфер передачи оказался заполненным при попытке поставить символ в очередь.
-			case 1010:
-				AfxMessageBox( _T("Переполнение буфера передачи (Transmit Buffer Full). Буфер передачи оказался заполненным при попытке поставить символ в очередь."));
-			break;
-		}		
-	}
-}
+//DEL void CMainView::OnOnCommComm() 
+//DEL {
+//DEL 	short event = m_ctlCOM.GetCommEvent();
+//DEL 	
+//DEL 	if( event > 1000) {
+//DEL 		if( event == 1004) return;
+//DEL 
+//DEL 		UpdateData( TRUE);
+//DEL 		((CSlg2App *) AfxGetApp())->m_dKimpSec = m_dKimpSec;
+//DEL 		((CSlg2App *) AfxGetApp())->m_nComPort = m_nComPort;
+//DEL 
+//DEL 		GetDlgItem( IDC_BTN_SAVE_PARAMS)->EnableWindow( false);
+//DEL 		GetDlgItem( IDC_BTN_RESTORE_PARAMS)->EnableWindow( false);
+//DEL 		GetDlgItem( IDC_BTN_DEC_COEFF_CALC)->EnableWindow( false);
+//DEL 		GetDlgItem( IDC_BTN_LASER_OFF)->EnableWindow( false);
+//DEL 		
+//DEL 		GetDlgItem( IDC_CMB_COM_PORT)->EnableWindow( true);
+//DEL 		GetDlgItem( IDC_EDT_K_IMP_SEC)->EnableWindow( true);
+//DEL 		m_ctlComButton.SetValue( false);
+//DEL 
+//DEL 		m_ctlCOM.SetPortOpen( false);
+//DEL 		
+//DEL 		KillTimer( MY_TIMER_100);
+//DEL 		KillTimer( MY_TIMER_1000);
+//DEL 		KillTimer( MY_TIMER_COM_FLUSH);
+//DEL 				
+//DEL 		gl_bStopBigThreadFlag = true;
+//DEL 		
+//DEL 		CSlg2App *app = ((CSlg2App *) AfxGetApp());
+//DEL 
+//DEL 		gl_nCircleBufferGet = 0;
+//DEL 		gl_nCircleBufferPut = 0;
+//DEL 
+//DEL 		gl_dGlobalTime = 0.;
+//DEL 		gl_avW100.Reset();
+//DEL 		gl_avW1000.Reset();
+//DEL 		gl_avW10000.Reset();
+//DEL 		gl_avW100000.Reset();
+//DEL 		gl_avI1.Reset();
+//DEL 		gl_avI2.Reset();
+//DEL 		gl_avVpc.Reset();
+//DEL 		gl_avAmplAng.Reset();
+//DEL 		gl_avT1.Reset();
+//DEL 		gl_avT2.Reset();
+//DEL 		gl_avTsa.Reset();
+//DEL 		gl_avTsa1000.Reset();
+//DEL 		gl_avTsa10000.Reset();
+//DEL 		gl_avTsa100000.Reset();
+//DEL 		
+//DEL 		app->m_cbW100->Reset();
+//DEL 		app->m_cbW1000->Reset();
+//DEL 		app->m_cbW10000->Reset();
+//DEL 		app->m_cbW100000->Reset();
+//DEL 		app->m_cbI1->Reset();
+//DEL 		app->m_cbI2->Reset();
+//DEL 		app->m_cbVpc->Reset();
+//DEL 		app->m_cbAmplAng->Reset();
+//DEL 		app->m_cbT1->Reset();
+//DEL 		app->m_cbT2->Reset();
+//DEL     app->m_cbT3->Reset();
+//DEL 		app->m_cbTsa->Reset();
+//DEL 	
+//DEL 		m_ctlBtnCwStart.SetValue( false);
+//DEL 		m_bBtnCwStart = false;
+//DEL 		UpdateData( false);
+//DEL 		
+//DEL 		for( int err=0; err<ERROR_4; err++) {
+//DEL 			Beep( 100, 100);
+//DEL 			Sleep( 200);
+//DEL 		}
+//DEL 		m_strLblEmergency.Format( _T("1004"));
+//DEL 		app->m_nEmergencyCode = 1004;
+//DEL 		UpdateData( false);
+//DEL 		
+//DEL 		switch( event) {
+//DEL 			//1001 - Получен сигнал Break.
+//DEL 			case 1001:
+//DEL 				AfxMessageBox( _T("Получен сигнал Break."));
+//DEL 			break;
+//DEL 
+//DEL 	    //1002 - Тайм-аут по сигналу CTS. При попытке передать символ сигнал Clear To Send был сброшен в течение CTSTimeout миллисекунд.
+//DEL 			case 1002:
+//DEL 				AfxMessageBox( _T("Тайм-аут по сигналу CTS. При попытке передать символ сигнал Clear To Send был сброшен в течение CTSTimeout миллисекунд."));
+//DEL 			break;
+//DEL 
+//DEL 	    //1003 - Тайм-аут по сигналу DSR. При попытке передать символ сигнал Data Set Ready была сброшен в течение DSRTimeout миллисекунд.
+//DEL 			case 1003:
+//DEL 				AfxMessageBox( _T("Тайм-аут по сигналу DSR. При попытке передать символ сигнал Data Set Ready была сброшен в течение DSRTimeout миллисекунд."));
+//DEL 			break;
+//DEL 
+//DEL 			
+//DEL 	    //1004 - Ошибка кадра (Framing Error). Аппаратные средства зафиксировали ошибку в последовательности кадров.
+//DEL 			case 1004:
+//DEL 				AfxMessageBox( _T("Ошибка кадра (Framing Error). Аппаратные средства зафиксировали ошибку в последовательности кадров."));
+//DEL 			break;
+//DEL 			
+//DEL 	    //1006 - Переполнение порта (Port Overrun). Символ еще не был считан из аппаратуры, как уже прибыл и был утерян следующий символ. Если у вас возникла эта ошибка при работе под Windows 3.0, уменьшите значение свойства Interval. Подробнее см. описание свойства Interval ниже в данной главе.
+//DEL 		  case 1006:
+//DEL 				AfxMessageBox( _T("Переполнение порта (Port Overrun). Символ еще не был считан из аппаратуры, как уже прибыл и был утерян следующий символ. Если у вас возникла эта ошибка при работе под Windows 3.0, уменьшите значение свойства Interval. Подробнее см. описание свойства Interval ниже в данной главе."));
+//DEL 			break;
+//DEL 
+//DEL 			//1007 - Тайм-аут по сигналу CD. При попытке передать символ сигнал Carrier Detect был сброшен в течение CDTimeout миллисекунд. Сигнал Carrier Detect имеет еще одно название Receive Line Signal Detect (RLSD).
+//DEL 			case 1007:
+//DEL 				AfxMessageBox( _T("Тайм-аут по сигналу CD. При попытке передать символ сигнал Carrier Detect был сброшен в течение CDTimeout миллисекунд. Сигнал Carrier Detect имеет еще одно название Receive Line Signal Detect (RLSD)."));
+//DEL 			break;
+//DEL 
+//DEL 			//1008 - Переполнение буфера приема (Receive Buffer Overflow). В буфере приема не осталось свободного места.
+//DEL 			case 1008:
+//DEL 				AfxMessageBox( _T("Переполнение буфера приема (Receive Buffer Overflow). В буфере приема не осталось свободного места."));
+//DEL 			break;
+//DEL 
+//DEL 	    //1009 - Ошибка четности (Parity Error). Аппаратные средства зафиксировали ошибку четности.
+//DEL 			case 1009:
+//DEL 				AfxMessageBox( _T("Ошибка четности (Parity Error). Аппаратные средства зафиксировали ошибку четности."));
+//DEL 			break;
+//DEL 
+//DEL 			//1010 - Переполнение буфера передачи (Transmit Buffer Full). Буфер передачи оказался заполненным при попытке поставить символ в очередь.
+//DEL 			case 1010:
+//DEL 				AfxMessageBox( _T("Переполнение буфера передачи (Transmit Buffer Full). Буфер передачи оказался заполненным при попытке поставить символ в очередь."));
+//DEL 			break;
+//DEL 		}		
+//DEL 	}
+//DEL }
 
 void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3)
 {
+  gl_btWriteBuffer[0] = b1;
+  gl_btWriteBuffer[1] = b2;
+  gl_btWriteBuffer[2] = b3;
+  gl_btWriteBuffer[3] = 0;
+  gl_btWriteBuffer[4] = 0;
+  gl_btWriteBuffer[5] = 0;
+
+  gl_bWriteBufferReady = true;
+
+  return;
+  /*
 	char str[3];
 	str[0] = b1;
 	str[1] = b2;
@@ -2478,7 +2416,7 @@ void CMainView::SendCommandToMc(BYTE b1, BYTE b2, BYTE b3)
 	}
 
 	SafeArrayDestroy( psa);
-
+  */
 }
 
 void CMainView::OnBtnThermoCalibSet() 

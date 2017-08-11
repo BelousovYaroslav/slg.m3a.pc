@@ -35,6 +35,7 @@ CSlgCircleBuffer::CSlgCircleBuffer(int size)
 
 CSlgCircleBuffer::~CSlgCircleBuffer()
 {
+  theApp.GetLogger()->LogTrace("CSlgCircleBuffer::~CSlgCircleBuffer: in");
 	if( datax != NULL) {
 		delete datax;
 		datax = NULL;
@@ -43,6 +44,7 @@ CSlgCircleBuffer::~CSlgCircleBuffer()
 		delete datay;
 		datay = NULL;
 	}
+  theApp.GetLogger()->LogTrace("CSlgCircleBuffer::~CSlgCircleBuffer: out");
 }
 
 void CSlgCircleBuffer::AddPoint(double val, double time)
