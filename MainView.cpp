@@ -1135,7 +1135,7 @@ void CMainView::RefreshGraphs()
     }
 
     if( cbfrY == NULL) {
-      theApp.GetLogger()->LogError( "Не смогли определить какой параметр отображается для графика #%d", i);
+      theApp.GetLogger()->LogError( "CMainView::RefreshGraphs: Не смогли определить какой параметр отображается для графика #%d", i);
       continue;
     }
 
@@ -1178,6 +1178,10 @@ void CMainView::RefreshGraphs()
             case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+
+            case 4: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 5: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 6: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
           }
           line( 0, j) = x;
           line( 1, j) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx];
@@ -1197,6 +1201,10 @@ void CMainView::RefreshGraphs()
             case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+
+            case 4: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 5: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 6: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
           }
           line( 0, j) = x;
           line( 1, j) = cbfrY->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx];
@@ -1216,6 +1224,10 @@ void CMainView::RefreshGraphs()
             case 1: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 2: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
             case 3: x = theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+
+            case 4: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 5: x = theApp.m_tpT1->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
+            case 6: x = theApp.m_tpT2->Get_CB( nMeaningTime)->GetDataY()[ jndx] - theApp.m_tpT3->Get_CB( nMeaningTime)->GetDataY()[ jndx]; break;
           }
           line( 0, j) = x;
           line( 1, j) = cbfrY->GetDataY()[ jndx];
