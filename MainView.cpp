@@ -277,6 +277,8 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_RAD_MEANING2, OnRadMeaning2)
 	ON_BN_CLICKED(IDC_RAD_MEANING3, OnRadMeaning3)
 	ON_BN_CLICKED(IDC_RAD_MEANING4, OnRadMeaning4)
+	ON_BN_CLICKED(IDC_BTN_SEND_FREEHEX_CMD, OnBtnSendFreeHexCmd)
+  ON_BN_CLICKED(IDC_BTN_SEND_FREEDEC_CMD, OnBtnSendFreeDecCmd)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -818,6 +820,47 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 		pWnd = GetDlgItem( IDC_PARAM8_BTN);
 		pWnd->SetWindowPos( NULL, x, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 		
+
+    //**********************************************************************
+    //Свободная команда, hex
+    base += rc.Height(); base += 5;
+    x = cx - 270 + 5;    
+    pWnd = GetDlgItem( IDC_LBL_FREEHEX_CMD_TITLE);
+    pWnd->SetWindowPos( NULL, x,       base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    
+    base += rc.Height(); base += 5;
+    pWnd = GetDlgItem( IDC_EDT_FREEHEX_B01);
+    pWnd->SetWindowPos( NULL, x,       base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEHEX_B02);
+    pWnd->SetWindowPos( NULL, x + 55,  base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEHEX_B03);
+    pWnd->SetWindowPos( NULL, x + 110, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEHEX_B04);
+    pWnd->SetWindowPos( NULL, x + 165, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    
+    pWnd = GetDlgItem( IDC_BTN_SEND_FREEHEX_CMD);
+    pWnd->SetWindowPos( NULL, x + 215, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+
+
+    //**********************************************************************
+    //Свободная команда, dec
+    base += rc.Height(); base += 5;
+    x = cx - 270 + 5;    
+    pWnd = GetDlgItem( IDC_LBL_FREEDEC_CMD_TITLE);
+    pWnd->SetWindowPos( NULL, x,       base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    
+    base += rc.Height(); base += 5;
+    pWnd = GetDlgItem( IDC_EDT_FREEDEC_B01);
+    pWnd->SetWindowPos( NULL, x,       base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEDEC_B02);
+    pWnd->SetWindowPos( NULL, x + 55,  base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEDEC_B03);
+    pWnd->SetWindowPos( NULL, x + 110, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    pWnd = GetDlgItem( IDC_EDT_FREEDEC_B04);
+    pWnd->SetWindowPos( NULL, x + 165, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
+    
+    pWnd = GetDlgItem( IDC_BTN_SEND_FREEDEC_CMD);
+    pWnd->SetWindowPos( NULL, x + 215, base, 0, 0, SWP_NOZORDER + SWP_NOSIZE);
 
     /*
     //**********************************************************************
@@ -2823,6 +2866,8 @@ void CMainView::SetSendButtonsState(bool bState)
 	//GetDlgItem(IDC_PARAM7_BTN)->EnableWindow( bState);
 	GetDlgItem(IDC_PARAM8_BTN)->EnableWindow( bState);
 	//GetDlgItem(IDC_PARAM9_BTN)->EnableWindow( bState);
+  GetDlgItem(IDC_BTN_SEND_FREEHEX_CMD)->EnableWindow( bState);
+  GetDlgItem(IDC_BTN_SEND_FREEDEC_CMD)->EnableWindow( bState);
 
 	GetDlgItem(IDC_BTN_SAVE_PARAMS)->EnableWindow( bState);
 	//GetDlgItem(IDC_BTN_RESTORE_PARAMS)->EnableWindow( bState);
@@ -3584,3 +3629,45 @@ void CMainView::OnMouseUpGraph8(short Button, short Shift, long x, long y)
   }
 }
 
+
+void CMainView::OnBtnSendFreeHexCmd() 
+{
+  CString strTmp;
+  
+  GetDlgItem( IDC_EDT_FREEHEX_B01)->GetWindowText( strTmp);
+  BYTE bB1 = strtol( strTmp, NULL, 16);
+
+  GetDlgItem( IDC_EDT_FREEHEX_B02)->GetWindowText( strTmp);
+  BYTE bB2 = strtol( strTmp, NULL, 16);
+
+  GetDlgItem( IDC_EDT_FREEHEX_B03)->GetWindowText( strTmp);
+  BYTE bB3 = strtol( strTmp, NULL, 16);
+
+  GetDlgItem( IDC_EDT_FREEHEX_B04)->GetWindowText( strTmp);
+  BYTE bB4 = strtol( strTmp, NULL, 16);
+
+  QueueCommandToMc( bB1, bB2, bB3, bB4);
+  SetSendButtonsState( FALSE);
+	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);
+}
+
+void CMainView::OnBtnSendFreeDecCmd() 
+{
+  CString strTmp;
+  
+  GetDlgItem( IDC_EDT_FREEDEC_B01)->GetWindowText( strTmp);
+  BYTE bB1 = strtol( strTmp, NULL, 10);
+
+  GetDlgItem( IDC_EDT_FREEDEC_B02)->GetWindowText( strTmp);
+  BYTE bB2 = strtol( strTmp, NULL, 10);
+
+  GetDlgItem( IDC_EDT_FREEDEC_B03)->GetWindowText( strTmp);
+  BYTE bB3 = strtol( strTmp, NULL, 10);
+
+  GetDlgItem( IDC_EDT_FREEDEC_B04)->GetWindowText( strTmp);
+  BYTE bB4 = strtol( strTmp, NULL, 10);
+
+  QueueCommandToMc( bB1, bB2, bB3, bB4);
+  SetSendButtonsState( FALSE);
+	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);	
+}

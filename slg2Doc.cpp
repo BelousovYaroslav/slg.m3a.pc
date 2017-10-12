@@ -46,7 +46,7 @@ BOOL CSlg2Doc::OnNewDocument()
 	// (SDI documents will reuse this document)
 	CString tmps;
 	tmps.LoadString( IDS_STR_VER);
-	this->SetTitle( "Программа проведения измерения для прибора М3А2. Версия: " + tmps + " (2017.07.28 14:25)");
+	this->SetTitle( "Программа проведения измерения для прибора М3А2. Версия: " + tmps + " (2017.10.12 12:30)");
 	return TRUE;
 }
 

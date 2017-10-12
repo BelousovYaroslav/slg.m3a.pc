@@ -141,7 +141,9 @@
 #define IDC_PARAM7_TITLE                1122
 #define IDC_PARAM8_TITLE                1123
 #define IDC_PARAM9_TITLE                1124
+#define IDC_LBL_FREEHEX_CMD_TITLE       1124
 #define IDC_PARAM5_NEDT                 1125
+#define IDC_LBL_FREEDEC_CMD_TITLE       1125
 #define IDC_PARAM6_NEDT                 1126
 #define IDC_PARAM7_NEDT                 1127
 #define IDC_PARAM8_NEDT                 1128
@@ -151,7 +153,9 @@
 #define IDC_PARAM8_BTN                  1132
 #define IDC_PARAM8_VAL                  1133
 #define IDC_PARAM9_NEDT                 1134
+#define IDC_BTN_SEND_FREEHEX_CMD        1134
 #define IDC_PARAM9_BTN                  1135
+#define IDC_BTN_SEND_FREEDEC_CMD        1135
 #define IDC_PARAM9_VAL                  1136
 #define IDC_BTN_RESTORE_PARAMS          1137
 #define IDC_PARAM10_NEDT                1138
@@ -289,6 +293,14 @@
 #define IDC_COMMONDIALOG                1241
 #define IDC_LBL_LINE_COLOR              1242
 #define IDC_CHK_Y_MIN                   1243
+#define IDC_EDT_FREEHEX_B01             1246
+#define IDC_EDT_FREEHEX_B02             1247
+#define IDC_EDT_FREEHEX_B03             1248
+#define IDC_EDT_FREEHEX_B04             1249
+#define IDC_EDT_FREEDEC_B01             1250
+#define IDC_EDT_FREEDEC_B02             1251
+#define IDC_EDT_FREEDEC_B03             1252
+#define IDC_EDT_FREEDEC_B04             1253
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -298,7 +310,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1244
+#define _APS_NEXT_CONTROL_VALUE         1247
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

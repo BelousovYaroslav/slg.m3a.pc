@@ -202,6 +202,8 @@ protected:
 	afx_msg void OnMouseUpGraph6(short Button, short Shift, long x, long y);
 	afx_msg void OnMouseUpGraph7(short Button, short Shift, long x, long y);
 	afx_msg void OnMouseUpGraph8(short Button, short Shift, long x, long y);
+	afx_msg void OnBtnSendFreeHexCmd();
+  afx_msg void OnBtnSendFreeDecCmd();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
