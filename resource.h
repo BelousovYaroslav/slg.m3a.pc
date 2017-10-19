@@ -301,6 +301,14 @@
 #define IDC_EDT_FREEDEC_B02             1251
 #define IDC_EDT_FREEDEC_B03             1252
 #define IDC_EDT_FREEDEC_B04             1253
+#define IDC_BTN_RESET_GRAPH1            1254
+#define IDC_BTN_RESET_GRAPH2            1255
+#define IDC_BTN_RESET_GRAPH3            1256
+#define IDC_BTN_RESET_GRAPH4            1257
+#define IDC_BTN_RESET_GRAPH5            1258
+#define IDC_BTN_RESET_GRAPH6            1259
+#define IDC_BTN_RESET_GRAPH7            1260
+#define IDC_BTN_RESET_GRAPH8            1261
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -310,7 +318,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1247
+#define _APS_NEXT_CONTROL_VALUE         1255
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

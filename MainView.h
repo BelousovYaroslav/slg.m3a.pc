@@ -121,6 +121,7 @@ public:
 
 // Operations
 public:
+	void OnBtnResetGraph( int nCmbGraphAxY);
   void MakeDeltaLine( CTrackedParam *tp1, CTrackedParam *tp2, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
   void MakeLine( CTrackedParam *tp, CNiReal64Matrix *l100ms, CNiReal64Matrix *l1s, CNiReal64Matrix *l10s, CNiReal64Matrix *l100s);
 	void SetSendButtonsState( bool bState);
@@ -204,6 +205,14 @@ protected:
 	afx_msg void OnMouseUpGraph8(short Button, short Shift, long x, long y);
 	afx_msg void OnBtnSendFreeHexCmd();
   afx_msg void OnBtnSendFreeDecCmd();
+	afx_msg void OnBtnResetGraph1();
+	afx_msg void OnBtnResetGraph2();
+	afx_msg void OnBtnResetGraph3();
+	afx_msg void OnBtnResetGraph4();
+	afx_msg void OnBtnResetGraph5();
+	afx_msg void OnBtnResetGraph6();
+	afx_msg void OnBtnResetGraph7();
+	afx_msg void OnBtnResetGraph8();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()

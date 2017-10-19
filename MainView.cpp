@@ -53,6 +53,7 @@ extern CSlgGroupNewAverager gl_avgAmplDus;
 extern CSlgGroupNewAverager gl_avgAmplRULA;
 extern CSlgGroupNewAverager gl_avgT1;
 extern CSlgGroupNewAverager gl_avgT2;
+extern CSlgGroupNewAverager gl_avgT3;
 extern CSlgGroupNewAverager gl_avgTsa;
 
 extern CDecCoeffCalcParams gl_pDecCoeffCalcParams;
@@ -279,6 +280,14 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_RAD_MEANING4, OnRadMeaning4)
 	ON_BN_CLICKED(IDC_BTN_SEND_FREEHEX_CMD, OnBtnSendFreeHexCmd)
   ON_BN_CLICKED(IDC_BTN_SEND_FREEDEC_CMD, OnBtnSendFreeDecCmd)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH1, OnBtnResetGraph1)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH2, OnBtnResetGraph2)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH3, OnBtnResetGraph3)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH4, OnBtnResetGraph4)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH5, OnBtnResetGraph5)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH6, OnBtnResetGraph6)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH7, OnBtnResetGraph7)
+	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH8, OnBtnResetGraph8)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -311,96 +320,112 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
     GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0,                 50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph1.GetWindowRect( &rc);
 		m_ctlSmallGraph1.SetWindowPos(               NULL, 0,                 70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH1_X)->SetWindowPos( NULL, 0,                 70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH1_X)->SetWindowPos( NULL, 0,                 70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T0)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T1)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T2)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T3)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T4)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH1)->
+                                SetWindowPos(    NULL, nGrWidth-40,       70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 	
 	if( m_ctlSmallGraph2.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos( NULL, nGrWidth,          50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph2.GetWindowRect( &rc);
 		m_ctlSmallGraph2.SetWindowPos(               NULL, nGrWidth,          70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH2_X)->SetWindowPos( NULL, nGrWidth,          70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH2_X)->SetWindowPos( NULL, nGrWidth,          70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G2_T0)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G2_T1)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G2_T2)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G2_T3)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G2_T4)->SetWindowPos(    NULL, nGrWidth * 2 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH2)->
+                                SetWindowPos(    NULL, nGrWidth * 2 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph3.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos( NULL, nGrWidth * 2,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph3.GetWindowRect( &rc);
 		m_ctlSmallGraph3.SetWindowPos(               NULL, nGrWidth * 2,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH3_X)->SetWindowPos( NULL, nGrWidth * 2,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH3_X)->SetWindowPos( NULL, nGrWidth * 2,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G3_T0)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G3_T1)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G3_T2)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G3_T3)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G3_T4)->SetWindowPos(    NULL, nGrWidth * 3 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH3)->
+                                SetWindowPos(    NULL, nGrWidth * 3 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph4.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos( NULL, nGrWidth * 3,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph4.GetWindowRect( &rc);
 		m_ctlSmallGraph4.SetWindowPos(               NULL, nGrWidth * 3,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH4_X)->SetWindowPos( NULL, nGrWidth * 3,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH4_X)->SetWindowPos( NULL, nGrWidth * 3,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G4_T0)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G4_T1)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G4_T2)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G4_T3)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G4_T4)->SetWindowPos(    NULL, nGrWidth * 4 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH4)->
+                                SetWindowPos(    NULL, nGrWidth * 4 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph5.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos( NULL, nGrWidth * 4,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph5.GetWindowRect( &rc);
 		m_ctlSmallGraph5.SetWindowPos(               NULL, nGrWidth * 4,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH5_X)->SetWindowPos( NULL, nGrWidth * 4,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH5_X)->SetWindowPos( NULL, nGrWidth * 4,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G5_T0)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G5_T1)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G5_T2)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G5_T3)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G5_T4)->SetWindowPos(    NULL, nGrWidth * 5 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH5)->
+                                SetWindowPos(    NULL, nGrWidth * 5 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph6.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos( NULL, nGrWidth * 5,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph6.GetWindowRect( &rc);
 		m_ctlSmallGraph6.SetWindowPos(               NULL, nGrWidth * 5,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH6_X)->SetWindowPos( NULL, nGrWidth * 5,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH6_X)->SetWindowPos( NULL, nGrWidth * 5,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G6_T0)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G6_T1)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G6_T2)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G6_T3)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G6_T4)->SetWindowPos(    NULL, nGrWidth * 6 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH6)->
+                                SetWindowPos(    NULL, nGrWidth * 6 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph7.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos( NULL, nGrWidth * 6,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph7.GetWindowRect( &rc);
 		m_ctlSmallGraph7.SetWindowPos(               NULL, nGrWidth * 6,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH7_X)->SetWindowPos( NULL, nGrWidth * 6,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH7_X)->SetWindowPos( NULL, nGrWidth * 6,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G7_T0)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G7_T1)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G7_T2)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G7_T3)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G7_T4)->SetWindowPos(    NULL, nGrWidth * 7 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH7)->
+                                SetWindowPos(    NULL, nGrWidth * 7 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 	if( m_ctlSmallGraph8.m_hWnd) {
     GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos( NULL, nGrWidth * 7,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
 		m_ctlSmallGraph8.GetWindowRect( &rc);
 		m_ctlSmallGraph8.SetWindowPos(               NULL, nGrWidth * 7,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH8_X)->SetWindowPos( NULL, nGrWidth * 7,      70 + rc.Height(), nGrWidth - 2,  12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH8_X)->SetWindowPos( NULL, nGrWidth * 7,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G8_T0)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G8_T1)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G8_T2)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 105,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G8_T3)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 120,              20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G8_T4)->SetWindowPos(    NULL, nGrWidth * 8 - 21, 135,              20,            12,          SWP_NOZORDER);
+    GetDlgItem( IDC_BTN_RESET_GRAPH8)->
+                                SetWindowPos(    NULL, nGrWidth * 8 - 40, 70 + rc.Height(), 40,            20,          SWP_NOZORDER);
 	}
 
 
@@ -3373,6 +3398,7 @@ void CMainView::OnBtnReset()
   gl_avgAmplRULA.CommonReset();
 	gl_avgT1.CommonReset();
 	gl_avgT2.CommonReset();
+  gl_avgT3.CommonReset();
 	gl_avgTsa.CommonReset();
 	
 }
@@ -3670,4 +3696,103 @@ void CMainView::OnBtnSendFreeDecCmd()
   QueueCommandToMc( bB1, bB2, bB3, bB4);
   SetSendButtonsState( FALSE);
 	SetTimer( MY_SEND_BUTTONS_BLOCK_TIMER, 1000, NULL);	
+}
+
+void CMainView::OnBtnResetGraph1() 
+{
+  OnBtnResetGraph( IDC_CMB_GRAPH1_Y);
+}
+
+void CMainView::OnBtnResetGraph2() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH2_Y);
+}
+
+void CMainView::OnBtnResetGraph3() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH3_Y);
+}
+
+void CMainView::OnBtnResetGraph4() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH4_Y);
+}
+
+void CMainView::OnBtnResetGraph5() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH5_Y);
+}
+
+void CMainView::OnBtnResetGraph6() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH6_Y);
+}
+
+void CMainView::OnBtnResetGraph7() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH7_Y);
+}
+
+void CMainView::OnBtnResetGraph8() 
+{
+	OnBtnResetGraph( IDC_CMB_GRAPH8_Y);
+}
+
+void CMainView::OnBtnResetGraph( int nCmbGraphAxY)
+{
+  int nDisplayedParam = ( ( CComboBox *) GetDlgItem( nCmbGraphAxY))->GetCurSel();
+  switch( nDisplayedParam) {
+    
+    //w, Угловая скорость, ["/sec]
+    case 0:   theApp.m_tpW->ResetUnder();     gl_avgW.CommonReset();    break;
+    
+    //I1, Разрядный ток 1, [mA]
+    case 1:   theApp.m_tpI1->ResetUnder();    gl_avgI1.CommonReset();   break;
+
+    //I2, Разрядный ток 2, [mA]
+    case 2:   theApp.m_tpI2->ResetUnder();    gl_avgI2.CommonReset();   break;
+
+    //Vrpc, Напряжение на пьезокрр., [V]
+    case 3:   theApp.m_tpVpc->ResetUnder();   gl_avgVpc.CommonReset();  break;
+
+    //Ampl_alt, Амплитуда колебаний (altera), ["]
+    case 4:   theApp.m_tpAmplAngAlt->ResetUnder(); gl_avgAmplAlt.CommonReset();  break;
+
+    //Ampl_dus, Амплитуда колебаний (ДУС), [V]
+    case 5:   theApp.m_tpAmplAngDus->ResetUnder(); gl_avgAmplDus.CommonReset();  break;
+
+    //RULA, Задатчик амплитуды, []
+    case 6:   theApp.m_tpAmplAngRULA->ResetUnder(); gl_avgAmplRULA.CommonReset();  break;
+
+    //T1, Термодатчик 1, [°C]
+    case 7:   theApp.m_tpT1->ResetUnder();  gl_avgT1.CommonReset();  break;
+	
+    //T2, Термодатчик 2, [°C]
+    case 8:   theApp.m_tpT2->ResetUnder();  gl_avgT2.CommonReset();  break;
+
+    //T3, Термодатчик 3, [°C]
+    case 9:   theApp.m_tpT3->ResetUnder();  gl_avgT3.CommonReset();  break;
+
+    //dT12, Разница T1 T2, [°C]
+    case 10:  break;
+
+    //dT13, Разница T1 T3, [°C]
+    case 11:  break;
+
+    //dT23, Разница T2 T3, [°C]
+    case 12:  break;
+
+    //dTsa, Время такта, [msec]
+    case 13:  theApp.m_tpTsaMs->ResetUnder(); gl_avgTsa.CommonReset();  break;
+
+    //dTsa, Время такта, [mcsec]
+    case 14:  theApp.m_tpTsaMcs->ResetUnder(); gl_avgTsa.CommonReset();  break;
+
+    //dTsa, Время такта, [Hz]
+    case 15:  theApp.m_tpTsaHz->ResetUnder();  gl_avgTsa.CommonReset();  break;
+
+    //dc, Коэффициент вычета (''/В)
+    case 16:  theApp.m_tpDecCoeff->ResetUnder();    break;
+  
+  } 
 }
