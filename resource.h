@@ -309,6 +309,22 @@
 #define IDC_BTN_RESET_GRAPH6            1259
 #define IDC_BTN_RESET_GRAPH7            1260
 #define IDC_BTN_RESET_GRAPH8            1261
+#define IDC_EDT_FREE_PARAM1             1262
+#define IDC_EDT_FREE_PARAM2             1263
+#define IDC_EDT_FREE_PARAM3             1264
+#define IDC_EDT_FREE_PARAM4             1265
+#define IDC_BTN_SET_FREE_PARAM_GRAPH1   1266
+#define IDC_EDT_FREE_PARAM5             1267
+#define IDC_EDT_FREE_PARAM6             1268
+#define IDC_EDT_FREE_PARAM7             1269
+#define IDC_EDT_FREE_PARAM8             1270
+#define IDC_BTN_SET_FREE_PARAM_GRAPH2   1271
+#define IDC_BTN_SET_FREE_PARAM_GRAPH3   1272
+#define IDC_BTN_SET_FREE_PARAM_GRAPH4   1273
+#define IDC_BTN_SET_FREE_PARAM_GRAPH5   1274
+#define IDC_BTN_SET_FREE_PARAM_GRAPH6   1275
+#define IDC_BTN_SET_FREE_PARAM_GRAPH7   1276
+#define IDC_BTN_SET_FREE_PARAM_GRAPH8   1277
 #define ID_START                        32771
 
 // Next default values for new objects
@@ -318,7 +334,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        140
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1255
+#define _APS_NEXT_CONTROL_VALUE         1263
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

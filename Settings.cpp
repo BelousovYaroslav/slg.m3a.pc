@@ -20,6 +20,7 @@ extern CSlg2App theApp;
 
 CSettings::CSettings()
 {
+  m_nFreeGraphDescriptor = 0xFF;
 }
 
 CSettings::~CSettings()
@@ -47,8 +48,7 @@ void CSettings::LoadSettings()
   m_aSettGraph[6].SetAxisY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_PARAM"), 0));
   m_aSettGraph[7].SetAxisY( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_PARAM"), 0));
 
-  //осреднения
-  /*
+  //осреднения  
   m_aSettGraph[0].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_MEANING"), 0));
   m_aSettGraph[1].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH2_MEANING"), 0));
   m_aSettGraph[2].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH3_MEANING"), 0));
@@ -57,7 +57,7 @@ void CSettings::LoadSettings()
   m_aSettGraph[5].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH6_MEANING"), 0));
   m_aSettGraph[6].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH7_MEANING"), 0));
   m_aSettGraph[7].SetMeaning( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH8_MEANING"), 0));
-  */
+  /*
   m_aSettGraph[0].SetMeaning( 1);
   m_aSettGraph[1].SetMeaning( 1);
   m_aSettGraph[2].SetMeaning( 1);
@@ -66,6 +66,7 @@ void CSettings::LoadSettings()
   m_aSettGraph[5].SetMeaning( 1);
   m_aSettGraph[6].SetMeaning( 1);
   m_aSettGraph[7].SetMeaning( 1);
+  */
 
   //параметр, отображаемый по оси X
   m_aSettGraph[0].SetAxisX( theApp.GetProfileInt( _T("SETTINGS"), _T("GRAPH1_X"), 0));
@@ -130,6 +131,7 @@ void CSettings::LoadSettings()
   //BOOL m_bLine;                   //соединять линиями
   //int m_nGraph1LineWidth;         //толщина линии
 
+  m_nFreeGraphDescriptor =    theApp.GetProfileInt( _T("SETTINGS"), _T("FREE_GRAPH_DESCRIPTOR"), 0xFF);
 }
 
 void CSettings::SaveSettings()
@@ -138,7 +140,7 @@ void CSettings::SaveSettings()
   theApp.WriteProfileInt( _T("SETTINGS"), _T("COM_BAUDRATE"), m_nComBaudrate);
   //theApp.WriteProfileInt( _T("SETTINGS"), _T("LOG_LEVEL"), m_nLogLevel);
   theApp.WriteProfileInt( _T("SETTINGS"), _T("SCALE_COEFF"), ( int) ( m_dKimpSec * 1000.));
-
+  theApp.WriteProfileInt( _T("SETTINGS"), _T("FREE_GRAPH_DESCRIPTOR"), m_nFreeGraphDescriptor);
 
   //параметр, отображаемый по оси Y
   theApp.WriteProfileInt( _T("SETTINGS"), _T("GRAPH1_PARAM"), m_aSettGraph[0].GetAxisY());

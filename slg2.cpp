@@ -535,7 +535,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				case TACT_CODE: theApp.m_btParam2 = nCur1;        break;        //Код такта подставки
 				case M_COEFF:   theApp.m_btParam3 = nCur1;        break;        //коэффициент ошумления
 				case STARTMODE: theApp.m_btParam4 = nCur1;        break;        //Начальная мода
-        case DECCOEFF:  theApp.m_shFlashDecCoeff = nCur1; break;      //коэффициент вычета
+        case DECCOEFF:  theApp.m_shFlashDecCoeff = nCur1; break;        //коэффициент вычета
 
         case CONTROL_I1:  theApp.m_shFlashI1min = nCur1;  break;        //Контрольный ток I1
 			  case CONTROL_I2:  theApp.m_shFlashI2min = nCur1;  break;        //Контрольный ток I2
@@ -594,6 +594,10 @@ DWORD WINAPI BigThread(LPVOID lparam)
         case T2_TD3: theApp.m_shFlashTD3_2 = nCur1; /*Beep( 900, 100);*/ break; //калибровка термодатчиков: TD3_maxT
 					
 			}
+
+      if( byte5 == theApp.GetSettings()->GetFreeGraphParamDesc()) {
+        theApp.m_shFreeTrackedParam = nCur1;
+      }
 
 			/*
 			//проверка калибровки термодатчиков
@@ -720,6 +724,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
         theApp.m_tpTsaMcs->Get_Tacts()->AddPoint(       dSaTime / dbl1secInTacts * 1.e6, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpTsaHz->Get_Tacts()->AddPoint(        dbl1secInTacts / dSaTime       , gl_dGlobalTime, bInveracityTact);
         theApp.m_tpDecCoeff->Get_Tacts()->AddPoint(     theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, bInveracityTact);
+        theApp.m_tpFree->Get_Tacts()->AddPoint(         theApp.m_shFreeTrackedParam,     gl_dGlobalTime, bInveracityTact);
 
         bInveracityTact = FALSE;
 
@@ -889,6 +894,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpTsaMs->Get_100ms()->AddPoint(    dbl_pTSamean * 1000.,     gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpTsaHz->Get_100ms()->AddPoint(    1. / dbl_pTSamean,        gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpDecCoeff->Get_100ms()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpFree->Get_100ms()->AddPoint(     theApp.m_shFreeTrackedParam, gl_dGlobalTime, FALSE);
 
           bInveracity100ms = FALSE;
 
@@ -1045,7 +1051,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpTsaMs->      Get_1s()->AddPoint( dbl_pTSamean / dbl1secInTacts* 1000.,     gl_dGlobalTime, bInveracity1s);
           theApp.m_tpTsaHz->      Get_1s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity1s);
           theApp.m_tpDecCoeff->   Get_1s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
-
+          theApp.m_tpFree->       Get_1s()->AddPoint( theApp.m_shFreeTrackedParam, gl_dGlobalTime, FALSE);
           bInveracity1s = FALSE;
         }
 
@@ -1182,6 +1188,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpTsaMs->      Get_10s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,    gl_dGlobalTime, bInveracity10s);
           theApp.m_tpTsaHz->      Get_10s()->AddPoint( dbl1secInTacts / dbl_pTSamean,       gl_dGlobalTime, bInveracity10s);
           theApp.m_tpDecCoeff->   Get_10s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpFree->       Get_10s()->AddPoint( theApp.m_shFreeTrackedParam,       gl_dGlobalTime, FALSE);
 
           bInveracity10s = FALSE;
         }
@@ -1318,7 +1325,8 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpTsaMcs->     Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000.,  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpTsaMs->      Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,     gl_dGlobalTime, bInveracity100s);
           theApp.m_tpTsaHz->      Get_100s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity100s);
-          theApp.m_tpDecCoeff->   Get_100s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpDecCoeff->   Get_100s()->AddPoint( theApp.m_shFlashDecCoeff / 65535.,  gl_dGlobalTime, FALSE);
+          theApp.m_tpFree->       Get_100s()->AddPoint( theApp.m_shFreeTrackedParam,        gl_dGlobalTime, FALSE);
 
           bInveracity100s = FALSE;
 
@@ -1452,6 +1460,7 @@ BOOL CSlg2App::InitInstance()
   m_tpTsaMs =       new CTrackedParam( n);
   m_tpTsaHz =       new CTrackedParam( n);
   m_tpDecCoeff =    new CTrackedParam( n);
+  m_tpFree =        new CTrackedParam( n);
 
 	gl_dGlobalTime = 0.;
 
@@ -1633,6 +1642,7 @@ int CSlg2App::ExitInstance()
   m_tpTsaMs->FreeUnder();
   m_tpTsaHz->FreeUnder();
   m_tpDecCoeff->FreeUnder();
+  m_tpFree->FreeUnder();
 
   delete m_tpW;   m_tpW   = NULL;
   delete m_tpI1;  m_tpI1  = NULL;
@@ -1648,6 +1658,7 @@ int CSlg2App::ExitInstance()
   delete m_tpTsaMs;       m_tpTsaMs = NULL;
   delete m_tpTsaHz;       m_tpTsaHz = NULL;
   delete m_tpDecCoeff;    m_tpDecCoeff = NULL;
+  delete m_tpFree;        m_tpFree = NULL;
 
   return CWinApp::ExitInstance();
 }

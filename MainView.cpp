@@ -288,6 +288,30 @@ BEGIN_MESSAGE_MAP(CMainView, CFormView)
 	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH6, OnBtnResetGraph6)
 	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH7, OnBtnResetGraph7)
 	ON_BN_CLICKED(IDC_BTN_RESET_GRAPH8, OnBtnResetGraph8)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEHEX_B01, OnKillfocusEdtFreehexB01)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEDEC_B01, OnKillfocusEdtFreedecB01)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEDEC_B02, OnKillfocusEdtFreedecB02)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEDEC_B03, OnKillfocusEdtFreedecB03)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEDEC_B04, OnKillfocusEdtFreedecB04)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEHEX_B02, OnKillfocusEdtFreehexB02)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEHEX_B03, OnKillfocusEdtFreehexB03)
+	ON_EN_KILLFOCUS(IDC_EDT_FREEHEX_B04, OnKillfocusEdtFreehexB04)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH1_Y, OnSelchangeCmbGraph1Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH2_Y, OnSelchangeCmbGraph2Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH3_Y, OnSelchangeCmbGraph3Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH4_Y, OnSelchangeCmbGraph4Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH5_Y, OnSelchangeCmbGraph5Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH6_Y, OnSelchangeCmbGraph6Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH7_Y, OnSelchangeCmbGraph7Y)
+	ON_CBN_SELCHANGE(IDC_CMB_GRAPH8_Y, OnSelchangeCmbGraph8Y)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH1, OnBtnSetFreeParamGraph1)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH2, OnBtnSetFreeParamGraph2)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH3, OnBtnSetFreeParamGraph3)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH4, OnBtnSetFreeParamGraph4)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH5, OnBtnSetFreeParamGraph5)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH6, OnBtnSetFreeParamGraph6)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH7, OnBtnSetFreeParamGraph7)
+	ON_BN_CLICKED(IDC_BTN_SET_FREE_PARAM_GRAPH8, OnBtnSetFreeParamGraph8)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -315,12 +339,24 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	
 	int nGrWidth = cx / 8;
 	CRect rc;
+  int nSelectedItem, nTotal;
 
 	if( m_ctlSmallGraph1.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0,                 50,               nGrWidth - 2,  12,          SWP_NOZORDER);
-		m_ctlSmallGraph1.GetWindowRect( &rc);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0,                 50,               nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowPos( NULL, nGrWidth - 50,  50,               20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH1)->SetWindowPos( NULL, nGrWidth - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0,                 50,               nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowPos( NULL, nGrWidth - 50,  50,               20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH1)->SetWindowPos( NULL, nGrWidth - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
+    m_ctlSmallGraph1.GetWindowRect( &rc);
 		m_ctlSmallGraph1.SetWindowPos(               NULL, 0,                 70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
-    GetDlgItem( IDC_CMB_GRAPH1_X)->SetWindowPos( NULL, 0,                 70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
+    GetDlgItem( IDC_CMB_GRAPH1_X)->SetWindowPos( NULL, 0,                 70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);    
     GetDlgItem( IDC_RAD_G1_T0)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 75,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T1)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 90,               20,            12,          SWP_NOZORDER);
     GetDlgItem( IDC_RAD_G1_T2)->SetWindowPos(    NULL, nGrWidth * 1 - 21, 105,              20,            12,          SWP_NOZORDER);
@@ -331,7 +367,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 	
 	if( m_ctlSmallGraph2.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos( NULL, nGrWidth,          50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos(    NULL, nGrWidth,                     50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowPos( NULL, nGrWidth * 2  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH2)->SetWindowPos( NULL, nGrWidth * 2 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos(    NULL, nGrWidth,                     50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowPos( NULL, nGrWidth * 2 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH2)->SetWindowPos( NULL, nGrWidth * 2 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph2.GetWindowRect( &rc);
 		m_ctlSmallGraph2.SetWindowPos(               NULL, nGrWidth,          70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH2_X)->SetWindowPos( NULL, nGrWidth,          70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -345,7 +392,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph3.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos( NULL, nGrWidth * 2,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos(    NULL, nGrWidth * 2,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowPos( NULL, nGrWidth * 3  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH3)->SetWindowPos( NULL, nGrWidth * 3 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos(    NULL, nGrWidth * 2,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowPos( NULL, nGrWidth * 3 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH3)->SetWindowPos( NULL, nGrWidth * 3 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph3.GetWindowRect( &rc);
 		m_ctlSmallGraph3.SetWindowPos(               NULL, nGrWidth * 2,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH3_X)->SetWindowPos( NULL, nGrWidth * 2,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -359,7 +417,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph4.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos( NULL, nGrWidth * 3,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos(    NULL, nGrWidth * 3,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowPos( NULL, nGrWidth * 4  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH4)->SetWindowPos( NULL, nGrWidth * 4 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos(    NULL, nGrWidth * 3,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowPos( NULL, nGrWidth * 4 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH4)->SetWindowPos( NULL, nGrWidth * 4 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph4.GetWindowRect( &rc);
 		m_ctlSmallGraph4.SetWindowPos(               NULL, nGrWidth * 3,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH4_X)->SetWindowPos( NULL, nGrWidth * 3,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -373,7 +442,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph5.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos( NULL, nGrWidth * 4,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos(    NULL, nGrWidth * 4,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowPos( NULL, nGrWidth * 4  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH5)->SetWindowPos( NULL, nGrWidth * 5 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos(    NULL, nGrWidth * 4,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowPos( NULL, nGrWidth * 5 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH5)->SetWindowPos( NULL, nGrWidth * 5 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph5.GetWindowRect( &rc);
 		m_ctlSmallGraph5.SetWindowPos(               NULL, nGrWidth * 4,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH5_X)->SetWindowPos( NULL, nGrWidth * 4,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -387,7 +467,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph6.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos( NULL, nGrWidth * 5,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos(    NULL, nGrWidth * 5,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowPos( NULL, nGrWidth * 6  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH6)->SetWindowPos( NULL, nGrWidth * 6 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos(    NULL, nGrWidth * 5,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowPos( NULL, nGrWidth * 6 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH6)->SetWindowPos( NULL, nGrWidth * 6 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph6.GetWindowRect( &rc);
 		m_ctlSmallGraph6.SetWindowPos(               NULL, nGrWidth * 5,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH6_X)->SetWindowPos( NULL, nGrWidth * 5,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -401,7 +492,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph7.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos( NULL, nGrWidth * 6,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos(    NULL, nGrWidth * 6,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowPos( NULL, nGrWidth * 7  - 50,           50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH7)->SetWindowPos( NULL, nGrWidth * 7 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos(    NULL, nGrWidth * 6,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowPos( NULL, nGrWidth * 7 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH7)->SetWindowPos( NULL, nGrWidth * 7 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph7.GetWindowRect( &rc);
 		m_ctlSmallGraph7.SetWindowPos(               NULL, nGrWidth * 6,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH7_X)->SetWindowPos( NULL, nGrWidth * 6,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -415,7 +517,18 @@ void CMainView::OnSize(UINT nType, int cx, int cy)
 	}
 
 	if( m_ctlSmallGraph8.m_hWnd) {
-    GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos( NULL, nGrWidth * 7,      50,               nGrWidth - 2,  12,          SWP_NOZORDER);
+    nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCurSel();
+    nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCount();
+    if( nSelectedItem != nTotal-1) {
+      GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos(    NULL, nGrWidth * 7,                 50,     nGrWidth,      12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowPos( NULL, nGrWidth * 8 - 50,            50,     20,            20,          SWP_HIDEWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH8)->SetWindowPos( NULL, nGrWidth * 8 - 30,  50,     30,            20,          SWP_HIDEWINDOW);
+    }
+    else {
+      GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos(    NULL, nGrWidth * 7,                 50,     nGrWidth - 50, 12,          SWP_NOZORDER);
+		  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowPos( NULL, nGrWidth * 8 - 50,            50,     20,            20,          SWP_SHOWWINDOW);
+      GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH8)->SetWindowPos( NULL, nGrWidth * 8 - 30,  50,     30,            20,          SWP_SHOWWINDOW);
+    }
 		m_ctlSmallGraph8.GetWindowRect( &rc);
 		m_ctlSmallGraph8.SetWindowPos(               NULL, nGrWidth * 7,      70,               nGrWidth - 22, rc.Height(), SWP_NOZORDER);
     GetDlgItem( IDC_CMB_GRAPH8_X)->SetWindowPos( NULL, nGrWidth * 7,      70 + rc.Height(), nGrWidth - 40, 12,          SWP_NOZORDER);
@@ -1200,6 +1313,7 @@ void CMainView::RefreshGraphs()
       case 14: cbfrY = theApp.m_tpTsaMcs->Get_CB( nMeaningTime);     break;   //dTsa, Время такта, [mcsec]
       case 15: cbfrY = theApp.m_tpTsaHz->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [Hz]
       case 16: cbfrY = theApp.m_tpDecCoeff->Get_CB( nMeaningTime);   break;   //dc, Коэффициент вычета, ["/В]
+      case 17: cbfrY = theApp.m_tpFree->Get_CB( nMeaningTime);       break;   //Свободный параметр
     }
 
     if( cbfrY == NULL) {
@@ -1769,6 +1883,7 @@ void CMainView::RefreshGraphs()
   theApp.m_tpTsaMs->RecalculateStatisticUnder();
   theApp.m_tpTsaHz->RecalculateStatisticUnder();
   theApp.m_tpDecCoeff->RecalculateStatisticUnder();
+  theApp.m_tpFree->RecalculateStatisticUnder();
 
   //******************************************************************************************
   //Обновим панель статистики справа от большого графика
@@ -1807,6 +1922,7 @@ void CMainView::RefreshGraphs()
     case 14:  cbfr = theApp.m_tpTsaMcs->Get_CB( nMeaningTimeRad);     bShowStatistic = TRUE; break;    //dt_sa, mcsec
     case 15:  cbfr = theApp.m_tpTsaHz->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa, hz
     case 16:  cbfr = theApp.m_tpDecCoeff->Get_CB( nMeaningTimeRad);   bShowStatistic = TRUE; break;    //dc, коэффициент вычета, ["/В]
+    case 17:  cbfr = theApp.m_tpFree->Get_CB( nMeaningTimeRad);       bShowStatistic = TRUE; break;    //свободный параметр
   }
   
   theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p3: bShowStatistic=%s nMainDisplayedParam=%d",
@@ -1986,6 +2102,17 @@ void CMainView::OnInitialUpdate()
   SetTimer( TIMER_SEND_CMDS_TO_MC, 500, NULL);
 
   m_ctlMainGraph.GetPlots().Item( 1).SetLineColor( RGB( 0, 127, 0));
+
+  CString tmps;
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
 }
 
 void CMainView::OnTimer(UINT nIDEvent) 
@@ -2218,6 +2345,7 @@ void CMainView::OnTimer(UINT nIDEvent)
         theApp.m_tpTsaMs->ResetUnder();
         theApp.m_tpTsaHz->ResetUnder();
         theApp.m_tpDecCoeff->ResetUnder();
+        theApp.m_tpFree->ResetUnder();
 
 				if( app->fhNew != NULL)
 					fclose( app->fhNew);
@@ -2375,6 +2503,7 @@ void CMainView::OnTimer(UINT nIDEvent)
     theApp.m_tpTsaMs->ResetUnder();
     theApp.m_tpTsaHz->ResetUnder();
     theApp.m_tpDecCoeff->ResetUnder();
+    theApp.m_tpFree->ResetUnder();
   }
 
   CFormView::OnTimer(nIDEvent);
@@ -2571,7 +2700,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpTsaMs->FreeUnder();
     theApp.m_tpTsaHz->FreeUnder();
     theApp.m_tpDecCoeff->FreeUnder();
-
+    theApp.m_tpFree->FreeUnder();
 
     delete theApp.m_tpW;          theApp.m_tpW   = NULL;
     delete theApp.m_tpI1;         theApp.m_tpI1  = NULL;
@@ -2587,7 +2716,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     delete theApp.m_tpTsaMs;      theApp.m_tpTsaMs = NULL;
     delete theApp.m_tpTsaHz;      theApp.m_tpTsaHz = NULL;
     delete theApp.m_tpDecCoeff;   theApp.m_tpDecCoeff = NULL;
-
+    delete theApp.m_tpFree;       theApp.m_tpFree = NULL;
 
     double dMeasTime = m_ctlNedtMeasTime.GetValue();
     int nArraySize = 0;
@@ -2612,6 +2741,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpTsaMs = new CTrackedParam( nArraySize);
     theApp.m_tpTsaHz = new CTrackedParam( nArraySize);
     theApp.m_tpDecCoeff = new CTrackedParam( nArraySize);
+    theApp.m_tpFree = new CTrackedParam( nArraySize);
 
     theApp.m_nCheckSummFails = 0;
     theApp.m_nCounterFails = 0;
@@ -2621,6 +2751,8 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_shFlashDecCoeff = 0;
     theApp.m_shSignCoeff = 0;
     theApp.m_nHvAppliesThisRun = -1;
+    
+    theApp.m_shFreeTrackedParam = 0;
 
     switch( m_nComPort) {
       case 0: gl_strComPort = "COM1"; break;
@@ -2753,6 +2885,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpTsaMs->ResetUnder();
     theApp.m_tpTsaHz->ResetUnder();
     theApp.m_tpDecCoeff->ResetUnder();
+    theApp.m_tpFree->ResetUnder();
   }
 
   UpdateData( false);
@@ -3011,7 +3144,8 @@ void CMainView::OnOnCommComm()
     theApp.m_tpTsaMs->ResetUnder();
     theApp.m_tpTsaHz->ResetUnder();
     theApp.m_tpDecCoeff->ResetUnder();
-	
+	  theApp.m_tpFree->ResetUnder();
+
 		m_ctlBtnCwStart.SetValue( false);
 		m_bBtnCwStart = false;
 		UpdateData( false);
@@ -3379,6 +3513,7 @@ void CMainView::OnBtnReset()
   theApp.m_tpTsaMs->ResetUnder();
   theApp.m_tpTsaHz->ResetUnder();
   theApp.m_tpDecCoeff->ResetUnder();
+  theApp.m_tpFree->ResetUnder();
 
   theApp.m_nCheckSummFails = 0;
   theApp.m_nMarkerFails = 0;
@@ -3794,5 +3929,399 @@ void CMainView::OnBtnResetGraph( int nCmbGraphAxY)
     //dc, Коэффициент вычета (''/В)
     case 16:  theApp.m_tpDecCoeff->ResetUnder();    break;
   
+    //Свободный параметр
+    case 17:  theApp.m_tpFree->ResetUnder();    break;
   } 
+}
+
+void CMainView::OnKillfocusEdtFreedecB01() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEDEC_B01)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 10);
+  strTmp.Format( _T("%02X"), nVal);
+  GetDlgItem( IDC_EDT_FREEHEX_B01)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreedecB02() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEDEC_B02)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 10);
+  strTmp.Format( _T("%02X"), nVal);
+  GetDlgItem( IDC_EDT_FREEHEX_B02)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreedecB03() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEDEC_B03)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 10);
+  strTmp.Format( _T("%02X"), nVal);
+  GetDlgItem( IDC_EDT_FREEHEX_B03)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreedecB04() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEDEC_B04)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 10);
+  strTmp.Format( _T("%02X"), nVal);
+  GetDlgItem( IDC_EDT_FREEHEX_B04)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreehexB01() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEHEX_B01)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 16);
+  strTmp.Format( _T("%d"), nVal);
+  GetDlgItem( IDC_EDT_FREEDEC_B01)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreehexB02() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEHEX_B02)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 16);
+  strTmp.Format( _T("%d"), nVal);
+  GetDlgItem( IDC_EDT_FREEDEC_B02)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreehexB03() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEHEX_B03)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 16);
+  strTmp.Format( _T("%d"), nVal);
+  GetDlgItem( IDC_EDT_FREEDEC_B03)->SetWindowText( strTmp);
+}
+
+void CMainView::OnKillfocusEdtFreehexB04() 
+{
+	CString strTmp;
+  GetDlgItem( IDC_EDT_FREEHEX_B04)->GetWindowText( strTmp);
+  int nVal = strtol( strTmp, NULL, 16);
+  strTmp.Format( _T("%d"), nVal);
+  GetDlgItem( IDC_EDT_FREEDEC_B04)->SetWindowText( strTmp);
+}
+
+void CMainView::OnSelchangeCmbGraph1Y() 
+{
+  CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH1_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH1)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH1_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM1)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH1)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH1_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM1)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH1)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph2Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH2_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH2)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH2_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM2)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH2)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH2_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM2)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH2)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph3Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH3_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH3)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH3_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM3)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH3)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH3_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM3)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH3)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph4Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH4_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH4)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH4_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM4)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH4)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH4_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM4)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH4)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph5Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH5_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH5)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH5_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM5)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH5)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH5_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM5)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH5)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph6Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH6_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH6)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH6_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM6)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH6)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH6_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM6)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH6)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph7Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH7_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH7)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH7_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM7)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH7)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH7_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM7)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH7)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnSelchangeCmbGraph8Y() 
+{
+	CRect rc1, rc2, rc3;
+  
+  GetDlgItem( IDC_CMB_GRAPH8_Y)->GetWindowRect( &rc1);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->GetWindowRect( &rc2);
+  GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH8)->GetWindowRect( &rc3);
+
+	int nSelectedItem = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCurSel();
+  int nTotal = ( ( CComboBox *) GetDlgItem( IDC_CMB_GRAPH8_Y))->GetCount();
+  if( nSelectedItem != nTotal-1) {
+    int nW = rc3.right - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM8)->ShowWindow( SW_HIDE);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH8)->ShowWindow( SW_HIDE);
+  }
+  else {
+    int nW = rc2.left - rc1.left;
+    GetDlgItem( IDC_CMB_GRAPH8_Y)->SetWindowPos( NULL, 0, 0, nW, 12, SWP_NOZORDER | SWP_NOMOVE);
+		GetDlgItem( IDC_EDT_FREE_PARAM8)->ShowWindow( SW_SHOW);
+    GetDlgItem( IDC_BTN_SET_FREE_PARAM_GRAPH8)->ShowWindow( SW_SHOW);
+  }
+}
+
+void CMainView::OnBtnSetFreeParamGraph1() 
+{
+  CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph2() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph3() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph4() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph5() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph6() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph7() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
+}
+
+void CMainView::OnBtnSetFreeParamGraph8() 
+{
+	CString tmps;
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->GetWindowText( tmps);
+  theApp.GetSettings()->SetFreeGraphParamDesc( strtol( tmps, NULL, 16));
+  tmps.Format( _T("%02X"), theApp.GetSettings()->GetFreeGraphParamDesc());
+  GetDlgItem( IDC_EDT_FREE_PARAM1)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM2)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM3)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM4)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM5)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM6)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM7)->SetWindowText( tmps);
+  GetDlgItem( IDC_EDT_FREE_PARAM8)->SetWindowText( tmps);
 }

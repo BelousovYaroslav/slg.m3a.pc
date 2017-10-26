@@ -46,6 +46,8 @@ public:
   int m_nHvAppliesThisRun;    //кол-во 3kV импульсов поджига в этом запуске
 
 
+  unsigned short m_shFreeTrackedParam;
+
   unsigned short m_shFlashT1, m_shFlashTD1_1, m_shFlashTD2_1, m_shFlashTD3_1;
   unsigned short m_shFlashT2, m_shFlashTD1_2, m_shFlashTD2_2, m_shFlashTD3_2;
   /*
@@ -81,6 +83,7 @@ public:
   CTrackedParam *m_tpTsaMs;
   CTrackedParam *m_tpTsaHz;
   CTrackedParam *m_tpDecCoeff;
+  CTrackedParam *m_tpFree;
 
   int m_nMarkerFails;
   int m_nCounterFails;

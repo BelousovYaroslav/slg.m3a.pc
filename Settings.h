@@ -36,9 +36,12 @@ public:
 
   CSettingsGraph *GetGraphSettings( int nGraph) { return &m_aSettGraph[nGraph]; }
   
+  int GetFreeGraphParamDesc() { return m_nFreeGraphDescriptor;}
+  void SetFreeGraphParamDesc( int nNewVal) { m_nFreeGraphDescriptor = nNewVal;}
+
 private:
   int m_nLogLevel;
-  
+  int m_nFreeGraphDescriptor;  //дескриптор параметра отображаемого в свободном окне
   int m_nComPort;           //сохраняемый-вычитываемый из реестра COM-порт
   int m_nComBaudrate;       //сохраняемая-вычитываемая из реестра скорость COM-порта
   int m_nControlButtons;    //сохраняемый-вычитываемый из реестра флаг показывать ли управляющие контролы

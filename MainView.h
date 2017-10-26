@@ -213,6 +213,30 @@ protected:
 	afx_msg void OnBtnResetGraph6();
 	afx_msg void OnBtnResetGraph7();
 	afx_msg void OnBtnResetGraph8();
+	afx_msg void OnKillfocusEdtFreehexB01();
+	afx_msg void OnKillfocusEdtFreedecB01();
+	afx_msg void OnKillfocusEdtFreedecB02();
+	afx_msg void OnKillfocusEdtFreedecB03();
+	afx_msg void OnKillfocusEdtFreedecB04();
+	afx_msg void OnKillfocusEdtFreehexB02();
+	afx_msg void OnKillfocusEdtFreehexB03();
+	afx_msg void OnKillfocusEdtFreehexB04();
+	afx_msg void OnSelchangeCmbGraph1Y();
+	afx_msg void OnSelchangeCmbGraph2Y();
+	afx_msg void OnSelchangeCmbGraph3Y();
+	afx_msg void OnSelchangeCmbGraph4Y();
+	afx_msg void OnSelchangeCmbGraph5Y();
+	afx_msg void OnSelchangeCmbGraph6Y();
+	afx_msg void OnSelchangeCmbGraph7Y();
+	afx_msg void OnSelchangeCmbGraph8Y();
+	afx_msg void OnBtnSetFreeParamGraph1();
+	afx_msg void OnBtnSetFreeParamGraph2();
+	afx_msg void OnBtnSetFreeParamGraph3();
+	afx_msg void OnBtnSetFreeParamGraph4();
+	afx_msg void OnBtnSetFreeParamGraph5();
+	afx_msg void OnBtnSetFreeParamGraph6();
+	afx_msg void OnBtnSetFreeParamGraph7();
+	afx_msg void OnBtnSetFreeParamGraph8();
 	DECLARE_EVENTSINK_MAP()
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
