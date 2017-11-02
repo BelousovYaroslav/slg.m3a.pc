@@ -255,6 +255,8 @@ private:
   CDlgGraphSetup *m_dlgGraphSetup;
   int m_nPollParams[ POLL_PARAMS_LEN];
   int m_nPollCounter;
+  CNiColor m_clrSelected;
+  CNiColor m_clrFree;
 };
 
 /////////////////////////////////////////////////////////////////////////////

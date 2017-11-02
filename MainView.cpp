@@ -140,6 +140,8 @@ CMainView::CMainView()
   m_nPollParams[ 6] = STARTMODE;
   m_nPollParams[ 7] = DECCOEFF;  
   
+  m_clrSelected = CNiColor( 255, 250, 205);
+  m_clrFree = CNiColor( 255, 255, 255);
 }
 
 CMainView::~CMainView()
@@ -1232,11 +1234,6 @@ void CMainView::RefreshGraphs()
 
     CNiGraph *obj = NULL, *obj2 = NULL;
 
-    //Заодно нарисуем главный график
-    if( m_nMainGraph == i+1) {
-      obj2 = &m_ctlMainGraph;
-    }
-
     //определим ID комбобокса графика, и его время осреднения
     int nResId, nResIdX, nMeaningTime;
     switch( i) {
@@ -1249,6 +1246,16 @@ void CMainView::RefreshGraphs()
       case 7:  obj = &m_ctlSmallGraph8; nResId = IDC_CMB_GRAPH8_Y; nResIdX = IDC_CMB_GRAPH8_X; nMeaningTime = m_nRadGraph8; break;
       default: obj = &m_ctlSmallGraph1; nResId = IDC_CMB_GRAPH1_Y; nResIdX = IDC_CMB_GRAPH1_X; nMeaningTime = m_nRadGraph1; break;
     }
+
+    //Заодно нарисуем главный график
+    if( m_nMainGraph == i+1) {
+      obj2 = &m_ctlMainGraph;
+      obj->SetPlotAreaColor( m_clrSelected);
+    }
+    else {
+      obj->SetPlotAreaColor( m_clrFree);
+    }   
+
 
     if( obj != NULL) {
       BOOL bMinY = theApp.GetSettings()->GetGraphSettings( i)->Get_bMinY();
