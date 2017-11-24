@@ -51,6 +51,7 @@ extern CSlgGroupNewAverager gl_avgVpc;
 extern CSlgGroupNewAverager gl_avgAmplAlt;
 extern CSlgGroupNewAverager gl_avgAmplDus;
 extern CSlgGroupNewAverager gl_avgAmplRULA;
+extern CSlgGroupNewAverager gl_avgAmplRULAv;
 extern CSlgGroupNewAverager gl_avgT1;
 extern CSlgGroupNewAverager gl_avgT2;
 extern CSlgGroupNewAverager gl_avgT3;
@@ -1310,17 +1311,18 @@ void CMainView::RefreshGraphs()
       case 4:  cbfrY = theApp.m_tpAmplAngAlt->Get_CB( nMeaningTime); break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
       case 5:  cbfrY = theApp.m_tpAmplAngDus->Get_CB( nMeaningTime); break;   //Ampl_dus, Амплитуда колебаний (ДУС), ["]
       case 6:  cbfrY = theApp.m_tpAmplAngRULA->Get_CB( nMeaningTime);break;   //RULA, Задатчик амплитуды, []
-      case 7:  cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //T1, Термодатчик 1, [°C]
-      case 8:  cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //T2, Термодатчик 2, [°C]
-      case 9:  cbfrY = theApp.m_tpT3->Get_CB( nMeaningTime);         break;   //T3, Термодатчик 3, [°C]
-      case 10: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT12, Разница T1 T2, [°C]
-      case 11: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT13, Разница T1 T3, [°C]
-      case 12: cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //dT23, Разница T2 T3, [°C]
-      case 13: cbfrY = theApp.m_tpTsaMs->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [msec]
-      case 14: cbfrY = theApp.m_tpTsaMcs->Get_CB( nMeaningTime);     break;   //dTsa, Время такта, [mcsec]
-      case 15: cbfrY = theApp.m_tpTsaHz->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [Hz]
-      case 16: cbfrY = theApp.m_tpDecCoeff->Get_CB( nMeaningTime);   break;   //dc, Коэффициент вычета, ["/В]
-      case 17: cbfrY = theApp.m_tpFree->Get_CB( nMeaningTime);       break;   //Свободный параметр
+      case 7:  cbfrY = theApp.m_tpAmplAngRULAv->Get_CB( nMeaningTime);break;   //RULA, Задатчик амплитуды, [В]
+      case 8:  cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //T1, Термодатчик 1, [°C]
+      case 9:  cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //T2, Термодатчик 2, [°C]
+      case 10: cbfrY = theApp.m_tpT3->Get_CB( nMeaningTime);         break;   //T3, Термодатчик 3, [°C]
+      case 11: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT12, Разница T1 T2, [°C]
+      case 12: cbfrY = theApp.m_tpT1->Get_CB( nMeaningTime);         break;   //dT13, Разница T1 T3, [°C]
+      case 13: cbfrY = theApp.m_tpT2->Get_CB( nMeaningTime);         break;   //dT23, Разница T2 T3, [°C]
+      case 14: cbfrY = theApp.m_tpTsaMs->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [msec]
+      case 15: cbfrY = theApp.m_tpTsaMcs->Get_CB( nMeaningTime);     break;   //dTsa, Время такта, [mcsec]
+      case 16: cbfrY = theApp.m_tpTsaHz->Get_CB( nMeaningTime);      break;   //dTsa, Время такта, [Hz]
+      case 17: cbfrY = theApp.m_tpDecCoeff->Get_CB( nMeaningTime);   break;   //dc, Коэффициент вычета, ["/В]
+      case 18: cbfrY = theApp.m_tpFree->Get_CB( nMeaningTime);       break;   //Свободный параметр
     }
 
     if( cbfrY == NULL) {
@@ -1883,6 +1885,7 @@ void CMainView::RefreshGraphs()
   theApp.m_tpAmplAngAlt->RecalculateStatisticUnder();
   theApp.m_tpAmplAngDus->RecalculateStatisticUnder();
   theApp.m_tpAmplAngRULA->RecalculateStatisticUnder();
+  theApp.m_tpAmplAngRULAv->RecalculateStatisticUnder();
   theApp.m_tpT1->RecalculateStatisticUnder();
   theApp.m_tpT2->RecalculateStatisticUnder();
   theApp.m_tpT3->RecalculateStatisticUnder();
@@ -1919,17 +1922,18 @@ void CMainView::RefreshGraphs()
     case  4:  cbfr = theApp.m_tpAmplAngAlt->Get_CB( nMeaningTimeRad); bShowStatistic = TRUE; break;    //Ampl_alt
     case  5:  cbfr = theApp.m_tpAmplAngDus->Get_CB( nMeaningTimeRad); bShowStatistic = TRUE; break;    //Ampl_alt
     case  6:  cbfr = theApp.m_tpAmplAngRULA->Get_CB( nMeaningTimeRad);bShowStatistic = TRUE; break;    //Ampl_alt_rula
-    case  7:  cbfr = theApp.m_tpT1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T1
-    case  8:  cbfr = theApp.m_tpT2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T2
-    case  9:  cbfr = theApp.m_tpT3->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T3
-    case 10:  break; //deltaT12
-    case 11:  break; //deltaT13
-    case 12:  break; //deltaT23
-    case 13:  cbfr = theApp.m_tpTsaMs->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa,msec
-    case 14:  cbfr = theApp.m_tpTsaMcs->Get_CB( nMeaningTimeRad);     bShowStatistic = TRUE; break;    //dt_sa, mcsec
-    case 15:  cbfr = theApp.m_tpTsaHz->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa, hz
-    case 16:  cbfr = theApp.m_tpDecCoeff->Get_CB( nMeaningTimeRad);   bShowStatistic = TRUE; break;    //dc, коэффициент вычета, ["/В]
-    case 17:  cbfr = theApp.m_tpFree->Get_CB( nMeaningTimeRad);       bShowStatistic = TRUE; break;    //свободный параметр
+    case  7:  cbfr = theApp.m_tpAmplAngRULAv->Get_CB( nMeaningTimeRad);bShowStatistic = TRUE; break;    //Ampl_alt_rulaV
+    case  8:  cbfr = theApp.m_tpT1->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T1
+    case  9:  cbfr = theApp.m_tpT2->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T2
+    case 10:  cbfr = theApp.m_tpT3->Get_CB( nMeaningTimeRad);         bShowStatistic = TRUE; break;    //T3
+    case 11:  break; //deltaT12
+    case 12:  break; //deltaT13
+    case 13:  break; //deltaT23
+    case 14:  cbfr = theApp.m_tpTsaMs->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa,msec
+    case 15:  cbfr = theApp.m_tpTsaMcs->Get_CB( nMeaningTimeRad);     bShowStatistic = TRUE; break;    //dt_sa, mcsec
+    case 16:  cbfr = theApp.m_tpTsaHz->Get_CB( nMeaningTimeRad);      bShowStatistic = TRUE; break;    //dt_sa, hz
+    case 17:  cbfr = theApp.m_tpDecCoeff->Get_CB( nMeaningTimeRad);   bShowStatistic = TRUE; break;    //dc, коэффициент вычета, ["/В]
+    case 18:  cbfr = theApp.m_tpFree->Get_CB( nMeaningTimeRad);       bShowStatistic = TRUE; break;    //свободный параметр
   }
   
   theApp.GetLogger()->LogDebug( "CMainView::RefreshGraphs: p3: bShowStatistic=%s nMainDisplayedParam=%d",
@@ -2167,7 +2171,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 		//m_strParam5Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
 		//m_strParam6Val.Format( _T("%.2f"), ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
 		//m_strParam7Val.Format( _T("%.2f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.0));
-		m_strParam8Val.Format( _T("%.5f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);   //коэффициент вычета
+		m_strParam8Val.Format( _T("%.5f"), ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 655350.);   //коэффициент вычета
 		//m_strParam9Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
 		//m_strParam10Val.Format( _T("%d"), (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 		
@@ -2333,6 +2337,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 				gl_avgAmplAlt.CommonReset();
         gl_avgAmplDus.CommonReset();
         gl_avgAmplRULA.CommonReset();
+        gl_avgAmplRULAv.CommonReset();
 				gl_avgT1.CommonReset();
 				gl_avgT2.CommonReset();
 				gl_avgTsa.CommonReset();
@@ -2345,6 +2350,7 @@ void CMainView::OnTimer(UINT nIDEvent)
 				theApp.m_tpAmplAngAlt->ResetUnder();
         theApp.m_tpAmplAngDus->ResetUnder();
         theApp.m_tpAmplAngRULA->ResetUnder();
+        theApp.m_tpAmplAngRULAv->ResetUnder();
 				theApp.m_tpT1->ResetUnder();
 				theApp.m_tpT2->ResetUnder();
         theApp.m_tpT3->ResetUnder();
@@ -2437,7 +2443,7 @@ void CMainView::OnTimer(UINT nIDEvent)
         //m_ctlNedtParam5.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI1min / 65535. * 0.75);
         //m_ctlNedtParam6.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashI2min / 65535. * 0.75);
         //m_ctlNedtParam7.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashAmplAng1min / 65535. * 6.);
-        m_ctlNedtParam8.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff / 65535.);
+        m_ctlNedtParam8.SetValue( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff / 655350.);
         //m_ctlNedtParam9.SetValue( (( CSlg2App *) AfxGetApp())->m_shSignCoeff);
         //m_ctlNedtParam10.SetValue( (( CSlg2App *) AfxGetApp())->m_shPhaseShift);
 
@@ -2491,6 +2497,7 @@ void CMainView::OnTimer(UINT nIDEvent)
     gl_avgAmplAlt.CommonReset();
     gl_avgAmplDus.CommonReset();
     gl_avgAmplRULA.CommonReset();
+    gl_avgAmplRULAv.CommonReset();
     gl_avgT1.CommonReset();
     gl_avgT2.CommonReset();
     gl_avgTsa.CommonReset();
@@ -2503,6 +2510,7 @@ void CMainView::OnTimer(UINT nIDEvent)
     theApp.m_tpAmplAngAlt->ResetUnder();
     theApp.m_tpAmplAngDus->ResetUnder();
     theApp.m_tpAmplAngRULA->ResetUnder();
+    theApp.m_tpAmplAngRULAv->ResetUnder();
     theApp.m_tpT1->ResetUnder();
     theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -2550,16 +2558,17 @@ CString CMainView::UnitsForYAxis( int nYAxisCmbResourceID) {
     case 4:  strYaxis = _T("\"");     break;   //Ampl_alt, Амплитуда колебаний (altera), ["]
     case 5:  strYaxis = _T("V");      break;   //Ampl_dus, Амплитуда колебаний (ДУС), [V]
     case 6:  strYaxis = _T("code");   break;   // ************* RULA, Задатчик амплитуды, []
-    case 7:  strYaxis = _T("°C");     break;   //T1, Термодатчик 1, [°C]
-    case 8:  strYaxis = _T("°C");     break;   //T2, Термодатчик 2, [°C]
-    case 9:  strYaxis = _T("°C");     break;   //T3, Термодатчик 3, [°C]
-    case 10: strYaxis = _T("°C");     break;   //dT12, Разница T1 T2, [°C]
-    case 11: strYaxis = _T("°C");     break;   //dT13, Разница T1 T3, [°C]
-    case 12: strYaxis = _T("°C");     break;   //dT23, Разница T2 T3, [°C]
-    case 13: strYaxis = _T("msec");   break;   //dTsa, Время такта, [msec]
-    case 14: strYaxis = _T("mcsec");  break;   //dTsa, Время такта, [mcsec]
-    case 15: strYaxis = _T("Hz");     break;   //dTsa, Время такта, [Hz]
-    case 16: strYaxis = _T("\"/V");   break;   //dc, Коэффициент вычета, ["/В]
+    case 7:  strYaxis = _T("V");      break;   // ************* RULA, Задатчик амплитуды, [В]
+    case 8:  strYaxis = _T("°C");     break;   //T1, Термодатчик 1, [°C]
+    case 9:  strYaxis = _T("°C");     break;   //T2, Термодатчик 2, [°C]
+    case 10: strYaxis = _T("°C");     break;   //T3, Термодатчик 3, [°C]
+    case 11: strYaxis = _T("°C");     break;   //dT12, Разница T1 T2, [°C]
+    case 12: strYaxis = _T("°C");     break;   //dT13, Разница T1 T3, [°C]
+    case 13: strYaxis = _T("°C");     break;   //dT23, Разница T2 T3, [°C]
+    case 14: strYaxis = _T("msec");   break;   //dTsa, Время такта, [msec]
+    case 15: strYaxis = _T("mcsec");  break;   //dTsa, Время такта, [mcsec]
+    case 16: strYaxis = _T("Hz");     break;   //dTsa, Время такта, [Hz]
+    case 17: strYaxis = _T("\"/V");   break;   //dc, Коэффициент вычета, ["/В]
   }
   return strYaxis;
 }
@@ -2700,6 +2709,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpAmplAngAlt->FreeUnder();
     theApp.m_tpAmplAngDus->FreeUnder();
     theApp.m_tpAmplAngRULA->FreeUnder();
+    theApp.m_tpAmplAngRULAv->FreeUnder();
     theApp.m_tpT1->FreeUnder();
     theApp.m_tpT2->FreeUnder();
     theApp.m_tpT3->FreeUnder();
@@ -2713,9 +2723,10 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     delete theApp.m_tpI1;         theApp.m_tpI1  = NULL;
     delete theApp.m_tpI2;         theApp.m_tpI2  = NULL;
     delete theApp.m_tpVpc;        theApp.m_tpVpc = NULL;
-    delete theApp.m_tpAmplAngAlt; theApp.m_tpAmplAngAlt = NULL;
-    delete theApp.m_tpAmplAngDus; theApp.m_tpAmplAngDus = NULL;
-    delete theApp.m_tpAmplAngRULA;theApp.m_tpAmplAngRULA = NULL;
+    delete theApp.m_tpAmplAngAlt;   theApp.m_tpAmplAngAlt = NULL;
+    delete theApp.m_tpAmplAngDus;   theApp.m_tpAmplAngDus = NULL;
+    delete theApp.m_tpAmplAngRULA;  theApp.m_tpAmplAngRULA = NULL;
+    delete theApp.m_tpAmplAngRULAv; theApp.m_tpAmplAngRULAv = NULL;
     delete theApp.m_tpT1;         theApp.m_tpT1 = NULL;
     delete theApp.m_tpT2;         theApp.m_tpT2 = NULL;
     delete theApp.m_tpT3;         theApp.m_tpT3 = NULL;
@@ -2741,6 +2752,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpAmplAngAlt = new CTrackedParam( nArraySize);
     theApp.m_tpAmplAngDus = new CTrackedParam( nArraySize);
     theApp.m_tpAmplAngRULA = new CTrackedParam( nArraySize);
+    theApp.m_tpAmplAngRULAv = new CTrackedParam( nArraySize);
     theApp.m_tpT1 = new CTrackedParam( nArraySize);
     theApp.m_tpT2 = new CTrackedParam( nArraySize);
     theApp.m_tpT3 = new CTrackedParam( nArraySize);
@@ -2873,6 +2885,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     gl_avgAmplAlt.CommonReset();
     gl_avgAmplDus.CommonReset();
     gl_avgAmplRULA.CommonReset();
+    gl_avgAmplRULAv.CommonReset();
     gl_avgT1.CommonReset();
     gl_avgT2.CommonReset();
     gl_avgTsa.CommonReset();
@@ -2885,6 +2898,7 @@ void CMainView::OnValueChangedCwStart(BOOL Value)
     theApp.m_tpAmplAngAlt->ResetUnder();
     theApp.m_tpAmplAngDus->ResetUnder();
     theApp.m_tpAmplAngRULA->ResetUnder();
+    theApp.m_tpAmplAngRULAv->ResetUnder();
     theApp.m_tpT1->ResetUnder();
     theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -2999,7 +3013,7 @@ void CMainView::OnParam4Btn()
 void CMainView::OnParam8Btn() 
 {
 	UpdateData( true);
-	short val = ( short) ( m_ctlNedtParam8.GetValue() * 65535.);
+	short val = ( short) ( m_ctlNedtParam8.GetValue() * 655350.);
 
 
   QueueCommandToMc( MC_COMMAND_SET, DECCOEFF,
@@ -3133,6 +3147,7 @@ void CMainView::OnOnCommComm()
 		gl_avgAmplAlt.CommonReset();
     gl_avgAmplDus.CommonReset();
     gl_avgAmplRULA.CommonReset();
+    gl_avgAmplRULAv.CommonReset();
 		gl_avgT1.CommonReset();
 		gl_avgT2.CommonReset();
 		gl_avgTsa.CommonReset();
@@ -3144,6 +3159,7 @@ void CMainView::OnOnCommComm()
     theApp.m_tpAmplAngAlt->ResetUnder();
     theApp.m_tpAmplAngDus->ResetUnder();
     theApp.m_tpAmplAngRULA->ResetUnder();
+    theApp.m_tpAmplAngRULAv->ResetUnder();
 		theApp.m_tpT1->ResetUnder();
 		theApp.m_tpT2->ResetUnder();
     theApp.m_tpT3->ResetUnder();
@@ -3489,7 +3505,7 @@ void CMainView::OnBtnMcToOutStartmode()
 
 void CMainView::OnBtnMcToOutDeccoeff() 
 {
-	m_ctlNedtParam8.SetValue( ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 65535.);
+	m_ctlNedtParam8.SetValue( ( ( double) (( CSlg2App *) AfxGetApp())->m_shFlashDecCoeff) / 655350.);
 }
 
 void CMainView::OnBtnSwitchWDndu() 
@@ -3513,6 +3529,7 @@ void CMainView::OnBtnReset()
   theApp.m_tpAmplAngAlt->ResetUnder();
   theApp.m_tpAmplAngDus->ResetUnder();
   theApp.m_tpAmplAngRULA->ResetUnder();
+  theApp.m_tpAmplAngRULAv->ResetUnder();
 	theApp.m_tpT1->ResetUnder();
 	theApp.m_tpT2->ResetUnder();
   theApp.m_tpT3->ResetUnder();
@@ -3538,6 +3555,7 @@ void CMainView::OnBtnReset()
 	gl_avgAmplAlt.CommonReset();
   gl_avgAmplDus.CommonReset();
   gl_avgAmplRULA.CommonReset();
+  gl_avgAmplRULAv.CommonReset();
 	gl_avgT1.CommonReset();
 	gl_avgT2.CommonReset();
   gl_avgT3.CommonReset();
@@ -3906,38 +3924,41 @@ void CMainView::OnBtnResetGraph( int nCmbGraphAxY)
     //RULA, Задатчик амплитуды, []
     case 6:   theApp.m_tpAmplAngRULA->ResetUnder(); gl_avgAmplRULA.CommonReset();  break;
 
+    //RULA, Задатчик амплитуды, [В]
+    case 7:   theApp.m_tpAmplAngRULAv->ResetUnder(); gl_avgAmplRULAv.CommonReset();  break;
+
     //T1, Термодатчик 1, [°C]
-    case 7:   theApp.m_tpT1->ResetUnder();  gl_avgT1.CommonReset();  break;
+    case 8:   theApp.m_tpT1->ResetUnder();  gl_avgT1.CommonReset();  break;
 	
     //T2, Термодатчик 2, [°C]
-    case 8:   theApp.m_tpT2->ResetUnder();  gl_avgT2.CommonReset();  break;
+    case 9:   theApp.m_tpT2->ResetUnder();  gl_avgT2.CommonReset();  break;
 
     //T3, Термодатчик 3, [°C]
-    case 9:   theApp.m_tpT3->ResetUnder();  gl_avgT3.CommonReset();  break;
+    case 10:  theApp.m_tpT3->ResetUnder();  gl_avgT3.CommonReset();  break;
 
     //dT12, Разница T1 T2, [°C]
-    case 10:  break;
-
-    //dT13, Разница T1 T3, [°C]
     case 11:  break;
 
-    //dT23, Разница T2 T3, [°C]
+    //dT13, Разница T1 T3, [°C]
     case 12:  break;
 
+    //dT23, Разница T2 T3, [°C]
+    case 13:  break;
+
     //dTsa, Время такта, [msec]
-    case 13:  theApp.m_tpTsaMs->ResetUnder(); gl_avgTsa.CommonReset();  break;
+    case 14:  theApp.m_tpTsaMs->ResetUnder(); gl_avgTsa.CommonReset();  break;
 
     //dTsa, Время такта, [mcsec]
-    case 14:  theApp.m_tpTsaMcs->ResetUnder(); gl_avgTsa.CommonReset();  break;
+    case 15:  theApp.m_tpTsaMcs->ResetUnder(); gl_avgTsa.CommonReset();  break;
 
     //dTsa, Время такта, [Hz]
-    case 15:  theApp.m_tpTsaHz->ResetUnder();  gl_avgTsa.CommonReset();  break;
+    case 16:  theApp.m_tpTsaHz->ResetUnder();  gl_avgTsa.CommonReset();  break;
 
     //dc, Коэффициент вычета (''/В)
-    case 16:  theApp.m_tpDecCoeff->ResetUnder();    break;
+    case 17:  theApp.m_tpDecCoeff->ResetUnder();    break;
   
     //Свободный параметр
-    case 17:  theApp.m_tpFree->ResetUnder();    break;
+    case 18:  theApp.m_tpFree->ResetUnder();    break;
   } 
 }
 

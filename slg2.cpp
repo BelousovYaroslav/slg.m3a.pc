@@ -58,6 +58,7 @@ CSlgGroupNewAverager gl_avgVpc;
 CSlgGroupNewAverager gl_avgAmplAlt;
 CSlgGroupNewAverager gl_avgAmplDus;
 CSlgGroupNewAverager gl_avgAmplRULA;
+CSlgGroupNewAverager gl_avgAmplRULAv;
 CSlgGroupNewAverager gl_avgT1;
 CSlgGroupNewAverager gl_avgT2;
 CSlgGroupNewAverager gl_avgT3;
@@ -357,8 +358,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
       theApp.m_bWdNdU = bdWdNdU;
 
       //пол-байта с кодом ошибки
-      if( theApp.m_nEmergencyCode == 0)
+      if( theApp.m_nEmergencyCode == 0) {
 				theApp.m_nEmergencyCode = bErrorCode;
+        CString strMsg;
+        strMsg.Format( _T("%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x >> %02x << %02x"),
+                byte1, byte2, byte3, byte4, byte5, byte6,
+                byte7, byte8, byte9, byte10, byte11, byte12);
+        theApp.GetLogger()->LogInfo( _T("Прибор сообщает об ошибке: %s"), strMsg);
+      }
 
       //проверка счётчика посылок
       if( btPrevPackCounter == 500) {
@@ -413,7 +420,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
           gl_pDecCoeffCalcParams.AddDnDuDtPoint( dN, dU, dSaTime);
         }
 
-        dAngle_inc =  ( double) dN - ( ( double) dU * ( ( double) theApp.m_shFlashDecCoeff / 65535.)) * theApp.m_shSignCoeff;
+        dAngle_inc =  ( double) dN - ( ( double) dU * ( ( double) theApp.m_shFlashDecCoeff / 655350.)) * theApp.m_shSignCoeff;
 
         if( fabs( dAngle_inc) > 100.) {
           CString strTmp;
@@ -451,7 +458,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
       double dblTD1_tact = 0., dblTD2_tact = 0., dblTD3_tact = 0.;
       double dblI1_tact = 0., dblI2_tact = 0.;
       double dblVpc_tact = 0.;
-      double dblAAA_tact = 0., dblAAD_tact = 0., dblAAR_tact = 0.;
+      double dblAAA_tact = 0., dblAAD_tact = 0., dblAAR_tact = 0., dblAARv_tact = 0.;
 
 			switch( byte5) {
 				case UTD1:
@@ -527,8 +534,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           dblAAD_tact = dCur1;
         break;
         case RULA:
-          gl_avgAmplRULA.CommonAddPoint( dCur1);
-          dblAAR_tact = dCur1;
+          gl_avgAmplRULA.CommonAddPoint( dCur1);  dblAAR_tact = dCur1;
+          gl_avgAmplRULAv.CommonAddPoint( dCur1 * 3. / 4096.); dblAARv_tact = dCur1 * 3. / 4096.;
+          
         break;
 
 				case AMPLITUDE: theApp.m_btParam1 = nCur1;        break;        //Амплитуда колебаний виброподвеса
@@ -717,13 +725,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
         theApp.m_tpAmplAngAlt->Get_Tacts()->AddPoint(   dblAAA_tact, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpAmplAngDus->Get_Tacts()->AddPoint(   dblAAD_tact, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpAmplAngRULA->Get_Tacts()->AddPoint(  dblAAR_tact, gl_dGlobalTime, bInveracityTact);
+        theApp.m_tpAmplAngRULAv->Get_Tacts()->AddPoint( dblAARv_tact,gl_dGlobalTime, bInveracityTact);
         theApp.m_tpT1->Get_Tacts()->AddPoint(           dblTD1_tact, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpT2->Get_Tacts()->AddPoint(           dblTD2_tact, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpT3->Get_Tacts()->AddPoint(           dblTD3_tact, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpTsaMs->Get_Tacts()->AddPoint(        dSaTime / dbl1secInTacts * 1.e3, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpTsaMcs->Get_Tacts()->AddPoint(       dSaTime / dbl1secInTacts * 1.e6, gl_dGlobalTime, bInveracityTact);
         theApp.m_tpTsaHz->Get_Tacts()->AddPoint(        dbl1secInTacts / dSaTime       , gl_dGlobalTime, bInveracityTact);
-        theApp.m_tpDecCoeff->Get_Tacts()->AddPoint(     theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, bInveracityTact);
+        theApp.m_tpDecCoeff->Get_Tacts()->AddPoint(     theApp.m_shFlashDecCoeff / 655350., gl_dGlobalTime, bInveracityTact);
         theApp.m_tpFree->Get_Tacts()->AddPoint(         theApp.m_shFreeTrackedParam,     gl_dGlobalTime, bInveracityTact);
 
         bInveracityTact = FALSE;
@@ -813,6 +822,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
             dbl_pAAR = gl_avgAmplRULA.Get_100ms()->GetMean();                //amplangRULA
           }
 
+          //амплитуда RULAv
+          double dbl_pAARv = 0.;
+          if( gl_avgAmplRULAv.Get_100ms()->GetCounter()) {
+            dbl_pAARv = gl_avgAmplRULAv.Get_100ms()->GetMean();              //amplangRULAv
+          }
+
           //температура 1
           double dbl_pT1 = 0.;
           if( gl_avgT1.Get_100ms()->GetCounter()) {
@@ -829,16 +844,6 @@ DWORD WINAPI BigThread(LPVOID lparam)
             dbl_pT2 = T2 / 65535. * 200. - 100.;				            //V!
             //gl_pT2 = T2;
           }
-
-          /*
-          if( gl_avT2->GetCounter()) {
-            //double T2 = gl_avT2->GetMean();						//получаемая средняя амплитуда с альтеры
-            //gl_pT2 = T2 * ( ( CSlg2App *) AfxGetApp())->m_dKimpSec;
-
-            double T2 = gl_avT2->GetMean();						  //RULA
-            gl_pT2 = T2;
-          }
-          */
 
         
           //температура 3
@@ -884,16 +889,17 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpI1->Get_100ms()->AddPoint(       dbl_pi1,    gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpI2->Get_100ms()->AddPoint(       dbl_pi2,    gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpVpc->Get_100ms()->AddPoint(      dbl_pVpc,   gl_dGlobalTime, bInveracity100ms);
-          theApp.m_tpAmplAngAlt->Get_100ms()->AddPoint( dbl_pAAA, gl_dGlobalTime, bInveracity100ms);
-          theApp.m_tpAmplAngDus->Get_100ms()->AddPoint( dbl_pAAD, gl_dGlobalTime, bInveracity100ms);
-          theApp.m_tpAmplAngRULA->Get_100ms()->AddPoint(dbl_pAAR, gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAngAlt->Get_100ms()->AddPoint(   dbl_pAAA, gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAngDus->Get_100ms()->AddPoint(   dbl_pAAD, gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAngRULA->Get_100ms()->AddPoint(  dbl_pAAR, gl_dGlobalTime, bInveracity100ms);
+          theApp.m_tpAmplAngRULAv->Get_100ms()->AddPoint( dbl_pAARv,gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpT1->Get_100ms()->AddPoint(       dbl_pT1,    gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpT2->Get_100ms()->AddPoint(       dbl_pT2,    gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpT3->Get_100ms()->AddPoint(       dbl_pT3,    gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpTsaMcs->Get_100ms()->AddPoint(   dbl_pTSamean * 1000000.,  gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpTsaMs->Get_100ms()->AddPoint(    dbl_pTSamean * 1000.,     gl_dGlobalTime, bInveracity100ms);
           theApp.m_tpTsaHz->Get_100ms()->AddPoint(    1. / dbl_pTSamean,        gl_dGlobalTime, bInveracity100ms);
-          theApp.m_tpDecCoeff->Get_100ms()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpDecCoeff->Get_100ms()->AddPoint( theApp.m_shFlashDecCoeff / 655350., gl_dGlobalTime, FALSE);
           theApp.m_tpFree->Get_100ms()->AddPoint(     theApp.m_shFreeTrackedParam, gl_dGlobalTime, FALSE);
 
           bInveracity100ms = FALSE;
@@ -908,6 +914,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
             gl_avgAmplAlt.CommonReset();
             gl_avgAmplDus.CommonReset();
             gl_avgAmplRULA.CommonReset();
+            gl_avgAmplRULAv.CommonReset();
             gl_avgT1.CommonReset();
             gl_avgT2.CommonReset();
             gl_avgTsa.CommonReset();
@@ -1002,6 +1009,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					  dbl_pAAR = gl_avgAmplRULA.Get_1s()->GetMean();       //amplangRULA
 				  }
 
+          //амплитуда RULAv
+          double dbl_pAARv = 0.;
+          if( gl_avgAmplRULAv.Get_1s()->GetCounter()) {
+					  dbl_pAARv = gl_avgAmplRULAv.Get_1s()->GetMean();     //amplangRULAv
+				  }
+
           //температура 1
           double dbl_pT1 = 0.;
           if( gl_avgT1.Get_1s()->GetCounter()) {
@@ -1044,13 +1057,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpAmplAngAlt-> Get_1s()->AddPoint( dbl_pAAA, gl_dGlobalTime, bInveracity1s);
           theApp.m_tpAmplAngDus-> Get_1s()->AddPoint( dbl_pAAD, gl_dGlobalTime, bInveracity1s);
           theApp.m_tpAmplAngRULA->Get_1s()->AddPoint( dbl_pAAR, gl_dGlobalTime, bInveracity1s);
+          theApp.m_tpAmplAngRULAv->Get_1s()->AddPoint( dbl_pAARv, gl_dGlobalTime, bInveracity1s);
           theApp.m_tpT1->         Get_1s()->AddPoint( dbl_pT1,  gl_dGlobalTime, bInveracity1s);
           theApp.m_tpT2->         Get_1s()->AddPoint( dbl_pT2,  gl_dGlobalTime, bInveracity1s);
           theApp.m_tpT3->         Get_1s()->AddPoint( dbl_pT3,  gl_dGlobalTime, bInveracity1s);
           theApp.m_tpTsaMcs->     Get_1s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000.,  gl_dGlobalTime, bInveracity1s);
           theApp.m_tpTsaMs->      Get_1s()->AddPoint( dbl_pTSamean / dbl1secInTacts* 1000.,     gl_dGlobalTime, bInveracity1s);
           theApp.m_tpTsaHz->      Get_1s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity1s);
-          theApp.m_tpDecCoeff->   Get_1s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpDecCoeff->   Get_1s()->AddPoint( theApp.m_shFlashDecCoeff / 655350., gl_dGlobalTime, FALSE);
           theApp.m_tpFree->       Get_1s()->AddPoint( theApp.m_shFreeTrackedParam, gl_dGlobalTime, FALSE);
           bInveracity1s = FALSE;
         }
@@ -1138,6 +1152,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					  dbl_pAAR = gl_avgAmplRULA.Get_10s()->GetMean();                //amplang RULA
 				  }
 
+          //амплитуда RULAv
+          double dbl_pAARv = 0.;
+          if( gl_avgAmplRULAv.Get_10s()->GetCounter()) {
+					  dbl_pAARv = gl_avgAmplRULAv.Get_10s()->GetMean();              //amplang RULAv
+				  }
+
           //температура 1
           double dbl_pT1 = 0.;
           if( gl_avgT1.Get_10s()->GetCounter()) {
@@ -1181,13 +1201,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpAmplAngAlt-> Get_10s()->AddPoint( dbl_pAAA,              gl_dGlobalTime, bInveracity10s);
           theApp.m_tpAmplAngDus-> Get_10s()->AddPoint( dbl_pAAD,              gl_dGlobalTime, bInveracity10s);
           theApp.m_tpAmplAngRULA->Get_10s()->AddPoint( dbl_pAAR,              gl_dGlobalTime, bInveracity10s);
+          theApp.m_tpAmplAngRULAv->Get_10s()->AddPoint( dbl_pAARv,              gl_dGlobalTime, bInveracity10s);
           theApp.m_tpT1->         Get_10s()->AddPoint( dbl_pT1,               gl_dGlobalTime, bInveracity10s);
           theApp.m_tpT2->         Get_10s()->AddPoint( dbl_pT2,               gl_dGlobalTime, bInveracity10s);
           theApp.m_tpT3->         Get_10s()->AddPoint( dbl_pT3,               gl_dGlobalTime, bInveracity10s);
           theApp.m_tpTsaMcs->     Get_10s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000., gl_dGlobalTime, bInveracity10s);
           theApp.m_tpTsaMs->      Get_10s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,    gl_dGlobalTime, bInveracity10s);
           theApp.m_tpTsaHz->      Get_10s()->AddPoint( dbl1secInTacts / dbl_pTSamean,       gl_dGlobalTime, bInveracity10s);
-          theApp.m_tpDecCoeff->   Get_10s()->AddPoint( theApp.m_shFlashDecCoeff / 65535., gl_dGlobalTime, FALSE);
+          theApp.m_tpDecCoeff->   Get_10s()->AddPoint( theApp.m_shFlashDecCoeff / 655350., gl_dGlobalTime, FALSE);
           theApp.m_tpFree->       Get_10s()->AddPoint( theApp.m_shFreeTrackedParam,       gl_dGlobalTime, FALSE);
 
           bInveracity10s = FALSE;
@@ -1276,6 +1297,12 @@ DWORD WINAPI BigThread(LPVOID lparam)
 					  dbl_pAARULA = gl_avgAmplRULA.Get_100s()->GetMean();               //amplangRULA
 				  }
 
+          //амплитуда RULAv
+          double dbl_pAARULAv = 0.;
+          if( gl_avgAmplRULAv.Get_100s()->GetCounter()) {
+					  dbl_pAARULAv = gl_avgAmplRULAv.Get_100s()->GetMean();             //amplangRULAv
+				  }
+
           //температура 1
           double dbl_pT1 = 0.;
           if( gl_avgT1.Get_100s()->GetCounter()) {
@@ -1319,13 +1346,14 @@ DWORD WINAPI BigThread(LPVOID lparam)
           theApp.m_tpAmplAngAlt-> Get_100s()->AddPoint( dbl_pAA,                  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpAmplAngDus-> Get_100s()->AddPoint( dbl_pAADus,               gl_dGlobalTime, bInveracity100s);
           theApp.m_tpAmplAngRULA->Get_100s()->AddPoint( dbl_pAARULA,              gl_dGlobalTime, bInveracity100s);
+          theApp.m_tpAmplAngRULAv->Get_100s()->AddPoint( dbl_pAARULAv,              gl_dGlobalTime, bInveracity100s);
           theApp.m_tpT1->         Get_100s()->AddPoint( dbl_pT1,                  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpT2->         Get_100s()->AddPoint( dbl_pT2,                  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpT3->         Get_100s()->AddPoint( dbl_pT3,                  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpTsaMcs->     Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000000.,  gl_dGlobalTime, bInveracity100s);
           theApp.m_tpTsaMs->      Get_100s()->AddPoint( dbl_pTSamean / dbl1secInTacts * 1000.,     gl_dGlobalTime, bInveracity100s);
           theApp.m_tpTsaHz->      Get_100s()->AddPoint( dbl1secInTacts / dbl_pTSamean,        gl_dGlobalTime, bInveracity100s);
-          theApp.m_tpDecCoeff->   Get_100s()->AddPoint( theApp.m_shFlashDecCoeff / 65535.,  gl_dGlobalTime, FALSE);
+          theApp.m_tpDecCoeff->   Get_100s()->AddPoint( theApp.m_shFlashDecCoeff / 655350.,  gl_dGlobalTime, FALSE);
           theApp.m_tpFree->       Get_100s()->AddPoint( theApp.m_shFreeTrackedParam,        gl_dGlobalTime, FALSE);
 
           bInveracity100s = FALSE;
@@ -1453,6 +1481,7 @@ BOOL CSlg2App::InitInstance()
 	m_tpAmplAngAlt =  new CTrackedParam( n);
   m_tpAmplAngDus =  new CTrackedParam( n);
   m_tpAmplAngRULA = new CTrackedParam( n);
+  m_tpAmplAngRULAv = new CTrackedParam( n);
 	m_tpT1 =          new CTrackedParam( n);
 	m_tpT2 =          new CTrackedParam( n);
   m_tpT3 =          new CTrackedParam( n);
@@ -1635,6 +1664,7 @@ int CSlg2App::ExitInstance()
   m_tpAmplAngAlt->FreeUnder();
   m_tpAmplAngDus->FreeUnder();
   m_tpAmplAngRULA->FreeUnder();
+  m_tpAmplAngRULAv->FreeUnder();
   m_tpT1->FreeUnder();
   m_tpT2->FreeUnder();
   m_tpT3->FreeUnder();
@@ -1651,6 +1681,7 @@ int CSlg2App::ExitInstance()
   delete m_tpAmplAngAlt;  m_tpAmplAngAlt = NULL;
   delete m_tpAmplAngDus;  m_tpAmplAngDus = NULL;
   delete m_tpAmplAngRULA; m_tpAmplAngRULA = NULL;
+  delete m_tpAmplAngRULAv; m_tpAmplAngRULAv = NULL;
   delete m_tpT1;          m_tpT1 = NULL;
   delete m_tpT2;          m_tpT2 = NULL;
   delete m_tpT3;          m_tpT3 = NULL;
