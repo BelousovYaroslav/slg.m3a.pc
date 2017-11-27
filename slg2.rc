@@ -70,7 +70,6 @@ END
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON    DISCARDABLE     "res\\slg2.ico"
 IDR_SLG2TYPE            ICON    DISCARDABLE     "res\\slg2Doc.ico"
-IDI_ICON1               ICON    DISCARDABLE     "res\\icon1.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
