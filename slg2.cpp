@@ -484,6 +484,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
         case I1:
           gl_avgI1.CommonAddPoint( dCur1);
           
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+            dblI1_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;         //опрное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
           if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
             dblI1_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
 
@@ -499,6 +502,8 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				case I2:
           gl_avgI2.CommonAddPoint( dCur1);
           
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+            dblI2_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;         //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
 
           if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
             dblI2_tact = ( 2.5 - dCur1 / 4096. * 3.) / 2.5;
@@ -516,6 +521,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				case CNTRPC:
           gl_avgVpc.CommonAddPoint( dCur1);
           
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+            dblVpc_tact = ( ( dCur1 / 4096. * 3.) - 2.048) * 100.;    //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
           if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
             dblVpc_tact = ( ( dCur1 / 4096. * 3.) - 2.048) * 100.;
 
@@ -532,6 +540,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				case AMPLANG_ALTERA:
           gl_avgAmplAlt.CommonAddPoint( dCur1);
           
+          if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+            dblAAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 4.;
+
           if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
             dblAAA_tact = dCur1 * theApp.GetSettings()->GetScaleCoeff() / 4.;
 
@@ -552,7 +563,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
         case RULA:
           gl_avgAmplRULA.CommonAddPoint( dCur1);  dblAAR_tact = dCur1;
-          gl_avgAmplRULAv.CommonAddPoint( dCur1 * 3. / 4096.); dblAARv_tact = dCur1 * 3. / 4096.;
+          gl_avgAmplRULAv.CommonAddPoint( dCur1 * 3. / 4096.); dblAARv_tact = dCur1 * 3. / 4096.;       //РАЗОБРАТЬСЯ С ОПОРОЙ - для М3Б =2.5?
           theApp.m_tpAmplAngRULA->Get_Tacts()->AddPoint(  dblAAR_tact, gl_dGlobalTime, bInveracityTact);
           theApp.m_tpAmplAngRULAv->Get_Tacts()->AddPoint( dblAARv_tact,gl_dGlobalTime, bInveracityTact);
         break;
@@ -761,7 +772,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
             double i1 = gl_avgI1.Get_100ms()->GetMean();
             double dbl_pi1 = 0.;
           
-            /*
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
 
@@ -770,10 +783,6 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.1"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
-            */
-
-            //НУ ВЕЗДЕ ВЫШЕ ЭТО ТАК. ЗАЧЕМ ТОГДА IF'ИТЬ?
-            dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
 
             theApp.m_tpI1->Get_100ms()->AddPoint(       dbl_pi1,    gl_dGlobalTime, bInveracity100ms);
           }
@@ -783,19 +792,17 @@ DWORD WINAPI BigThread(LPVOID lparam)
             double dbl_pi2 = 0.;
             double i2 = gl_avgI2.Get_100ms()->GetMean();						
           
-            /*
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;							    // mA //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
-              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;							  // mA
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;							    // mA
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.1"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
-            */
-
-            //НУ ВЕЗДЕ ВЫШЕ ЭТО ТАК. ЗАЧЕМ ТОГДА IF'ИТЬ?
-            dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
 
             theApp.m_tpI2->Get_100ms()->AddPoint(       dbl_pi2,    gl_dGlobalTime, bInveracity100ms);
           }
@@ -806,7 +813,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
             double dbl_pVpc = 0.;
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
-              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;       //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
@@ -954,6 +961,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI1.Get_1s()->GetCounter()) {
             double i1 = gl_avgI1.Get_1s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA   //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
 
@@ -969,6 +979,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI2.Get_1s()->GetCounter()) {
             double i2 = gl_avgI2.Get_1s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
 
@@ -984,6 +997,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				  if( gl_avgVpc.Get_1s()->GetCounter()) {
 					  double Vpc = gl_avgVpc.Get_1s()->GetMean();					      //напряжение на пьезокорректорах
 					  
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;       //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5?
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
 
@@ -999,6 +1015,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				  if( gl_avgAmplAlt.Get_1s()->GetCounter()) {
 					  double AmplAng = gl_avgAmplAlt.Get_1s()->GetMean();	              //amplang
 					  
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
 
@@ -1097,6 +1116,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI1.Get_10s()->GetCounter()) {
             double i1 = gl_avgI1.Get_10s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA  //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
 
@@ -1112,6 +1134,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI2.Get_10s()->GetCounter()) {
             double i2 = gl_avgI2.Get_10s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
 
@@ -1125,7 +1150,10 @@ DWORD WINAPI BigThread(LPVOID lparam)
           //напряжение на пьезокорректорах
           double dbl_pVpc = 0.;
 				  if( gl_avgVpc.Get_10s()->GetCounter()) {
-					  double Vpc = gl_avgVpc.Get_10s()->GetMean();					            //напряжение на пьезокорректорах
+					  double Vpc = gl_avgVpc.Get_10s()->GetMean();					      //напряжение на пьезокорректорах
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))       //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
 
 					  if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
@@ -1142,6 +1170,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				  if( gl_avgAmplAlt.Get_10s()->GetCounter()) {
 					  double AmplAng = gl_avgAmplAlt.Get_10s()->GetMean();	            //amplang
 					  
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
 
@@ -1242,6 +1273,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI1.Get_100s()->GetCounter()) {
             double i1 = gl_avgI1.Get_100s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                // mA  опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                // mA
 
@@ -1257,20 +1291,26 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgI2.Get_100s()->GetCounter()) {
             double i2 = gl_avgI2.Get_100s()->GetMean();
           
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;                 // mA
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.0"))
-              dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                 // mA
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.1"))
-              dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                 // mA
+              dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
           }
 
           //напряжение на пьезокорректорах
           double dbl_pVpc = 0.;
 				  if( gl_avgVpc.Get_100s()->GetCounter()) {
 					  double Vpc = gl_avgVpc.Get_100s()->GetMean();					      //напряжение на пьезокорректорах
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))       //опорное 3.0 сделано только для прошивки 3.2.4 которую мы пихаем в М3АМ, а так тут должно быть 2,5? 
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
 
 					  if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
@@ -1287,6 +1327,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
 				  if( gl_avgAmplAlt.Get_100s()->GetCounter()) {
 					  double AmplAng = gl_avgAmplAlt.Get_100s()->GetMean();	            //amplang
 					  
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
+
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
 
