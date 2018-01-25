@@ -761,6 +761,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
             double i1 = gl_avgI1.Get_100ms()->GetMean();
             double dbl_pi1 = 0.;
           
+            /*
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 3.) / 2.5;                 // mA
 
@@ -769,6 +770,10 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.1"))
               dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
+            */
+
+            //ÍÓ ÂÅÇÄÅ ÂÛØÅ ÝÒÎ ÒÀÊ. ÇÀ×ÅÌ ÒÎÃÄÀ IF'ÈÒÜ?
+            dbl_pi1 = ( 2.5 - i1 / 4096. * 2.5) / 2.5;                // mA
 
             theApp.m_tpI1->Get_100ms()->AddPoint(       dbl_pi1,    gl_dGlobalTime, bInveracity100ms);
           }
@@ -778,6 +783,7 @@ DWORD WINAPI BigThread(LPVOID lparam)
             double dbl_pi2 = 0.;
             double i2 = gl_avgI2.Get_100ms()->GetMean();						
           
+            /*
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 3.) / 2.5;;							  // mA
 
@@ -786,7 +792,11 @@ DWORD WINAPI BigThread(LPVOID lparam)
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v4.2.1"))
               dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
-          
+            */
+
+            //ÍÓ ÂÅÇÄÅ ÂÛØÅ ÝÒÎ ÒÀÊ. ÇÀ×ÅÌ ÒÎÃÄÀ IF'ÈÒÜ?
+            dbl_pi2 = ( 2.5 - i2 / 4096. * 2.5) / 2.5;                // mA
+
             theApp.m_tpI2->Get_100ms()->AddPoint(       dbl_pi2,    gl_dGlobalTime, bInveracity100ms);
           }
 
@@ -794,6 +804,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgVpc.Get_100ms()->GetCounter()) {
             double Vpc = gl_avgVpc.Get_100ms()->GetMean();					  //íàïðÿæåíèå íà ïüåçîêîððåêòîðàõ
             double dbl_pVpc = 0.;
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pVpc = ( ( Vpc / 4096. * 3.) - 2.048) * 100.;
@@ -811,6 +824,9 @@ DWORD WINAPI BigThread(LPVOID lparam)
           if( gl_avgAmplAlt.Get_100ms()->GetCounter()) {
             double AmplAng = gl_avgAmplAlt.Get_100ms()->GetMean();	            //amplang
             double dbl_pAAA = 0.;
+
+            if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.4"))
+              dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
 
             if( theApp.m_strSoftwareVer.Left( 6) == _T("v3.2.5"))
               dbl_pAAA = AmplAng * theApp.GetSettings()->GetScaleCoeff() / 4.;	//''
