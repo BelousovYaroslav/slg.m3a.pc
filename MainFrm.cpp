@@ -116,7 +116,7 @@ void CMainFrame::Dump(CDumpContext& dc) const
 void CMainFrame::OnSizing(UINT fwSide, LPRECT pRect) 
 {
 	if( ( pRect->right - pRect->left) < 500) pRect->right = pRect->left + 500;
-	if( ( pRect->bottom - pRect->top) < 500) pRect->bottom = pRect->top + 500;	
+	if( ( pRect->bottom - pRect->top) < 300) pRect->bottom = pRect->top + 300;	
 	CFrameWnd::OnSizing( fwSide, pRect);
 }
 
